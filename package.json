@@ -1,0 +1,34 @@
+{
+  "name": "com.spellboundstudios.marchingcubes",
+  "version": "1.0.8",
+  "displayName": "MarchingCubes",
+  "description": "This is a marching cube library for generating and managing octree meshes deriving from density voxel data.",
+  "unity": "6000.0",
+  "author": {
+    "name": "Spellbound Studios",
+    "email": "Judsin1349@gmail.com",
+    "url": "https://github.com/Spell-Bound-Studios"
+  },
+  "dependencies": {
+    "com.unity.inputsystem": "1.13.1",
+    "com.unity.cinemachine": "3.1.4",
+    "com.unity.physics": "1.3.14",
+    "com.unity.entities": "1.3.14",
+    "com.unity.mathematics": "1.3.2",
+    "com.unity.collections": "2.5.7",
+    "com.spellboundstudios.core": "1.0.0"
+  },
+  "keywords": [
+    "marching-cubes",
+    "transvoxel",
+    "isosurface",
+    "voxel"
+  ],
+  "samples": [
+    {
+      "displayName": "Example Scene",
+      "description": "A third person character controller example scene to show you the responsiveness and state flexibility and overrides you can perform with ease.",
+      "path": "Samples~/"
+    }
+  ]
+}
