@@ -5,7 +5,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace SpellBound.MarchingCubes{
+namespace Spellbound.MarchingCubes {
     public struct MCTablesBlobAsset {
         // Mapping of Voxel.matIndex to Colors for vertexColors
         public BlobArray<Color32> ColorsByIndex;

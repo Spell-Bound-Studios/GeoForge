@@ -2,7 +2,7 @@
 
 using UnityEngine;
 
-namespace SpellBound.WorldSystem {
+namespace Spellbound.WorldSystem {
     /// <summary>
     /// This never gets sent on the network.
     /// </summary>

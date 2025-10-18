@@ -4,7 +4,7 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
 
-namespace SpellBound.MarchingCubes {
+namespace Spellbound.MarchingCubes {
     [BurstCompile]
     public struct SparseDataJob : IJob {
         public NativeArray<VoxelData> Voxels;

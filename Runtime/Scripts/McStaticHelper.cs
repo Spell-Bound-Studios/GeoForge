@@ -2,18 +2,18 @@
 
 using System;
 using System.Runtime.CompilerServices;
+using Spellbound.Core;
 using Unity.Burst;
 using Unity.Mathematics;
 using UnityEngine;
-using Helper = SpellBound.Core.SpellBoundStaticHelper;
 
-namespace SpellBound.MarchingCubes {
+namespace Spellbound.MarchingCubes {
     [BurstCompile]
     public static class McStaticHelper {
         public const int MaxLevelOfDetail = 3;
         public const int CubesMarchedPerOctreeLeaf = 16; // must be Chunksize >> MaxLevelOfDetail, eg: 32 /2 /2 = 8
 
-        public const int ChunkDataWidthSize = Helper.ChunkSize + 3;
+        public const int ChunkDataWidthSize = SpellboundStaticHelper.ChunkSize + 3;
         public const int ChunkDataAreaSize = ChunkDataWidthSize * ChunkDataWidthSize;
         public const int ChunkDataVolumeSize = ChunkDataWidthSize * ChunkDataWidthSize * ChunkDataWidthSize;
         public const float LowFrequencyPass = 0.006f;
@@ -67,13 +67,16 @@ namespace SpellBound.MarchingCubes {
         public const float SmallNumber = 0.25f;
         public static readonly int3 Padding = new(1, 1, 1);
         public static readonly int3 ChunkMinima = Padding;
-        public static readonly int3 ChunkMaxima = new int3(1, 1, 1) * (1 + Helper.ChunkSize);
+        public static readonly int3 ChunkMaxima = new int3(1, 1, 1) * (1 + SpellboundStaticHelper.ChunkSize);
         public static readonly Vector3Int ChunkMinimaAsV3 = new(ChunkMinima.x, ChunkMinima.y, ChunkMinima.z);
         public static readonly Vector3Int ChunkMaximaAsV3 = new(ChunkMaxima.x, ChunkMaxima.y, ChunkMaxima.z);
         public static readonly float3 ChunkStringentMinima = (float3)Padding * 1.01f;
-        public static readonly float3 ChunkStringentMaxima = (float3)Padding * (0.99f + Helper.ChunkSize);
-        public static readonly Vector3Int ChunkCenter = Vector3Int.one * (1 + Helper.ChunkSize / 2);
-        public static readonly Vector3Int ChunkExtents = Vector3Int.one * Helper.ChunkSize;
+
+        public static readonly float3 ChunkStringentMaxima =
+                (float3)Padding * (0.99f + SpellboundStaticHelper.ChunkSize);
+
+        public static readonly Vector3Int ChunkCenter = Vector3Int.one * (1 + SpellboundStaticHelper.ChunkSize / 2);
+        public static readonly Vector3Int ChunkExtents = Vector3Int.one * SpellboundStaticHelper.ChunkSize;
 
         public static readonly int2[] CornerPositions = {
             new(1, 1),

@@ -6,9 +6,8 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
-using McHelper = SpellBound.MarchingCubes.McStaticHelper;
 
-namespace SpellBound.MarchingCubes {
+namespace Spellbound.MarchingCubes {
     /// <summary>
     /// This job marches the cubes of one chunk of terrain at full resolution
     /// </summary>
@@ -33,13 +32,13 @@ namespace SpellBound.MarchingCubes {
             // Caches hold vertex indices from previous cubes. 2 "decks" in y-axis, and 4 positions on the leading
             // corner/edges of each cube.
             var currentCache = new NativeArray<int>(
-                McHelper.CubesMarchedPerOctreeLeaf * McHelper.CubesMarchedPerOctreeLeaf * 4,
+                McStaticHelper.CubesMarchedPerOctreeLeaf * McStaticHelper.CubesMarchedPerOctreeLeaf * 4,
                 Allocator.Temp,
                 NativeArrayOptions.UninitializedMemory
             );
 
             var previousCache = new NativeArray<int>(
-                McHelper.CubesMarchedPerOctreeLeaf * McHelper.CubesMarchedPerOctreeLeaf * 4,
+                McStaticHelper.CubesMarchedPerOctreeLeaf * McStaticHelper.CubesMarchedPerOctreeLeaf * 4,
                 Allocator.Temp,
                 NativeArrayOptions.UninitializedMemory
             );
@@ -52,9 +51,9 @@ namespace SpellBound.MarchingCubes {
             var cellValues = new NativeArray<VoxelData>(8, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
 
             // Inside this nested for loop is where a single cube is marched.
-            for (var y = 0; y < McHelper.CubesMarchedPerOctreeLeaf; y++) {
-                for (var z = 0; z < McHelper.CubesMarchedPerOctreeLeaf; z++) {
-                    for (var x = 0; x < McHelper.CubesMarchedPerOctreeLeaf; x++) {
+            for (var y = 0; y < McStaticHelper.CubesMarchedPerOctreeLeaf; y++) {
+                for (var z = 0; z < McStaticHelper.CubesMarchedPerOctreeLeaf; z++) {
+                    for (var x = 0; x < McStaticHelper.CubesMarchedPerOctreeLeaf; x++) {
                         var cellPos = Start + new int3(x, y, z) * lodScale;
 
                         // Inside this loop we are looping through the 8 corners of the cube.
@@ -62,20 +61,20 @@ namespace SpellBound.MarchingCubes {
                             var voxelPosition = cellPos + new int3(padding, padding, padding) +
                                                 Tables.Value.RegularCornerOffset[i] * lodScale;
 
-                            cellValues[i] = VoxelArray[McHelper.Coord3DToIndex(
+                            cellValues[i] = VoxelArray[McStaticHelper.Coord3DToIndex(
                                 voxelPosition.x, voxelPosition.y, voxelPosition.z
                             )];
                         }
 
                         // CaseCode indicates what kind of cube it is. Empty, full, or a mixture that needs a mesh.
-                        var caseCode = (byte)((cellValues[0].Density >= McHelper.DensityThreshold ? 0x01 : 0)
-                                              | (cellValues[1].Density >= McHelper.DensityThreshold ? 0x02 : 0)
-                                              | (cellValues[2].Density >= McHelper.DensityThreshold ? 0x04 : 0)
-                                              | (cellValues[3].Density >= McHelper.DensityThreshold ? 0x08 : 0)
-                                              | (cellValues[4].Density >= McHelper.DensityThreshold ? 0x10 : 0)
-                                              | (cellValues[5].Density >= McHelper.DensityThreshold ? 0x20 : 0)
-                                              | (cellValues[6].Density >= McHelper.DensityThreshold ? 0x40 : 0)
-                                              | (cellValues[7].Density >= McHelper.DensityThreshold ? 0x80 : 0));
+                        var caseCode = (byte)((cellValues[0].Density >= McStaticHelper.DensityThreshold ? 0x01 : 0)
+                                              | (cellValues[1].Density >= McStaticHelper.DensityThreshold ? 0x02 : 0)
+                                              | (cellValues[2].Density >= McStaticHelper.DensityThreshold ? 0x04 : 0)
+                                              | (cellValues[3].Density >= McStaticHelper.DensityThreshold ? 0x08 : 0)
+                                              | (cellValues[4].Density >= McStaticHelper.DensityThreshold ? 0x10 : 0)
+                                              | (cellValues[5].Density >= McStaticHelper.DensityThreshold ? 0x20 : 0)
+                                              | (cellValues[6].Density >= McStaticHelper.DensityThreshold ? 0x40 : 0)
+                                              | (cellValues[7].Density >= McStaticHelper.DensityThreshold ? 0x80 : 0));
 
                         // This is a "bit twiddle" to more efficiently check if the cube is "empty" caseCode = 0
                         // or "full" caseCode = 255.
@@ -120,7 +119,7 @@ namespace SpellBound.MarchingCubes {
                             if (isVertexCacheable) {
                                 vertexIndex =
                                         selectedCacheDock[
-                                            cachePosX * McHelper.CubesMarchedPerOctreeLeaf * 4 + cachePosZ * 4 +
+                                            cachePosX * McStaticHelper.CubesMarchedPerOctreeLeaf * 4 + cachePosZ * 4 +
                                             cacheIdx];
                             }
 
@@ -133,9 +132,10 @@ namespace SpellBound.MarchingCubes {
                                 // This is caching the vertexIndex for cubes marched later in the loop. 
                                 // Could be optimized to also cache more stuff when the cache validator is non-zero
                                 // (aka on an edge of the chunk).
-                                if (cornerIdx1 == 7)
-                                    currentCache[x * McHelper.CubesMarchedPerOctreeLeaf * 4 + z * 4 + cacheIdx] =
+                                if (cornerIdx1 == 7) {
+                                    currentCache[x * McStaticHelper.CubesMarchedPerOctreeLeaf * 4 + z * 4 + cacheIdx] =
                                             vertexIndex;
+                                }
 
                                 //Local positions of the ends of the edge along which the vertex belongs
                                 var vertLocalPos0 = cellPos + new int3(padding, padding, padding) +
@@ -166,17 +166,17 @@ namespace SpellBound.MarchingCubes {
 
                                     var midPointDensity =
                                             VoxelArray[
-                                                    McHelper.Coord3DToIndex(samplePos.x, +samplePos.y,
+                                                        McStaticHelper.Coord3DToIndex(samplePos.x, +samplePos.y,
                                                             samplePos.z)]
                                                     .Density;
 
                                     var isMidPointDensityAboveThreshold =
-                                            midPointDensity >= McHelper.DensityThreshold;
+                                            midPointDensity >= McStaticHelper.DensityThreshold;
 
                                     var isVert0DensityAboveThreshold =
                                             VoxelArray[
-                                                McHelper.Coord3DToIndex(vertLocalPos0.x, vertLocalPos0.y,
-                                                    vertLocalPos0.z)].Density >= McHelper.DensityThreshold;
+                                                McStaticHelper.Coord3DToIndex(vertLocalPos0.x, vertLocalPos0.y,
+                                                    vertLocalPos0.z)].Density >= McStaticHelper.DensityThreshold;
 
                                     var isVertexNearerToVert1 =
                                             (isMidPointDensityAboveThreshold && isVert0DensityAboveThreshold)
@@ -192,11 +192,11 @@ namespace SpellBound.MarchingCubes {
                                     }
                                 }
 
-                                var index0 = McHelper.Coord3DToIndex(vertLocalPos0.x, vertLocalPos0.y,
+                                var index0 = McStaticHelper.Coord3DToIndex(vertLocalPos0.x, vertLocalPos0.y,
                                     vertLocalPos0.z);
                                 voxel0 = VoxelArray[index0];
 
-                                var index1 = McHelper.Coord3DToIndex(vertLocalPos1.x, vertLocalPos1.y,
+                                var index1 = McStaticHelper.Coord3DToIndex(vertLocalPos1.x, vertLocalPos1.y,
                                     vertLocalPos1.z);
                                 voxel1 = VoxelArray[index1];
 
@@ -217,40 +217,40 @@ namespace SpellBound.MarchingCubes {
                                 var vertPosZ1 = vertLocalPos1.z;
 
                                 var v0_011 = VoxelArray[
-                                    McHelper.Coord3DToIndex(vertPosX0 - 1, vertPosY0, vertPosZ0)];
+                                    McStaticHelper.Coord3DToIndex(vertPosX0 - 1, vertPosY0, vertPosZ0)];
 
                                 var v0_211 = VoxelArray[
-                                    McHelper.Coord3DToIndex(vertPosX0 + 1, vertPosY0, vertPosZ0)];
+                                    McStaticHelper.Coord3DToIndex(vertPosX0 + 1, vertPosY0, vertPosZ0)];
 
                                 var v0_101 = VoxelArray[
-                                    McHelper.Coord3DToIndex(vertPosX0, vertPosY0 - 1, vertPosZ0)];
+                                    McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 - 1, vertPosZ0)];
 
                                 var v0_121 = VoxelArray[
-                                    McHelper.Coord3DToIndex(vertPosX0, vertPosY0 + 1, vertPosZ0)];
+                                    McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 + 1, vertPosZ0)];
 
                                 var v0_110 = VoxelArray[
-                                    McHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 - 1)];
+                                    McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 - 1)];
 
                                 var v0_112 = VoxelArray[
-                                    McHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 + 1)];
+                                    McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 + 1)];
 
                                 var v1_011 = VoxelArray[
-                                    McHelper.Coord3DToIndex(vertPosX1 - 1, vertPosY1, vertPosZ1)];
+                                    McStaticHelper.Coord3DToIndex(vertPosX1 - 1, vertPosY1, vertPosZ1)];
 
                                 var v1_211 = VoxelArray[
-                                    McHelper.Coord3DToIndex(vertPosX1 + 1, vertPosY1, vertPosZ1)];
+                                    McStaticHelper.Coord3DToIndex(vertPosX1 + 1, vertPosY1, vertPosZ1)];
 
                                 var v1_101 = VoxelArray[
-                                    McHelper.Coord3DToIndex(vertPosX1, vertPosY1 - 1, vertPosZ1)];
+                                    McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 - 1, vertPosZ1)];
 
                                 var v1_121 = VoxelArray[
-                                    McHelper.Coord3DToIndex(vertPosX1, vertPosY1 + 1, vertPosZ1)];
+                                    McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 + 1, vertPosZ1)];
 
                                 var v1_110 = VoxelArray[
-                                    McHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 - 1)];
+                                    McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 - 1)];
 
                                 var v1_112 = VoxelArray[
-                                    McHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 + 1)];
+                                    McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 + 1)];
 
                                 var normal0 = new float3(v0_011.Density - v0_211.Density,
                                     v0_101.Density - v0_121.Density,

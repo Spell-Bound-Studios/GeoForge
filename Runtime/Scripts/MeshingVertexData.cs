@@ -5,7 +5,7 @@ using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
 
-namespace SpellBound.MarchingCubes {
+namespace Spellbound.MarchingCubes {
     /// <summary>
     /// A struct to hold the data every vertex should have
     /// I just copied this from the open source code

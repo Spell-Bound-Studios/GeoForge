@@ -7,9 +7,8 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
-using McHelper = SpellBound.MarchingCubes.McStaticHelper;
 
-namespace SpellBound.MarchingCubes {
+namespace Spellbound.MarchingCubes {
     [BurstCompile]
     public struct TransitionMarchingCubeJob : IJob {
         [ReadOnly] public BlobAssetReference<MCTablesBlobAsset> Tables;
@@ -26,67 +25,68 @@ namespace SpellBound.MarchingCubes {
 
         public void Execute() {
             var currentStart = 0;
-            GenerateTransitionMesh(McHelper.TransitionFaceMask.XMin);
+            GenerateTransitionMesh(McStaticHelper.TransitionFaceMask.XMin);
             TransitionRanges[0] = new int2(currentStart, TransitionTriangles.Length);
             currentStart = TransitionTriangles.Length;
-            GenerateTransitionMesh(McHelper.TransitionFaceMask.YMin);
+            GenerateTransitionMesh(McStaticHelper.TransitionFaceMask.YMin);
             TransitionRanges[1] = new int2(currentStart, TransitionTriangles.Length);
             currentStart = TransitionTriangles.Length;
-            GenerateTransitionMesh(McHelper.TransitionFaceMask.ZMin);
+            GenerateTransitionMesh(McStaticHelper.TransitionFaceMask.ZMin);
             TransitionRanges[2] = new int2(currentStart, TransitionTriangles.Length);
             currentStart = TransitionTriangles.Length;
-            GenerateTransitionMesh(McHelper.TransitionFaceMask.XMax);
+            GenerateTransitionMesh(McStaticHelper.TransitionFaceMask.XMax);
             TransitionRanges[3] = new int2(currentStart, TransitionTriangles.Length);
             currentStart = TransitionTriangles.Length;
-            GenerateTransitionMesh(McHelper.TransitionFaceMask.YMax);
+            GenerateTransitionMesh(McStaticHelper.TransitionFaceMask.YMax);
             TransitionRanges[4] = new int2(currentStart, TransitionTriangles.Length);
             currentStart = TransitionTriangles.Length;
-            GenerateTransitionMesh(McHelper.TransitionFaceMask.ZMax);
+            GenerateTransitionMesh(McStaticHelper.TransitionFaceMask.ZMax);
             TransitionRanges[5] = new int2(currentStart, TransitionTriangles.Length);
         }
 
-        private void GenerateTransitionMesh(McHelper.TransitionFaceMask direction) {
+        private void GenerateTransitionMesh(McStaticHelper.TransitionFaceMask direction) {
             const int padding = 1;
             var lodScale = 1 << Lod;
 
             var transitionCurrentCache =
-                    new NativeArray<int>(McHelper.CubesMarchedPerOctreeLeaf * 10, Allocator.Temp);
+                    new NativeArray<int>(McStaticHelper.CubesMarchedPerOctreeLeaf * 10, Allocator.Temp);
 
             var transitionPreviousCache =
-                    new NativeArray<int>(McHelper.CubesMarchedPerOctreeLeaf * 10, Allocator.Temp);
+                    new NativeArray<int>(McStaticHelper.CubesMarchedPerOctreeLeaf * 10, Allocator.Temp);
             var transitionVertexIndices = new NativeArray<int>(36, Allocator.Temp);
             var transitionCellValues = new NativeArray<VoxelData>(13, Allocator.Temp);
 
             //var vertexData = transitionMeshData.VertexData;
             //var indices = transitionMeshData.Indices;
 
-            for (var y = 0; y < McHelper.CubesMarchedPerOctreeLeaf; y++) {
-                for (var x = 0; x < McHelper.CubesMarchedPerOctreeLeaf; x++) {
+            for (var y = 0; y < McStaticHelper.CubesMarchedPerOctreeLeaf; y++) {
+                for (var x = 0; x < McStaticHelper.CubesMarchedPerOctreeLeaf; x++) {
                     for (var i = 0; i < 13; i++) {
                         var offset = Tables.Value.TransitionCornerOffset[i];
 
                         var voxelPosition = Start + new int3(padding, padding, padding) + FaceToLocalSpace(direction,
-                                McHelper.CubesMarchedPerOctreeLeaf * 2, x * 2 + offset.x, y * 2 + offset.y, 0) *
+                                    McStaticHelper.CubesMarchedPerOctreeLeaf * 2, x * 2 + offset.x, y * 2 + offset.y,
+                                    0) *
                                 (lodScale >> 1);
 
-                        transitionCellValues[i] = VoxelArray[McHelper.Coord3DToIndex(
+                        transitionCellValues[i] = VoxelArray[McStaticHelper.Coord3DToIndex(
                             voxelPosition.x, voxelPosition.y, voxelPosition.z)];
                     }
 
-                    var caseCode = (transitionCellValues[0].Density >= McHelper.DensityThreshold ? 1 : 0)
-                                   | (transitionCellValues[1].Density >= McHelper.DensityThreshold ? 2 : 0)
-                                   | (transitionCellValues[2].Density >= McHelper.DensityThreshold ? 4 : 0)
-                                   | (transitionCellValues[5].Density >= McHelper.DensityThreshold ? 8 : 0)
-                                   | (transitionCellValues[8].Density >= McHelper.DensityThreshold ? 16 : 0)
-                                   | (transitionCellValues[7].Density >= McHelper.DensityThreshold ? 32 : 0)
-                                   | (transitionCellValues[6].Density >= McHelper.DensityThreshold ? 64 : 0)
-                                   | (transitionCellValues[3].Density >= McHelper.DensityThreshold ? 128 : 0)
-                                   | (transitionCellValues[4].Density >= McHelper.DensityThreshold ? 256 : 0);
+                    var caseCode = (transitionCellValues[0].Density >= McStaticHelper.DensityThreshold ? 1 : 0)
+                                   | (transitionCellValues[1].Density >= McStaticHelper.DensityThreshold ? 2 : 0)
+                                   | (transitionCellValues[2].Density >= McStaticHelper.DensityThreshold ? 4 : 0)
+                                   | (transitionCellValues[5].Density >= McStaticHelper.DensityThreshold ? 8 : 0)
+                                   | (transitionCellValues[8].Density >= McStaticHelper.DensityThreshold ? 16 : 0)
+                                   | (transitionCellValues[7].Density >= McStaticHelper.DensityThreshold ? 32 : 0)
+                                   | (transitionCellValues[6].Density >= McStaticHelper.DensityThreshold ? 64 : 0)
+                                   | (transitionCellValues[3].Density >= McStaticHelper.DensityThreshold ? 128 : 0)
+                                   | (transitionCellValues[4].Density >= McStaticHelper.DensityThreshold ? 256 : 0);
 
-                    transitionCurrentCache[0 * McHelper.CubesMarchedPerOctreeLeaf + x] = -1;
-                    transitionCurrentCache[1 * McHelper.CubesMarchedPerOctreeLeaf + x] = -1;
-                    transitionCurrentCache[2 * McHelper.CubesMarchedPerOctreeLeaf + x] = -1;
-                    transitionCurrentCache[7 * McHelper.CubesMarchedPerOctreeLeaf + x] = -1;
+                    transitionCurrentCache[0 * McStaticHelper.CubesMarchedPerOctreeLeaf + x] = -1;
+                    transitionCurrentCache[1 * McStaticHelper.CubesMarchedPerOctreeLeaf + x] = -1;
+                    transitionCurrentCache[2 * McStaticHelper.CubesMarchedPerOctreeLeaf + x] = -1;
+                    transitionCurrentCache[7 * McStaticHelper.CubesMarchedPerOctreeLeaf + x] = -1;
 
                     if (caseCode == 0 || caseCode == 511) continue;
 
@@ -126,9 +126,10 @@ namespace SpellBound.MarchingCubes {
 
                         var selectedCacheDock = (cacheDir & 2) > 0 ? transitionPreviousCache : transitionCurrentCache;
 
-                        if (isVertexCacheable)
+                        if (isVertexCacheable) {
                             vertexIndex =
-                                    selectedCacheDock[cacheIdx * McHelper.CubesMarchedPerOctreeLeaf + cachePosX];
+                                    selectedCacheDock[cacheIdx * McStaticHelper.CubesMarchedPerOctreeLeaf + cachePosX];
+                        }
 
                         if (!isVertexCacheable || vertexIndex == -1) {
                             float3 vertex;
@@ -140,11 +141,11 @@ namespace SpellBound.MarchingCubes {
                             var cornerOffset1 = Tables.Value.TransitionCornerOffset[cornerIdx1];
 
                             var corner0Copy = Start + new int3(padding, padding, padding) + FaceToLocalSpace(direction,
-                                McHelper.CubesMarchedPerOctreeLeaf * 2,
+                                McStaticHelper.CubesMarchedPerOctreeLeaf * 2,
                                 x * 2 + cornerOffset0.x, y * 2 + cornerOffset0.y, 0) * (lodScale >> 1);
 
                             var corner1Copy = Start + new int3(padding, padding, padding) + FaceToLocalSpace(direction,
-                                McHelper.CubesMarchedPerOctreeLeaf * 2,
+                                McStaticHelper.CubesMarchedPerOctreeLeaf * 2,
                                 x * 2 + cornerOffset1.x, y * 2 + cornerOffset1.y, 0) * (lodScale >> 1);
 
                             var bIsLowResFace = cacheIdx > 6;
@@ -157,15 +158,17 @@ namespace SpellBound.MarchingCubes {
                                 var samplePos = (int3)math.round(midPointLocalPos);
 
                                 var midPointDensity =
-                                        VoxelArray[McHelper.Coord3DToIndex(samplePos.x, samplePos.y, samplePos.z)]
+                                        VoxelArray[McStaticHelper.Coord3DToIndex(samplePos.x, samplePos.y, samplePos.z)]
                                                 .Density;
-                                var isMidPointDensityAboveThreshold = midPointDensity >= McHelper.DensityThreshold;
+
+                                var isMidPointDensityAboveThreshold =
+                                        midPointDensity >= McStaticHelper.DensityThreshold;
 
                                 var isVert0DensityAboveThreshold =
                                         VoxelArray[
-                                                McHelper.Coord3DToIndex(corner0Copy.x, corner0Copy.y,
+                                                    McStaticHelper.Coord3DToIndex(corner0Copy.x, corner0Copy.y,
                                                         corner0Copy.z)]
-                                                .Density >= McHelper.DensityThreshold;
+                                                .Density >= McStaticHelper.DensityThreshold;
 
                                 var isVertexNearerToVert1 =
                                         (isMidPointDensityAboveThreshold && isVert0DensityAboveThreshold)
@@ -178,15 +181,15 @@ namespace SpellBound.MarchingCubes {
                                     corner1Copy = samplePos;
                             }
 
-                            var index0 = McHelper.Coord3DToIndex(corner0Copy.x, corner0Copy.y,
+                            var index0 = McStaticHelper.Coord3DToIndex(corner0Copy.x, corner0Copy.y,
                                 corner0Copy.z);
                             var voxel0 = VoxelArray[index0];
 
-                            var index1 = McHelper.Coord3DToIndex(corner1Copy.x, corner1Copy.y,
+                            var index1 = McStaticHelper.Coord3DToIndex(corner1Copy.x, corner1Copy.y,
                                 corner1Copy.z);
                             var voxel1 = VoxelArray[index1];
 
-                            var t = ((float)McHelper.DensityThreshold - voxel0.Density) /
+                            var t = ((float)McStaticHelper.DensityThreshold - voxel0.Density) /
                                     (voxel1.Density - voxel0.Density);
 
                             t = math.clamp(t, 0, 1); // safety clamp
@@ -203,12 +206,14 @@ namespace SpellBound.MarchingCubes {
 
                             // This puts the vertex data into the vertex array, which is used to Build the Mesh
 
-                            if (cacheDir == 8)
-                                transitionCurrentCache[cacheIdx * McHelper.CubesMarchedPerOctreeLeaf + x] =
+                            if (cacheDir == 8) {
+                                transitionCurrentCache[cacheIdx * McStaticHelper.CubesMarchedPerOctreeLeaf + x] =
                                         vertexIndex;
-                            else if (isVertexCacheable && cacheDir != 4)
-                                selectedCacheDock[cacheIdx * McHelper.CubesMarchedPerOctreeLeaf + cachePosX] =
+                            }
+                            else if (isVertexCacheable && cacheDir != 4) {
+                                selectedCacheDock[cacheIdx * McStaticHelper.CubesMarchedPerOctreeLeaf + cachePosX] =
                                         vertexIndex;
+                            }
 
                             TransitionMeshingVertexData.Add(new MeshingVertexData(vertex, normal,
                                 color));
@@ -257,46 +262,46 @@ namespace SpellBound.MarchingCubes {
             var vertPosZ1 = corner1.z;
 
             var voxel0 = VoxelArray[
-                McHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0)];
+                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0)];
 
             var voxel1 = VoxelArray[
-                McHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1)];
+                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1)];
 
             var v0_011 = VoxelArray[
-                McHelper.Coord3DToIndex(vertPosX0 - 1, vertPosY0, vertPosZ0)];
+                McStaticHelper.Coord3DToIndex(vertPosX0 - 1, vertPosY0, vertPosZ0)];
 
             var v0_211 = VoxelArray[
-                McHelper.Coord3DToIndex(vertPosX0 + 1, vertPosY0, vertPosZ0)];
+                McStaticHelper.Coord3DToIndex(vertPosX0 + 1, vertPosY0, vertPosZ0)];
 
             var v0_101 = VoxelArray[
-                McHelper.Coord3DToIndex(vertPosX0, vertPosY0 - 1, vertPosZ0)];
+                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 - 1, vertPosZ0)];
 
             var v0_121 = VoxelArray[
-                McHelper.Coord3DToIndex(vertPosX0, vertPosY0 + 1, vertPosZ0)];
+                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 + 1, vertPosZ0)];
 
             var v0_110 = VoxelArray[
-                McHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 - 1)];
+                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 - 1)];
 
             var v0_112 = VoxelArray[
-                McHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 + 1)];
+                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 + 1)];
 
             var v1_011 = VoxelArray[
-                McHelper.Coord3DToIndex(vertPosX1 - 1, vertPosY1, vertPosZ1)];
+                McStaticHelper.Coord3DToIndex(vertPosX1 - 1, vertPosY1, vertPosZ1)];
 
             var v1_211 = VoxelArray[
-                McHelper.Coord3DToIndex(vertPosX1 + 1, vertPosY1, vertPosZ1)];
+                McStaticHelper.Coord3DToIndex(vertPosX1 + 1, vertPosY1, vertPosZ1)];
 
             var v1_101 = VoxelArray[
-                McHelper.Coord3DToIndex(vertPosX1, vertPosY1 - 1, vertPosZ1)];
+                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 - 1, vertPosZ1)];
 
             var v1_121 = VoxelArray[
-                McHelper.Coord3DToIndex(vertPosX1, vertPosY1 + 1, vertPosZ1)];
+                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 + 1, vertPosZ1)];
 
             var v1_110 = VoxelArray[
-                McHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 - 1)];
+                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 - 1)];
 
             var v1_112 = VoxelArray[
-                McHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 + 1)];
+                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 + 1)];
 
             var normal0 = new float3(v0_011.Density - v0_211.Density,
                 v0_101.Density - v0_121.Density,
@@ -370,18 +375,18 @@ namespace SpellBound.MarchingCubes {
 
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int3 FaceToLocalSpace(
-            McHelper.TransitionFaceMask direction,
+            McStaticHelper.TransitionFaceMask direction,
             int leafSize,
             int x,
             int y,
             int z) =>
                 direction switch {
-                    McHelper.TransitionFaceMask.XMin => new int3(z, x, y),
-                    McHelper.TransitionFaceMask.XMax => new int3(leafSize - z, y, x),
-                    McHelper.TransitionFaceMask.YMin => new int3(y, z, x),
-                    McHelper.TransitionFaceMask.YMax => new int3(x, leafSize - z, y),
-                    McHelper.TransitionFaceMask.ZMin => new int3(x, y, z),
-                    McHelper.TransitionFaceMask.ZMax => new int3(y, x, leafSize - z),
+                    McStaticHelper.TransitionFaceMask.XMin => new int3(z, x, y),
+                    McStaticHelper.TransitionFaceMask.XMax => new int3(leafSize - z, y, x),
+                    McStaticHelper.TransitionFaceMask.YMin => new int3(y, z, x),
+                    McStaticHelper.TransitionFaceMask.YMax => new int3(x, leafSize - z, y),
+                    McStaticHelper.TransitionFaceMask.ZMin => new int3(x, y, z),
+                    McStaticHelper.TransitionFaceMask.ZMax => new int3(y, x, leafSize - z),
                     _ => new int3(x, y, z)
                 };
     }

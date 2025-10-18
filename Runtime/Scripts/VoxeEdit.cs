@@ -1,9 +1,9 @@
 // Copyright 2025 Spellbound Studio Inc.
 
 using System;
-using SpellBound.Core;
+using Spellbound.Core;
 
-namespace SpellBound.MarchingCubes {
+namespace Spellbound.MarchingCubes {
     /// <summary>
     /// Represents a saved modification to a voxel at an index
     /// </summary>

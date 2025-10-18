@@ -2,9 +2,8 @@
 
 using Unity.Entities;
 using UnityEngine;
-using McHelper = SpellBound.MarchingCubes.McStaticHelper;
 
-namespace SpellBound.MarchingCubes {
+namespace Spellbound.MarchingCubes {
     public class MarchingCubesManager : MonoBehaviour {
         public static MarchingCubesManager Instance { get; private set; }
 
@@ -34,7 +33,7 @@ namespace SpellBound.MarchingCubes {
         }
 
         private void OnValidate() {
-            lodRanges = new Vector2[McHelper.MaxLevelOfDetail + 1];
+            lodRanges = new Vector2[McStaticHelper.MaxLevelOfDetail + 1];
 
             for (var i = 0; i < lodRanges.Length; i++) {
                 var div = Mathf.Pow(2, lodRanges.Length - 1 - i);

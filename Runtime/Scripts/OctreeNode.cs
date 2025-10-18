@@ -1,16 +1,15 @@
 // Copyright 2025 Spellbound Studio Inc.
 
 using System;
+using Spellbound.Core;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
-using Helper = SpellBound.Core.SpellBoundStaticHelper;
 using Object = UnityEngine.Object;
-using McHelper = SpellBound.MarchingCubes.McStaticHelper;
 
-namespace SpellBound.MarchingCubes {
+namespace Spellbound.MarchingCubes {
     /// <summary>
     /// Recursively Subdividing OctreeNode to subdivide a chunk at varying LODs.
     /// Either it has 8 children, or it has an Octree leaf (representing actual terrain).
@@ -30,14 +29,14 @@ namespace SpellBound.MarchingCubes {
         private IVoxelTerrainChunk _chunk;
         private NativeArray<VoxelData> _voxelData => _chunk.GetVoxelArray();
 
-        private Vector3Int _worldPosition => _chunk.GetChunkCoord() * Helper.ChunkSize;
+        private Vector3Int _worldPosition => _chunk.GetChunkCoord() * SpellboundStaticHelper.ChunkSize;
 
         public OctreeNode(Vector3Int localPosition, int lod, IVoxelTerrainChunk chunk) {
             _localPosition = localPosition;
             _lod = lod;
             _chunk = chunk;
 
-            var octreeSize = McHelper.CubesMarchedPerOctreeLeaf * math.pow(2, _lod) + 2;
+            var octreeSize = McStaticHelper.CubesMarchedPerOctreeLeaf * math.pow(2, _lod) + 2;
 
             _bounds = new Bounds(_worldPosition + _localPosition + Vector3.one * octreeSize / 2,
                 Vector3.one * octreeSize);
@@ -57,8 +56,8 @@ namespace SpellBound.MarchingCubes {
 
         private (int, int) GetLodRange(Vector3 octreePos, Vector3 playerPos) {
             var distance = Vector3.Distance(octreePos, playerPos);
-            var coarsestLod = McHelper.GetCoarsestLod(distance, MarchingCubesManager.Instance.lodRanges);
-            var finestLod = McHelper.GetFinestLod(distance, MarchingCubesManager.Instance.lodRanges);
+            var coarsestLod = McStaticHelper.GetCoarsestLod(distance, MarchingCubesManager.Instance.lodRanges);
+            var finestLod = McStaticHelper.GetFinestLod(distance, MarchingCubesManager.Instance.lodRanges);
 
             return (coarsestLod, finestLod);
         }
@@ -66,7 +65,7 @@ namespace SpellBound.MarchingCubes {
         public void ValidateOctreeLods(Vector3 playerPosition) {
             var octreePos = _worldPosition
                             + _localPosition
-                            + Vector3.one * (McHelper.CubesMarchedPerOctreeLeaf << (_lod - 1));
+                            + Vector3.one * (McStaticHelper.CubesMarchedPerOctreeLeaf << (_lod - 1));
             var (coarsestLod, finestLod) = GetLodRange(octreePos, playerPosition);
 
             if (_chunk.IsChunkAllOneSideOfThreshold()) return;
@@ -145,7 +144,8 @@ namespace SpellBound.MarchingCubes {
             for (var i = 0; i < 6; i++) _chunk.BroadcastNewLeaf(this, neighborPositions[i], i);
         }
 
-        public void ValidateTransition(OctreeNode neighbor, Vector3 facePos, McHelper.TransitionFaceMask faceMask) {
+        public void ValidateTransition(
+            OctreeNode neighbor, Vector3 facePos, McStaticHelper.TransitionFaceMask faceMask) {
             if (!_bounds.Contains(facePos))
                 return;
 
@@ -173,7 +173,7 @@ namespace SpellBound.MarchingCubes {
             neighbor.UpdateTransitionMask(faceMask, true);
         }
 
-        public void UpdateTransitionMask(McHelper.TransitionFaceMask mask, bool isSetter) {
+        public void UpdateTransitionMask(McStaticHelper.TransitionFaceMask mask, bool isSetter) {
             var newTransitionMask = _activeTransitionMask;
 
             if (isSetter)
@@ -198,15 +198,16 @@ namespace SpellBound.MarchingCubes {
                     new Vector3(_bounds.center.x, _bounds.center.y, _bounds.max.z + 1)
                 };
 
-        private McHelper.TransitionFaceMask GetOppositeTransition(McHelper.TransitionFaceMask transitionMask) =>
+        private McStaticHelper.TransitionFaceMask GetOppositeTransition(
+            McStaticHelper.TransitionFaceMask transitionMask) =>
                 transitionMask switch {
-                    McHelper.TransitionFaceMask.XMin => McHelper.TransitionFaceMask.XMax,
-                    McHelper.TransitionFaceMask.YMin => McHelper.TransitionFaceMask.YMax,
-                    McHelper.TransitionFaceMask.ZMin => McHelper.TransitionFaceMask.ZMax,
-                    McHelper.TransitionFaceMask.XMax => McHelper.TransitionFaceMask.XMin,
-                    McHelper.TransitionFaceMask.YMax => McHelper.TransitionFaceMask.YMin,
-                    McHelper.TransitionFaceMask.ZMax => McHelper.TransitionFaceMask.ZMin,
-                    _ => McHelper.TransitionFaceMask.XMin
+                    McStaticHelper.TransitionFaceMask.XMin => McStaticHelper.TransitionFaceMask.XMax,
+                    McStaticHelper.TransitionFaceMask.YMin => McStaticHelper.TransitionFaceMask.YMax,
+                    McStaticHelper.TransitionFaceMask.ZMin => McStaticHelper.TransitionFaceMask.ZMax,
+                    McStaticHelper.TransitionFaceMask.XMax => McStaticHelper.TransitionFaceMask.XMin,
+                    McStaticHelper.TransitionFaceMask.YMax => McStaticHelper.TransitionFaceMask.YMin,
+                    McStaticHelper.TransitionFaceMask.ZMax => McStaticHelper.TransitionFaceMask.ZMin,
+                    _ => McStaticHelper.TransitionFaceMask.XMin
                 };
 
         private void Subdivide() {
@@ -222,7 +223,7 @@ namespace SpellBound.MarchingCubes {
 
             _children = new OctreeNode[8];
             var childLod = _lod - 1;
-            var childSize = McHelper.CubesMarchedPerOctreeLeaf << childLod;
+            var childSize = McStaticHelper.CubesMarchedPerOctreeLeaf << childLod;
 
             for (var i = 0; i < 8; i++) {
                 var offset = new Vector3Int(
@@ -326,7 +327,7 @@ namespace SpellBound.MarchingCubes {
                 _chunk.GetChunkTransform()
             );
 
-            _leafGO.name = $"LeafSize {McHelper.CubesMarchedPerOctreeLeaf << _lod} " +
+            _leafGO.name = $"LeafSize {McStaticHelper.CubesMarchedPerOctreeLeaf << _lod} " +
                            $"at {_localPosition.x}, {_localPosition.y}, {_localPosition.z}";
 
             if (!_transitionVertices.IsCreated)

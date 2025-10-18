@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Unity.Collections;
 using UnityEngine;
 
-namespace SpellBound.MarchingCubes {
+namespace Spellbound.MarchingCubes {
     public interface IVoxelTerrainChunk {
         public NativeArray<VoxelData> GetVoxelArray();
 
