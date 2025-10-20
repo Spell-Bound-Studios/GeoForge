@@ -22,7 +22,6 @@ namespace Spellbound.MarchingCubes {
             new(200, 350)
         };
 
-
         private const int MaxEntries = 10;
 
         private NativeArray<VoxelData>[] _denseBuffers = new NativeArray<VoxelData>[MaxEntries];
@@ -31,27 +30,25 @@ namespace Spellbound.MarchingCubes {
         private Vector3Int[] _slotToKey = new Vector3Int[MaxEntries];
 
         public void AllocateDenseBuffers(int arraySize) {
-            for (var i = 0; i < MaxEntries; i++) {
+            for (var i = 0; i < MaxEntries; i++)
                 _denseBuffers[i] = new NativeArray<VoxelData>(arraySize, Allocator.Persistent);
-            }
         }
 
-        public NativeArray<VoxelData> GetOrCreate(Vector3Int coord, IVoxelTerrainChunk chunk,
+        public NativeArray<VoxelData> GetOrCreate(
+            Vector3Int coord, IVoxelTerrainChunk chunk,
             NativeList<SparseVoxelData> sparseData) {
-            if (_keyToSlot.TryGetValue(coord, out int existingSlot)) {
-                return _denseBuffers[existingSlot];
-            }
+            if (_keyToSlot.TryGetValue(coord, out var existingSlot)) return _denseBuffers[existingSlot];
 
             int slot;
-            if (_keyToSlot.Count < MaxEntries) {
-                slot = _keyToSlot.Count;
-            }
-            else {
-                slot = EvictDenseBuffer();
-            }
 
-            // Reuse existing buffer
+            if (_keyToSlot.Count < MaxEntries)
+                slot = _keyToSlot.Count;
+            else
+                slot = EvictDenseBuffer();
+
+
             var buffer = _denseBuffers[slot];
+
             var unpackJob = new SparseToDenseVoxelDataJob {
                 Voxels = buffer,
                 SparseVoxels = sparseData
@@ -66,38 +63,16 @@ namespace Spellbound.MarchingCubes {
             return buffer;
         }
 
-        public void PreloadDenseData(Vector3Int coord, IVoxelTerrainChunk chunk, NativeArray<VoxelData> denseData) {
-            if (_keyToSlot.TryGetValue(coord, out int existingSlot)) {
-                _denseBuffers[existingSlot].CopyFrom(denseData);
-                return;
-            }
-
-            int slot;
-            if (_keyToSlot.Count >= MaxEntries) {
-                slot = EvictDenseBuffer();
-            }
-            else {
-                slot = _keyToSlot.Count;
-            }
-
-            _denseBuffers[slot].CopyFrom(denseData);
-            _keyToSlot[coord] = slot;
-            _slotToKey[slot] = coord;
-            _slotEvictionQueue.Enqueue((slot, chunk));
-        }
-
         private int EvictDenseBuffer() {
-
             // Evict the oldest
             var tuple = _slotEvictionQueue.Dequeue();
             var oldKey = _slotToKey[tuple.Item1];
             _keyToSlot.Remove(oldKey);
 
-            if (tuple.Item2 == null) {
-                return tuple.Item1;
-            }
+            if (tuple.Item2 == null || !tuple.Item2.IsDirty()) return tuple.Item1;
 
             var sparseData = new NativeList<SparseVoxelData>(Allocator.TempJob);
+
             var packJob = new DenseToSparseVoxelDataJob {
                 Voxels = _denseBuffers[tuple.Item1],
                 SparseVoxels = sparseData
@@ -107,28 +82,24 @@ namespace Spellbound.MarchingCubes {
 
             tuple.Item2.UpdateSparseVoxels(sparseData);
             sparseData.Dispose();
-            return tuple.Item1;
 
+            return tuple.Item1;
         }
 
         public void DisposeDenseBuffers() {
-            for (var i = 0; i < MaxEntries; i++) {
-                if (_denseBuffers[i].IsCreated) {
+            for (var i = 0; i < MaxEntries; i++)
+                if (_denseBuffers[i].IsCreated)
                     _denseBuffers[i].Dispose();
-                }
-            }
 
             _keyToSlot.Clear();
             _slotEvictionQueue.Clear();
         }
-        
+
         private void Awake() {
             SingletonManager.RegisterSingleton(this);
             McTablesBlob = MCTablesBlobCreator.CreateMCTablesBlobAsset();
             AllocateDenseBuffers(McHelper.ChunkDataVolumeSize);
-
         }
-        
 
         private void OnValidate() {
             lodRanges = new Vector2[McStaticHelper.MaxLevelOfDetail + 1];
@@ -151,7 +122,6 @@ namespace Spellbound.MarchingCubes {
                 McTablesBlob.Dispose();
 
             DisposeDenseBuffers();
-
         }
     }
 }

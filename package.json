@@ -14,7 +14,7 @@
     "com.unity.mathematics": "1.3.2",
     "com.unity.burst": "1.8.19",
     "com.unity.collections": "2.5.7",
-    "com.spellboundstudios.core": "1.0.0" 
+    "com.spellboundstudios.core": "1.0.0"
   },
   "keywords": [
     "marching-cubes",

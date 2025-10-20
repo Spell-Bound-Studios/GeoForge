@@ -20,6 +20,7 @@ namespace Spellbound.MarchingCubes {
         private GameObject _leafGO = null;
         private GameObject _transitionGO;
         private int _activeTransitionMask;
+        private Mesh _cachedTransitionMesh;
         private NativeList<MeshingVertexData> _transitionVertices;
         private NativeList<int> _transitionTriangles;
         private NativeArray<int2> _transitionRanges;
@@ -41,7 +42,7 @@ namespace Spellbound.MarchingCubes {
 
             _bounds = new Bounds(_worldPosition + _localPosition + Vector3.one * octreeSize / 2,
                 Vector3.one * octreeSize);
-            
+
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
         }
 
@@ -74,7 +75,6 @@ namespace Spellbound.MarchingCubes {
             if (_chunk.IsChunkAllOneSideOfThreshold()) return;
 
             if (_lod <= finestLod) {
-                
                 MakeLeaf();
 
                 return;
@@ -86,9 +86,8 @@ namespace Spellbound.MarchingCubes {
                 return;
             }
 
-            if (_lod > coarsestLod) 
+            if (_lod > coarsestLod)
                 Subdivide();
-
 
             if (IsLeaf)
                 return;
@@ -364,8 +363,9 @@ namespace Spellbound.MarchingCubes {
 
             if (transitionMask == 0) {
                 // Clear the mesh to hide transitions
-
                 meshFilter.mesh = null; // clear mesh
+
+                return;
             }
 
             var triangles =

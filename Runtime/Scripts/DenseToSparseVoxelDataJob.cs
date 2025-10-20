@@ -12,14 +12,13 @@ namespace Spellbound.MarchingCubes {
 
         public void Execute() {
             SparseVoxels.Clear();
-            
+
             var currentSparseRange = new SparseVoxelData(Voxels[0], 0);
-            
+
             for (var i = 1; i < Voxels.Length; i++) {
                 if (currentSparseRange.Voxel.Density == Voxels[i].Density
-                    && currentSparseRange.Voxel.MatIndex == Voxels[i].MatIndex) {
+                    && currentSparseRange.Voxel.MatIndex == Voxels[i].MatIndex)
                     continue;
-                }
 
                 SparseVoxels.Add(currentSparseRange);
                 currentSparseRange = new SparseVoxelData(Voxels[i], i);

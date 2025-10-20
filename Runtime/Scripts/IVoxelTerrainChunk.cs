@@ -17,8 +17,10 @@ namespace Spellbound.MarchingCubes {
             NativeList<SparseVoxelData> voxels,
             byte minDensity,
             byte maxDensity);
-        
+
         public void UpdateSparseVoxels(NativeList<SparseVoxelData> voxels);
+
+        public bool IsDirty();
 
         public void BroadcastNewLeaf(OctreeNode newLeaf, Vector3 pos, int index);
 

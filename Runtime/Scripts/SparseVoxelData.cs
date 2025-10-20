@@ -1,8 +1,7 @@
 // Copyright 2025 Spellbound Studio Inc.
 
 namespace Spellbound.MarchingCubes {
-    public struct SparseVoxelData
-    {
+    public struct SparseVoxelData {
         public VoxelData Voxel;
         public int StartIndex;
 
@@ -12,4 +11,3 @@ namespace Spellbound.MarchingCubes {
         }
     }
 }
-
