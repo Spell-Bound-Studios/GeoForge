@@ -1,12 +1,15 @@
 // Copyright 2025 Spellbound Studio Inc.
 
+using System.Collections.Generic;
+using Spellbound.Core;
+using Unity.Collections;
 using Unity.Entities;
+using Unity.Jobs;
 using UnityEngine;
+using McHelper = Spellbound.MarchingCubes.McStaticHelper;
 
 namespace Spellbound.MarchingCubes {
     public class MarchingCubesManager : MonoBehaviour {
-        public static MarchingCubesManager Instance { get; private set; }
-
         public BlobAssetReference<MCTablesBlobAsset> McTablesBlob;
         [SerializeField] public GameObject octreePrefab;
 
@@ -20,16 +23,114 @@ namespace Spellbound.MarchingCubes {
             new(200, 350)
         };
 
-        private void Awake() {
-            if (Instance != null && Instance != this) {
-                Destroy(gameObject);
 
+        private const int MaxEntries = 10;
+        
+        private NativeArray<VoxelData>[] _denseBuffers = new NativeArray<VoxelData>[MaxEntries];
+        private Dictionary<Vector3Int, int> _keyToSlot = new();
+        private Queue<int> _slotEvictionQueue = new();
+        private Vector3Int[] _slotToKey = new Vector3Int[MaxEntries];
+
+        public void AllocateDenseBuffers(int arraySize) {
+            for (var i = 0; i < MaxEntries; i++) {
+                _denseBuffers[i] = new NativeArray<VoxelData>(arraySize, Allocator.Persistent);
+            }
+        }
+        
+        public NativeArray<VoxelData> GetOrCreate(Vector3Int coord, NativeList<SparseVoxelData> sparseData) {
+            if (_keyToSlot.TryGetValue(coord, out int existingSlot)) {
+                return _denseBuffers[existingSlot];
+            }
+            Debug.Log("DenseArray not in the cache. Must unpack it");
+
+            int slot;
+            if (_keyToSlot.Count < MaxEntries) {
+                slot = _keyToSlot.Count;
+            } else {
+                // Evict the oldest
+                slot = _slotEvictionQueue.Dequeue();
+                var oldKey = _slotToKey[slot];
+                _keyToSlot.Remove(oldKey);
+            }
+
+            // Reuse existing buffer
+            var buffer = _denseBuffers[slot];
+            var unpackJob = new SparseToDenseVoxelDataJob {
+                Voxels = buffer,
+                SparseVoxels = sparseData
+            };
+            var jobHandle = unpackJob.Schedule(McHelper.ChunkDataWidthSize, 1);
+            jobHandle.Complete();
+
+            _keyToSlot[coord] = slot;
+            _slotToKey[slot] = coord;
+            _slotEvictionQueue.Enqueue(slot);
+
+            return buffer;
+        }
+
+        public void PreloadDenseData(Vector3Int coord, NativeArray<VoxelData> denseData) {
+            if (_keyToSlot.TryGetValue(coord, out int existingSlot)) {
+                _denseBuffers[existingSlot].CopyFrom(denseData);
                 return;
             }
 
-            Instance = this;
+            int slot;
+            if (_keyToSlot.Count >= MaxEntries) {
+                slot = _slotEvictionQueue.Dequeue();
+                Vector3Int oldKey = _slotToKey[slot];
+                _keyToSlot.Remove(oldKey);
+            }
+            else {
+                slot = _keyToSlot.Count;
+            }
+            _denseBuffers[slot].CopyFrom(denseData);
+            _keyToSlot[coord] = slot;
+            _slotToKey[slot] = coord;
+            _slotEvictionQueue.Enqueue(slot);
+        }
 
+        public void DisposeDenseBuffers() {
+            for (var i = 0; i < MaxEntries; i++) {
+                if (_denseBuffers[i].IsCreated) {
+                    _denseBuffers[i].Dispose();
+                }
+            }
+            _keyToSlot.Clear();
+            _slotEvictionQueue.Clear();
+        }
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+        
+
+        private void Awake() {
+            SingletonManager.RegisterSingleton(this);
             McTablesBlob = MCTablesBlobCreator.CreateMCTablesBlobAsset();
+            AllocateDenseBuffers(McHelper.ChunkDataVolumeSize);
+
         }
 
         private void OnValidate() {
@@ -51,6 +152,9 @@ namespace Spellbound.MarchingCubes {
         private void OnDestroy() {
             if (McTablesBlob.IsCreated)
                 McTablesBlob.Dispose();
+
+            DisposeDenseBuffers();
+
         }
     }
 }

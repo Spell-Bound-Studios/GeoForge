@@ -14,7 +14,7 @@ namespace Spellbound.MarchingCubes {
         public Transform GetChunkTransform();
 
         public void ReceivedProcGenData(
-            NativeArray<VoxelData> voxels,
+            NativeList<SparseVoxelData> voxels,
             byte minDensity,
             byte maxDensity);
 

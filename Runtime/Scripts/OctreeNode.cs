@@ -27,6 +27,7 @@ namespace Spellbound.MarchingCubes {
         private int _lod;
         private Bounds _bounds;
         private IVoxelTerrainChunk _chunk;
+        private MarchingCubesManager _mcManager;
         private NativeArray<VoxelData> _voxelData => _chunk.GetVoxelArray();
 
         private Vector3Int _worldPosition => _chunk.GetChunkCoord() * SpellboundStaticHelper.ChunkSize;
@@ -40,6 +41,8 @@ namespace Spellbound.MarchingCubes {
 
             _bounds = new Bounds(_worldPosition + _localPosition + Vector3.one * octreeSize / 2,
                 Vector3.one * octreeSize);
+            
+            _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
         }
 
         public void ValidateOctreeEdits(Bounds bounds) {
@@ -56,8 +59,8 @@ namespace Spellbound.MarchingCubes {
 
         private (int, int) GetLodRange(Vector3 octreePos, Vector3 playerPos) {
             var distance = Vector3.Distance(octreePos, playerPos);
-            var coarsestLod = McStaticHelper.GetCoarsestLod(distance, MarchingCubesManager.Instance.lodRanges);
-            var finestLod = McStaticHelper.GetFinestLod(distance, MarchingCubesManager.Instance.lodRanges);
+            var coarsestLod = McStaticHelper.GetCoarsestLod(distance, _mcManager.lodRanges);
+            var finestLod = McStaticHelper.GetFinestLod(distance, _mcManager.lodRanges);
 
             return (coarsestLod, finestLod);
         }
@@ -92,7 +95,7 @@ namespace Spellbound.MarchingCubes {
 
         private void MarchAndUpdateLeaf() {
             var marchingCubeJob = new MarchingCubeJob {
-                Tables = MarchingCubesManager.Instance.McTablesBlob,
+                Tables = _mcManager.McTablesBlob,
                 VoxelArray = _voxelData,
 
                 // New Allocation - Ensure this is disposed of after the job.
@@ -111,7 +114,7 @@ namespace Spellbound.MarchingCubes {
 
             if (_lod != 0) {
                 var transitionMarchingCubeJob = new TransitionMarchingCubeJob {
-                    Tables = MarchingCubesManager.Instance.McTablesBlob,
+                    Tables = _mcManager.McTablesBlob,
                     VoxelArray = _voxelData,
 
                     // New Allocation - Ensure this is disposed of after the job.
@@ -321,7 +324,7 @@ namespace Spellbound.MarchingCubes {
 
         private void BuildLeaf() {
             _leafGO = Object.Instantiate(
-                MarchingCubesManager.Instance.octreePrefab,
+                _mcManager.octreePrefab,
                 _worldPosition,
                 Quaternion.identity,
                 _chunk.GetChunkTransform()
@@ -340,7 +343,7 @@ namespace Spellbound.MarchingCubes {
 
         private void BuildTransitions() {
             _transitionGO = Object.Instantiate(
-                MarchingCubesManager.Instance.octreePrefab,
+                _mcManager.octreePrefab,
                 _worldPosition,
                 Quaternion.identity,
                 _chunk.GetChunkTransform()
