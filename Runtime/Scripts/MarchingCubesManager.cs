@@ -12,7 +12,6 @@ namespace Spellbound.MarchingCubes {
     public class MarchingCubesManager : MonoBehaviour {
         public BlobAssetReference<MCTablesBlobAsset> McTablesBlob;
         [SerializeField] public GameObject octreePrefab;
-
         [Range(300f, 1000f), SerializeField] public float viewDistance = 350;
 
         //This MUST have a length of MaxLevelOfDetail + 1
@@ -25,7 +24,7 @@ namespace Spellbound.MarchingCubes {
 
 
         private const int MaxEntries = 10;
-        
+
         private NativeArray<VoxelData>[] _denseBuffers = new NativeArray<VoxelData>[MaxEntries];
         private Dictionary<Vector3Int, int> _keyToSlot = new();
         private Queue<(int, IVoxelTerrainChunk)> _slotEvictionQueue = new();
@@ -36,8 +35,9 @@ namespace Spellbound.MarchingCubes {
                 _denseBuffers[i] = new NativeArray<VoxelData>(arraySize, Allocator.Persistent);
             }
         }
-        
-        public NativeArray<VoxelData> GetOrCreate(Vector3Int coord, IVoxelTerrainChunk chunk, NativeList<SparseVoxelData> sparseData) {
+
+        public NativeArray<VoxelData> GetOrCreate(Vector3Int coord, IVoxelTerrainChunk chunk,
+            NativeList<SparseVoxelData> sparseData) {
             if (_keyToSlot.TryGetValue(coord, out int existingSlot)) {
                 return _denseBuffers[existingSlot];
             }
@@ -45,7 +45,8 @@ namespace Spellbound.MarchingCubes {
             int slot;
             if (_keyToSlot.Count < MaxEntries) {
                 slot = _keyToSlot.Count;
-            } else {
+            }
+            else {
                 slot = EvictDenseBuffer();
             }
 
@@ -78,6 +79,7 @@ namespace Spellbound.MarchingCubes {
             else {
                 slot = _keyToSlot.Count;
             }
+
             _denseBuffers[slot].CopyFrom(denseData);
             _keyToSlot[coord] = slot;
             _slotToKey[slot] = coord;
@@ -85,7 +87,7 @@ namespace Spellbound.MarchingCubes {
         }
 
         private int EvictDenseBuffer() {
-            
+
             // Evict the oldest
             var tuple = _slotEvictionQueue.Dequeue();
             var oldKey = _slotToKey[tuple.Item1];
@@ -94,7 +96,7 @@ namespace Spellbound.MarchingCubes {
             if (tuple.Item2 == null) {
                 return tuple.Item1;
             }
-            
+
             var sparseData = new NativeList<SparseVoxelData>(Allocator.TempJob);
             var packJob = new DenseToSparseVoxelDataJob {
                 Voxels = _denseBuffers[tuple.Item1],
@@ -102,11 +104,11 @@ namespace Spellbound.MarchingCubes {
             };
             var jobHandle = packJob.Schedule();
             jobHandle.Complete();
-            
+
             tuple.Item2.UpdateSparseVoxels(sparseData);
             sparseData.Dispose();
             return tuple.Item1;
-          
+
         }
 
         public void DisposeDenseBuffers() {
@@ -115,36 +117,11 @@ namespace Spellbound.MarchingCubes {
                     _denseBuffers[i].Dispose();
                 }
             }
+
             _keyToSlot.Clear();
             _slotEvictionQueue.Clear();
         }
         
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-
         private void Awake() {
             SingletonManager.RegisterSingleton(this);
             McTablesBlob = MCTablesBlobCreator.CreateMCTablesBlobAsset();

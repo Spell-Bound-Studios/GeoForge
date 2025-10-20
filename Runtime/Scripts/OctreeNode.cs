@@ -74,6 +74,7 @@ namespace Spellbound.MarchingCubes {
             if (_chunk.IsChunkAllOneSideOfThreshold()) return;
 
             if (_lod <= finestLod) {
+                
                 MakeLeaf();
 
                 return;
@@ -85,7 +86,9 @@ namespace Spellbound.MarchingCubes {
                 return;
             }
 
-            if (_lod > coarsestLod) Subdivide();
+            if (_lod > coarsestLod) 
+                Subdivide();
+
 
             if (IsLeaf)
                 return;
