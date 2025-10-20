@@ -28,7 +28,7 @@ namespace Spellbound.MarchingCubes {
         
         private NativeArray<VoxelData>[] _denseBuffers = new NativeArray<VoxelData>[MaxEntries];
         private Dictionary<Vector3Int, int> _keyToSlot = new();
-        private Queue<int> _slotEvictionQueue = new();
+        private Queue<(int, IVoxelTerrainChunk)> _slotEvictionQueue = new();
         private Vector3Int[] _slotToKey = new Vector3Int[MaxEntries];
 
         public void AllocateDenseBuffers(int arraySize) {
@@ -37,20 +37,16 @@ namespace Spellbound.MarchingCubes {
             }
         }
         
-        public NativeArray<VoxelData> GetOrCreate(Vector3Int coord, NativeList<SparseVoxelData> sparseData) {
+        public NativeArray<VoxelData> GetOrCreate(Vector3Int coord, IVoxelTerrainChunk chunk, NativeList<SparseVoxelData> sparseData) {
             if (_keyToSlot.TryGetValue(coord, out int existingSlot)) {
                 return _denseBuffers[existingSlot];
             }
-            Debug.Log("DenseArray not in the cache. Must unpack it");
 
             int slot;
             if (_keyToSlot.Count < MaxEntries) {
                 slot = _keyToSlot.Count;
             } else {
-                // Evict the oldest
-                slot = _slotEvictionQueue.Dequeue();
-                var oldKey = _slotToKey[slot];
-                _keyToSlot.Remove(oldKey);
+                slot = EvictDenseBuffer();
             }
 
             // Reuse existing buffer
@@ -64,12 +60,12 @@ namespace Spellbound.MarchingCubes {
 
             _keyToSlot[coord] = slot;
             _slotToKey[slot] = coord;
-            _slotEvictionQueue.Enqueue(slot);
+            _slotEvictionQueue.Enqueue((slot, chunk));
 
             return buffer;
         }
 
-        public void PreloadDenseData(Vector3Int coord, NativeArray<VoxelData> denseData) {
+        public void PreloadDenseData(Vector3Int coord, IVoxelTerrainChunk chunk, NativeArray<VoxelData> denseData) {
             if (_keyToSlot.TryGetValue(coord, out int existingSlot)) {
                 _denseBuffers[existingSlot].CopyFrom(denseData);
                 return;
@@ -77,9 +73,7 @@ namespace Spellbound.MarchingCubes {
 
             int slot;
             if (_keyToSlot.Count >= MaxEntries) {
-                slot = _slotEvictionQueue.Dequeue();
-                Vector3Int oldKey = _slotToKey[slot];
-                _keyToSlot.Remove(oldKey);
+                slot = EvictDenseBuffer();
             }
             else {
                 slot = _keyToSlot.Count;
@@ -87,7 +81,32 @@ namespace Spellbound.MarchingCubes {
             _denseBuffers[slot].CopyFrom(denseData);
             _keyToSlot[coord] = slot;
             _slotToKey[slot] = coord;
-            _slotEvictionQueue.Enqueue(slot);
+            _slotEvictionQueue.Enqueue((slot, chunk));
+        }
+
+        private int EvictDenseBuffer() {
+            
+            // Evict the oldest
+            var tuple = _slotEvictionQueue.Dequeue();
+            var oldKey = _slotToKey[tuple.Item1];
+            _keyToSlot.Remove(oldKey);
+
+            if (tuple.Item2 == null) {
+                return tuple.Item1;
+            }
+            
+            var sparseData = new NativeList<SparseVoxelData>(Allocator.TempJob);
+            var packJob = new DenseToSparseVoxelDataJob {
+                Voxels = _denseBuffers[tuple.Item1],
+                SparseVoxels = sparseData
+            };
+            var jobHandle = packJob.Schedule();
+            jobHandle.Complete();
+            
+            tuple.Item2.UpdateSparseVoxels(sparseData);
+            sparseData.Dispose();
+            return tuple.Item1;
+          
         }
 
         public void DisposeDenseBuffers() {
@@ -132,6 +151,7 @@ namespace Spellbound.MarchingCubes {
             AllocateDenseBuffers(McHelper.ChunkDataVolumeSize);
 
         }
+        
 
         private void OnValidate() {
             lodRanges = new Vector2[McStaticHelper.MaxLevelOfDetail + 1];
