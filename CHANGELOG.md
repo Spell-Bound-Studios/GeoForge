@@ -1,6 +1,5 @@
-## \[0.0.1] - 10/18/2025
+## \[0.0.3] - 10/20/2025
 
-### First Release
+### 
 
-* Package to git
-* Package import into other Unity projects
+* Memory Optimization via sparse voxel data storage.
