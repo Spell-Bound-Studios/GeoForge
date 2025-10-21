@@ -16,18 +16,21 @@ namespace Spellbound.MarchingCubes {
     /// </summary>
     public class OctreeNode : IDisposable {
         private OctreeNode[] _children;
-        private bool IsLeaf => _children == null;
         private GameObject _leafGo;
-        private GameObject _transitionGo;
-        private int _activeTransitionMask;
-        private NativeList<MeshingVertexData> _transitionVertices;
-        private NativeList<int> _transitionTriangles;
+        private Mesh _mesh;
+        private Mesh _transitionMesh;
+        private int _transitionMask;
+        private bool _transitionDirtyFlag;
+        private NativeList<int> _allTransitionTriangles;
+        private NativeList<int> _filteredTransitionTriangles;
         private NativeArray<int2> _transitionRanges;
         private Vector3Int _localPosition;
         private readonly int _lod;
         private Bounds _bounds;
         private readonly IVoxelTerrainChunk _chunk;
         private readonly MarchingCubesManager _mcManager;
+
+        private bool IsLeaf => _children == null;
         private NativeArray<VoxelData> VoxelData => _chunk.GetVoxelArray();
 
         private Vector3Int WorldPosition => _chunk.GetChunkCoord() * SpellboundStaticHelper.ChunkSize;
@@ -45,25 +48,55 @@ namespace Spellbound.MarchingCubes {
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
         }
 
-        public void ValidateOctreeEdits(Bounds bounds) {
-            if (!bounds.Intersects(_bounds)) return;
+        public void Dispose() {
+            if (_children != null) {
+                for (var i = 0; i < 8; i++) {
+                    _children[i].Dispose();
+                    _children[i] = null;
+                }
 
-            if (IsLeaf) {
-                UpdateLeaf();
-
-                return;
+                _children = null;
             }
 
-            foreach (var child in _children)
-                child.ValidateOctreeEdits(bounds);
+            if (_leafGo != null) {
+                Object.Destroy(_leafGo);
+                _leafGo = null;
+            }
+
+            if (_allTransitionTriangles.IsCreated)
+                _allTransitionTriangles.Dispose();
+            
+            if (_filteredTransitionTriangles.IsCreated)
+                _filteredTransitionTriangles.Dispose();
+
+            if (_transitionRanges.IsCreated)
+                _transitionRanges.Dispose();
+
+            _mcManager.OctreeBatchTransitionUpdate -= HandleTransitionUpdate;
         }
 
-        private (int, int) GetLodRange(Vector3 octreePos, Vector3 playerPos) {
-            var distance = Vector3.Distance(octreePos, playerPos);
-            var coarsestLod = McStaticHelper.GetCoarsestLod(distance, _mcManager.lodRanges);
-            var finestLod = McStaticHelper.GetFinestLod(distance, _mcManager.lodRanges);
+        private void Subdivide() {
+            if (_children != null)
+                return;
 
-            return (coarsestLod, finestLod);
+            if (_leafGo != null) {
+                Object.Destroy(_leafGo);
+                _leafGo = null;
+            }
+
+            _children = new OctreeNode[8];
+            var childLod = _lod - 1;
+            var childSize = McStaticHelper.CubesMarchedPerOctreeLeaf << childLod;
+
+            for (var i = 0; i < 8; i++) {
+                var offset = new Vector3Int(
+                    (i & 1) == 0 ? 0 : childSize,
+                    (i & 2) == 0 ? 0 : childSize,
+                    (i & 4) == 0 ? 0 : childSize
+                );
+
+                _children[i] = new OctreeNode(_localPosition + offset, childLod, _chunk);
+            }
         }
 
         public void ValidateOctreeLods(Vector3 playerPosition) {
@@ -74,13 +107,7 @@ namespace Spellbound.MarchingCubes {
 
             if (_chunk.IsChunkAllOneSideOfThreshold()) return;
 
-            if (_lod <= finestLod) {
-                MakeLeaf();
-
-                return;
-            }
-
-            if (_lod == coarsestLod && IsLeaf && _leafGo == null) {
+            if (_lod <= finestLod || (_lod == coarsestLod && _leafGo == null)) {
                 MakeLeaf();
 
                 return;
@@ -96,56 +123,17 @@ namespace Spellbound.MarchingCubes {
                 child.ValidateOctreeLods(playerPosition);
         }
 
-        private void MarchAndUpdateLeaf() {
-            var marchingCubeJob = new MarchingCubeJob {
-                Tables = _mcManager.McTablesBlob,
-                VoxelArray = VoxelData,
+        public void ValidateOctreeEdits(Bounds bounds) {
+            if (!bounds.Intersects(_bounds)) return;
 
-                // New Allocation - Ensure this is disposed of after the job.
-                Vertices = new NativeList<MeshingVertexData>(Allocator.TempJob),
-                // New Allocation - Ensure this is disposed of after the job.
-                Triangles = new NativeList<int>(Allocator.TempJob),
-                Lod = _lod,
-                Start = new int3(_localPosition.x, _localPosition.y, _localPosition.z)
-            };
-            var jobHandle = marchingCubeJob.Schedule();
-            jobHandle.Complete();
-            UpdateLeaf(marchingCubeJob.Vertices, marchingCubeJob.Triangles);
+            if (IsLeaf) {
+                UpdateLeaf();
 
-            marchingCubeJob.Vertices.Dispose();
-            marchingCubeJob.Triangles.Dispose();
-
-            if (_lod != 0) {
-                var transitionMarchingCubeJob = new TransitionMarchingCubeJob {
-                    Tables = _mcManager.McTablesBlob,
-                    VoxelArray = VoxelData,
-
-                    // New Allocation - Ensure this is disposed of after the job.
-                    TransitionMeshingVertexData = new NativeList<MeshingVertexData>(Allocator.TempJob),
-
-                    TransitionTriangles = new NativeList<int>(Allocator.TempJob),
-                    TransitionRanges = new NativeArray<int2>(6, Allocator.TempJob),
-
-                    Lod = _lod,
-                    Start = new int3(_localPosition.x, _localPosition.y, _localPosition.z)
-                };
-
-                var transitionJobHandle = transitionMarchingCubeJob.Schedule();
-                transitionJobHandle.Complete();
-                _activeTransitionMask = 0;
-                _transitionVertices.CopyFrom(transitionMarchingCubeJob.TransitionMeshingVertexData);
-                _transitionTriangles.CopyFrom(transitionMarchingCubeJob.TransitionTriangles);
-                _transitionRanges.CopyFrom(transitionMarchingCubeJob.TransitionRanges);
-                UpdateTransition(_activeTransitionMask);
-                transitionMarchingCubeJob.TransitionMeshingVertexData.Dispose();
-                transitionMarchingCubeJob.TransitionTriangles.Dispose();
-                transitionMarchingCubeJob.TransitionRanges.Dispose();
+                return;
             }
-        }
 
-        private void BroadcastNewLeaf() {
-            var neighborPositions = GetFaceCenters();
-            for (var i = 0; i < 6; i++) _chunk.BroadcastNewLeaf(this, neighborPositions[i], i);
+            foreach (var child in _children)
+                child.ValidateOctreeEdits(bounds);
         }
 
         public void ValidateTransition(
@@ -178,19 +166,237 @@ namespace Spellbound.MarchingCubes {
             neighbor.UpdateTransitionMask(faceMask, true);
         }
 
+        private (int, int) GetLodRange(Vector3 octreePos, Vector3 playerPos) {
+            var distance = Vector3.Distance(octreePos, playerPos);
+            var coarsestLod = McStaticHelper.GetCoarsestLod(distance, _mcManager.lodRanges);
+            var finestLod = McStaticHelper.GetFinestLod(distance, _mcManager.lodRanges);
+
+            return (coarsestLod, finestLod);
+        }
+
+        private void MarchAndMesh() {
+            var marchingCubeJob = new MarchingCubeJob {
+                Tables = _mcManager.McTablesBlob,
+                VoxelArray = VoxelData,
+
+                // New Allocation - Ensure this is disposed of after the job.
+                Vertices = new NativeList<MeshingVertexData>(Allocator.TempJob),
+                // New Allocation - Ensure this is disposed of after the job.
+                Triangles = new NativeList<int>(Allocator.TempJob),
+                Lod = _lod,
+                Start = new int3(_localPosition.x, _localPosition.y, _localPosition.z)
+            };
+            var jobHandle = marchingCubeJob.Schedule();
+            jobHandle.Complete();
+            UpdateLeafMesh(marchingCubeJob.Vertices, marchingCubeJob.Triangles);
+
+            marchingCubeJob.Vertices.Dispose();
+            marchingCubeJob.Triangles.Dispose();
+
+            if (_lod != 0) {
+                var transitionMarchingCubeJob = new TransitionMarchingCubeJob {
+                    Tables = _mcManager.McTablesBlob,
+                    VoxelArray = VoxelData,
+
+                    // New Allocation - Ensure this is disposed of after the job.
+                    TransitionMeshingVertexData = new NativeList<MeshingVertexData>(Allocator.TempJob),
+
+                    TransitionTriangles = new NativeList<int>(Allocator.TempJob),
+                    TransitionRanges = new NativeArray<int2>(6, Allocator.TempJob),
+
+                    Lod = _lod,
+                    Start = new int3(_localPosition.x, _localPosition.y, _localPosition.z)
+                };
+
+                var transitionJobHandle = transitionMarchingCubeJob.Schedule();
+                transitionJobHandle.Complete();
+                _transitionMask = 0;
+                _allTransitionTriangles.CopyFrom(transitionMarchingCubeJob.TransitionTriangles);
+                _transitionRanges.CopyFrom(transitionMarchingCubeJob.TransitionRanges);
+                UpdateTransitionVertexBuffer(transitionMarchingCubeJob.TransitionMeshingVertexData);
+                transitionMarchingCubeJob.TransitionMeshingVertexData.Dispose();
+                transitionMarchingCubeJob.TransitionTriangles.Dispose();
+                transitionMarchingCubeJob.TransitionRanges.Dispose();
+            }
+        }
+
+        private void MakeLeaf() {
+            if (_leafGo != null) return;
+
+            if (!IsLeaf) {
+                for (var i = 0; i < 8; i++) _children[i]?.Dispose();
+                _children = null;
+            }
+
+            BuildLeaf();
+            BuildTransitions();
+            MarchAndMesh();
+            BroadcastNewLeaf();
+        }
+
+        private void BuildLeaf() {
+            _leafGo = Object.Instantiate(
+                _mcManager.octreePrefab,
+                WorldPosition,
+                Quaternion.identity,
+                _chunk.GetChunkTransform()
+            );
+
+            _mesh = new Mesh();
+            _leafGo.GetComponent<MeshFilter>().mesh = _mesh;
+
+            _leafGo.name = $"LeafSize {McStaticHelper.CubesMarchedPerOctreeLeaf << _lod} " +
+                           $"at {_localPosition.x}, {_localPosition.y}, {_localPosition.z}";
+        }
+
+        private void UpdateLeaf() {
+            if (_leafGo == null) return;
+
+            MarchAndMesh();
+        }
+
+        private void UpdateLeafMesh(NativeList<MeshingVertexData> vertices, NativeList<int> triangles) {
+            if (triangles.Length < 3 || vertices.Length < 3)
+                return;
+
+            _mesh.SetVertexBufferParams(vertices.Length, MeshingVertexData.VertexBufferMemoryLayout);
+
+            _mesh.SetVertexBufferData(
+                vertices.AsArray(),
+                0,
+                0,
+                vertices.Length,
+                0,
+                MeshUpdateFlags.DontValidateIndices
+            );
+
+            _mesh.SetIndexBufferParams(triangles.Length, IndexFormat.UInt32);
+
+            _mesh.SetIndexBufferData(
+                triangles.AsArray(),
+                0,
+                0,
+                triangles.Length,
+                MeshUpdateFlags.DontValidateIndices
+            );
+
+            var subMesh = new SubMeshDescriptor(0, triangles.Length);
+            _mesh.subMeshCount = 1;
+
+            _mesh.SetSubMesh(0, subMesh);
+            _mesh.RecalculateBounds();
+
+            if (_mcManager.UseColliders && _leafGo.TryGetComponent<MeshCollider>(out var meshCollider)) 
+                meshCollider.sharedMesh = _mesh;
+        }
+
+        private void BuildTransitions() {
+            var transitionGo = Object.Instantiate(
+                _mcManager.octreePrefab,
+                WorldPosition,
+                Quaternion.identity,
+                _chunk.GetChunkTransform()
+            );
+
+            _transitionMesh = new Mesh();
+            transitionGo.GetComponent<MeshFilter>().mesh = _transitionMesh;
+            //_transitionGo.GetComponent<MeshCollider>().sharedMesh = _transitionMesh;
+
+            transitionGo.name = "transition";
+            transitionGo.transform.parent = _leafGo.transform;
+
+            if (!_allTransitionTriangles.IsCreated) _allTransitionTriangles = new NativeList<int>(Allocator.Persistent);
+
+            if (!_filteredTransitionTriangles.IsCreated)
+                _filteredTransitionTriangles = new NativeList<int>(Allocator.Persistent);
+
+            if (!_transitionRanges.IsCreated) _transitionRanges = new NativeArray<int2>(6, Allocator.Persistent);
+        }
+
+        private void UpdateTransitionVertexBuffer(NativeList<MeshingVertexData> vertices) {
+            if (!vertices.IsCreated || vertices.Length < 3)
+                return;
+
+            _transitionMesh.SetVertexBufferParams(vertices.Length, MeshingVertexData.VertexBufferMemoryLayout);
+
+            _transitionMesh.SetVertexBufferData(
+                vertices.AsArray(),
+                0, 0, vertices.Length, 0,
+                MeshUpdateFlags.DontValidateIndices
+            );
+        }
+
         private void UpdateTransitionMask(McStaticHelper.TransitionFaceMask mask, bool isSetter) {
-            var newTransitionMask = _activeTransitionMask;
+            var newTransitionMask = _transitionMask;
 
             if (isSetter)
                 newTransitionMask |= (int)mask;
             else
                 newTransitionMask &= ~(int)mask;
 
-            if (newTransitionMask == _activeTransitionMask)
+            if (_transitionMask == newTransitionMask)
                 return;
 
-            _activeTransitionMask = newTransitionMask;
-            UpdateTransition(_activeTransitionMask);
+            _transitionMask = newTransitionMask;
+
+            if (_transitionDirtyFlag)
+                return;
+
+            _transitionDirtyFlag = true;
+            _mcManager.OctreeBatchTransitionUpdate += HandleTransitionUpdate;
+        }
+
+        private void HandleTransitionUpdate() {
+            _mcManager.OctreeBatchTransitionUpdate -= HandleTransitionUpdate;
+            _transitionDirtyFlag = false;
+
+            if (!_transitionRanges.IsCreated)
+                return;
+
+            var triangles =
+                    GetFilteredTransitionTriangles(_allTransitionTriangles, _transitionRanges, _transitionMask);
+
+            if (triangles.Length < 3)
+                return;
+
+            _transitionMesh.SetIndexBufferParams(triangles.Length, IndexFormat.UInt32);
+
+            _transitionMesh.SetIndexBufferData(
+                triangles.AsArray(),
+                0,
+                0,
+                triangles.Length,
+                MeshUpdateFlags.DontValidateIndices
+            );
+
+            var subMesh = new SubMeshDescriptor(0, triangles.Length);
+            _transitionMesh.subMeshCount = 1;
+
+            _transitionMesh.SetSubMesh(0, subMesh);
+            _transitionMesh.RecalculateBounds();
+        }
+
+        private NativeList<int> GetFilteredTransitionTriangles(
+            NativeList<int> allTriangles, NativeArray<int2> triangleRanges,
+            int transitionMask) {
+            _filteredTransitionTriangles.Clear();
+
+            for (var i = 0; i < 6; i++) {
+                if ((transitionMask & (1 << i)) == 0) continue;
+
+                var range = triangleRanges[i];
+
+                if (range.x < 0 || range.y > allTriangles.Length || range.x > range.y) continue;
+
+                for (var j = range.x; j < range.y; j++) _filteredTransitionTriangles.Add(allTriangles[j]);
+            }
+
+            return _filteredTransitionTriangles;
+        }
+
+        private void BroadcastNewLeaf() {
+            var neighborPositions = GetFaceCenters();
+            for (var i = 0; i < 6; i++) _chunk.BroadcastNewLeaf(this, neighborPositions[i], i);
         }
 
         private Vector3[] GetFaceCenters() =>
@@ -214,216 +420,5 @@ namespace Spellbound.MarchingCubes {
                     McStaticHelper.TransitionFaceMask.ZMax => McStaticHelper.TransitionFaceMask.ZMin,
                     _ => McStaticHelper.TransitionFaceMask.XMin
                 };
-
-        private void Subdivide() {
-            if (!IsLeaf || _children != null)
-                return;
-
-            if (_leafGo != null) {
-                Object.Destroy(_leafGo);
-                _leafGo = null;
-                Object.Destroy(_transitionGo);
-                _transitionGo = null;
-            }
-
-            _children = new OctreeNode[8];
-            var childLod = _lod - 1;
-            var childSize = McStaticHelper.CubesMarchedPerOctreeLeaf << childLod;
-
-            for (var i = 0; i < 8; i++) {
-                var offset = new Vector3Int(
-                    (i & 1) == 0 ? 0 : childSize,
-                    (i & 2) == 0 ? 0 : childSize,
-                    (i & 4) == 0 ? 0 : childSize
-                );
-
-                _children[i] = new OctreeNode(_localPosition + offset, childLod, _chunk);
-            }
-        }
-
-        private void MakeLeaf() {
-            if (_leafGo != null) return;
-
-            if (!IsLeaf) {
-                for (var i = 0; i < 8; i++) _children[i]?.Dispose();
-                _children = null;
-            }
-
-            BuildLeaf();
-            BuildTransitions();
-            MarchAndUpdateLeaf();
-            BroadcastNewLeaf();
-        }
-
-        private void UpdateLeaf() {
-            if (_leafGo == null) return;
-
-            MarchAndUpdateLeaf();
-        }
-
-        public void Dispose() {
-            if (_children != null) {
-                for (var i = 0; i < 8; i++) _children[i].Dispose();
-                _children = null;
-            }
-
-            if (_leafGo != null) {
-                Object.Destroy(_leafGo);
-                _leafGo = null;
-                Object.Destroy(_transitionGo);
-                _transitionGo = null;
-            }
-
-            if (_transitionVertices.IsCreated)
-                _transitionVertices.Dispose();
-
-            if (_transitionTriangles.IsCreated)
-                _transitionTriangles.Dispose();
-
-            if (_transitionRanges.IsCreated)
-                _transitionRanges.Dispose();
-        }
-
-        private void UpdateLeaf(NativeList<MeshingVertexData> vertices, NativeList<int> triangles) {
-            if (triangles.Length < 3 || vertices.Length < 3)
-                return;
-
-            var meshFilter = _leafGo.GetComponent<MeshFilter>();
-            var meshCollider = _leafGo.GetComponent<MeshCollider>();
-
-            var mesh = new Mesh();
-
-            mesh.SetVertexBufferParams(vertices.Length, MeshingVertexData.VertexBufferMemoryLayout);
-
-            mesh.SetVertexBufferData(
-                vertices.AsArray(),
-                0,
-                0,
-                vertices.Length,
-                0,
-                MeshUpdateFlags.DontValidateIndices
-            );
-
-            mesh.SetIndexBufferParams(triangles.Length, IndexFormat.UInt32);
-
-            mesh.SetIndexBufferData(
-                triangles.AsArray(),
-                0,
-                0,
-                triangles.Length,
-                MeshUpdateFlags.DontValidateIndices
-            );
-
-            var subMesh = new SubMeshDescriptor(0, triangles.Length);
-            mesh.subMeshCount = 1;
-
-            mesh.SetSubMesh(0, subMesh);
-            mesh.RecalculateBounds();
-
-            meshFilter.mesh = mesh;
-            meshCollider.sharedMesh = mesh;
-        }
-
-        private void BuildLeaf() {
-            _leafGo = Object.Instantiate(
-                _mcManager.octreePrefab,
-                WorldPosition,
-                Quaternion.identity,
-                _chunk.GetChunkTransform()
-            );
-
-            _leafGo.name = $"LeafSize {McStaticHelper.CubesMarchedPerOctreeLeaf << _lod} " +
-                           $"at {_localPosition.x}, {_localPosition.y}, {_localPosition.z}";
-
-            if (!_transitionVertices.IsCreated)
-                _transitionVertices = new NativeList<MeshingVertexData>(Allocator.Persistent);
-
-            if (!_transitionTriangles.IsCreated) _transitionTriangles = new NativeList<int>(Allocator.Persistent);
-
-            if (!_transitionRanges.IsCreated) _transitionRanges = new NativeArray<int2>(6, Allocator.Persistent);
-        }
-
-        private void BuildTransitions() {
-            _transitionGo = Object.Instantiate(
-                _mcManager.octreePrefab,
-                WorldPosition,
-                Quaternion.identity,
-                _chunk.GetChunkTransform()
-            );
-
-            _transitionGo.name = "transition";
-            _transitionGo.transform.parent = _leafGo.transform;
-        }
-
-        private void UpdateTransition(int transitionMask) {
-            if (!_transitionVertices.IsCreated)
-                return;
-
-            var meshFilter = _transitionGo.GetComponent<MeshFilter>();
-
-            if (transitionMask == 0) {
-                meshFilter.mesh = null;
-
-                return;
-            }
-
-            var triangles =
-                    GetFilteredTransitionTriangles(_transitionTriangles, _transitionRanges, transitionMask);
-
-            if (triangles.Length < 3 || _transitionVertices.Length < 3)
-                return;
-
-            meshFilter = _transitionGo.GetComponent<MeshFilter>();
-
-            var mesh = new Mesh();
-
-            mesh.SetVertexBufferParams(_transitionVertices.Length, MeshingVertexData.VertexBufferMemoryLayout);
-
-            mesh.SetVertexBufferData(
-                _transitionVertices.AsArray(),
-                0,
-                0,
-                _transitionVertices.Length,
-                0,
-                MeshUpdateFlags.DontValidateIndices
-            );
-
-            mesh.SetIndexBufferParams(triangles.Length, IndexFormat.UInt32);
-
-            mesh.SetIndexBufferData(
-                triangles.AsArray(),
-                0,
-                0,
-                triangles.Length,
-                MeshUpdateFlags.DontValidateIndices
-            );
-
-            var subMesh = new SubMeshDescriptor(0, triangles.Length);
-            mesh.subMeshCount = 1;
-
-            mesh.SetSubMesh(0, subMesh);
-            mesh.RecalculateBounds();
-
-            meshFilter.mesh = mesh;
-            //meshCollider.sharedMesh = mesh;
-        }
-
-        private NativeList<int> GetFilteredTransitionTriangles(
-            NativeList<int> allTriangles, NativeArray<int2> triangleRanges,
-            int transitionMask) {
-            var filteredTriangles = new NativeList<int>(Allocator.Temp);
-
-            for (var i = 0; i < 6; i++) {
-                if ((transitionMask & (1 << i)) == 0) continue;
-
-                var range = triangleRanges[i];
-
-                if (range.x < 0 || range.y > allTriangles.Length || range.x > range.y) continue;
-
-                for (var j = range.x; j < range.y; j++) filteredTriangles.Add(allTriangles[j]);
-            }
-
-            return filteredTriangles;
-        }
     }
 }

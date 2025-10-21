@@ -1,5 +1,6 @@
 // Copyright 2025 Spellbound Studio Inc.
 
+using System;
 using System.Collections.Generic;
 using Spellbound.Core;
 using Unity.Collections;
@@ -17,6 +18,10 @@ namespace Spellbound.MarchingCubes {
         [SerializeField] public GameObject octreePrefab;
         [Range(300f, 1000f), SerializeField] public float viewDistance = 350;
 
+        [SerializeField] private bool useColliders = true;
+        public bool UseColliders => useColliders;
+
+
         //This MUST have a length of MaxLevelOfDetail + 1
         [SerializeField] public Vector2[] lodRanges = {
             new(0, 80),
@@ -32,11 +37,15 @@ namespace Spellbound.MarchingCubes {
         private readonly Queue<(int, IVoxelTerrainChunk)> _slotEvictionQueue = new();
         private readonly Vector3Int[] _slotToKey = new Vector3Int[MaxEntries];
 
+        public event Action OctreeBatchTransitionUpdate;
+
         private void Awake() {
             SingletonManager.RegisterSingleton(this);
             McTablesBlob = McTablesBlobCreator.CreateMcTablesBlobAsset();
             AllocateDenseBuffers(McHelper.ChunkDataVolumeSize);
         }
+
+        private void Update() => OctreeBatchTransitionUpdate?.Invoke();
 
         private void OnValidate() {
             lodRanges = new Vector2[McStaticHelper.MaxLevelOfDetail + 1];
