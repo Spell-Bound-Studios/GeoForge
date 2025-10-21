@@ -122,13 +122,18 @@ namespace Spellbound.MarchingCubes {
 
             var buffer = _denseBuffers[slot];
 
+            var densityRangeArray = new NativeArray<DensityRange>(1, Allocator.TempJob);
+            densityRangeArray[0] = new DensityRange(byte.MaxValue, byte.MinValue);
+
             var unpackJob = new SparseToDenseVoxelDataJob {
                 Voxels = buffer,
-                SparseVoxels = sparseData
+                SparseVoxels = sparseData,
+                DensityRange = densityRangeArray
             };
             var jobHandle = unpackJob.Schedule(McHelper.ChunkDataWidthSize, 1);
             jobHandle.Complete();
-
+            chunk.SetDensityRange(unpackJob.DensityRange[0]);
+            unpackJob.DensityRange.Dispose();
             _keyToSlot[coord] = slot;
             _slotToKey[slot] = coord;
             _slotEvictionQueue.Enqueue((slot, chunk));

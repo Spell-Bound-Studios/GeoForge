@@ -111,7 +111,8 @@ namespace Spellbound.MarchingCubes {
                             + Vector3.one * (McStaticHelper.CubesMarchedPerOctreeLeaf << (_lod - 1));
             var (coarsestLod, finestLod) = GetLodRange(octreePos, playerPosition);
 
-            if (_chunk.IsChunkAllOneSideOfThreshold()) return;
+            if (_chunk.GetDensityRange().IsSkippable())
+                return;
 
             if (_lod <= finestLod || (_lod == coarsestLod && _leafGo == null)) {
                 MakeLeaf();

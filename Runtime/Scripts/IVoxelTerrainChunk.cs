@@ -11,15 +11,14 @@ namespace Spellbound.MarchingCubes {
     public interface IVoxelTerrainChunk {
         public NativeArray<VoxelData> GetVoxelArray();
 
-        public bool IsChunkAllOneSideOfThreshold();
+        public DensityRange GetDensityRange();
+
+        public void SetDensityRange(DensityRange densityRange);
         public Vector3Int GetChunkCoord();
 
         public Transform GetChunkTransform();
 
-        public void ReceivedProcGenData(
-            NativeList<SparseVoxelData> voxels,
-            byte minDensity,
-            byte maxDensity);
+        public void ReceivedProcGenData(NativeList<SparseVoxelData> voxels);
 
         public void UpdateSparseVoxels(NativeList<SparseVoxelData> voxels);
 

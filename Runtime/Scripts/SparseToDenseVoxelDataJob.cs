@@ -17,6 +17,8 @@ namespace Spellbound.MarchingCubes {
 
         [ReadOnly] public NativeList<SparseVoxelData> SparseVoxels;
 
+        [NativeDisableParallelForRestriction] public NativeArray<DensityRange> DensityRange;
+
         public void Execute(int deckIndex) {
             var voxelsPerDeck = McStaticHelper.ChunkDataAreaSize;
             var start = deckIndex * voxelsPerDeck;
@@ -26,6 +28,9 @@ namespace Spellbound.MarchingCubes {
 
             while (rleIndex < SparseVoxels.Length) {
                 var rle = SparseVoxels[rleIndex];
+                var range = DensityRange[0];          // COPY the struct
+                range.Encapsulate(rle.Voxel.Density); // Modify the COPY
+                DensityRange[0] = range;
                 var runStart = rle.StartIndex;
 
                 var runEnd = rleIndex == SparseVoxels.Length - 1

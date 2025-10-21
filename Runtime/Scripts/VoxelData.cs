@@ -1,6 +1,7 @@
 // Copyright 2025 Spellbound Studio Inc.
 
 using System;
+using Unity.Burst;
 
 namespace Spellbound.MarchingCubes {
     /// <summary>
@@ -20,6 +21,7 @@ namespace Spellbound.MarchingCubes {
         // Implement IEquatable<VoxelData>. This enables checking if structA == structB, etc.
         public bool Equals(VoxelData other) => Density == other.Density && MatIndex == other.MatIndex;
 
+        [BurstDiscard]
         public override bool Equals(object obj) => obj is VoxelData other && Equals(other);
 
         public override int GetHashCode() =>
