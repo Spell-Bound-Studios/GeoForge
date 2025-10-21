@@ -17,6 +17,7 @@ namespace Spellbound.MarchingCubes {
     public class OctreeNode : IDisposable {
         private OctreeNode[] _children;
         private GameObject _leafGo;
+        private GameObject _transitionGo;
         private Mesh _mesh;
         private Mesh _transitionMesh;
         private int _transitionMask;
@@ -59,13 +60,18 @@ namespace Spellbound.MarchingCubes {
             }
 
             if (_leafGo != null) {
-                Object.Destroy(_leafGo);
+                if (_transitionGo.TryGetComponent<MeshCollider>(out var transitionMeshCollider))
+                    transitionMeshCollider.sharedMesh = null;
+                _mcManager.ReleasePooledObject(_transitionGo);
+                _transitionGo = null;
+                if (_leafGo.TryGetComponent<MeshCollider>(out var meshCollider)) meshCollider.sharedMesh = null;
+                _mcManager.ReleasePooledObject(_leafGo);
                 _leafGo = null;
             }
 
             if (_allTransitionTriangles.IsCreated)
                 _allTransitionTriangles.Dispose();
-            
+
             if (_filteredTransitionTriangles.IsCreated)
                 _filteredTransitionTriangles.Dispose();
 
@@ -235,12 +241,8 @@ namespace Spellbound.MarchingCubes {
         }
 
         private void BuildLeaf() {
-            _leafGo = Object.Instantiate(
-                _mcManager.octreePrefab,
-                WorldPosition,
-                Quaternion.identity,
-                _chunk.GetChunkTransform()
-            );
+            _leafGo = _mcManager.GetPooledObject(_chunk.GetChunkTransform());
+            _leafGo.transform.position = WorldPosition;
 
             _mesh = new Mesh();
             _leafGo.GetComponent<MeshFilter>().mesh = _mesh;
@@ -286,24 +288,21 @@ namespace Spellbound.MarchingCubes {
             _mesh.SetSubMesh(0, subMesh);
             _mesh.RecalculateBounds();
 
-            if (_mcManager.UseColliders && _leafGo.TryGetComponent<MeshCollider>(out var meshCollider)) 
+            if (_mcManager.UseColliders && _leafGo.TryGetComponent<MeshCollider>(out var meshCollider))
                 meshCollider.sharedMesh = _mesh;
         }
 
         private void BuildTransitions() {
-            var transitionGo = Object.Instantiate(
-                _mcManager.octreePrefab,
-                WorldPosition,
-                Quaternion.identity,
-                _chunk.GetChunkTransform()
-            );
+            _transitionGo = _mcManager.GetPooledObject(_leafGo.transform);
+            _transitionGo.transform.position = WorldPosition;
 
             _transitionMesh = new Mesh();
-            transitionGo.GetComponent<MeshFilter>().mesh = _transitionMesh;
+            _transitionGo.GetComponent<MeshFilter>().mesh = _transitionMesh;
             //_transitionGo.GetComponent<MeshCollider>().sharedMesh = _transitionMesh;
 
-            transitionGo.name = "transition";
-            transitionGo.transform.parent = _leafGo.transform;
+            _transitionGo.name = $"Transition " +
+                                 $"at {_localPosition.x}, {_localPosition.y}, {_localPosition.z}";
+            _transitionGo.transform.parent = _leafGo.transform;
 
             if (!_allTransitionTriangles.IsCreated) _allTransitionTriangles = new NativeList<int>(Allocator.Persistent);
 

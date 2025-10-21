@@ -16,11 +16,13 @@ namespace Spellbound.MarchingCubes {
     public class MarchingCubesManager : MonoBehaviour {
         public BlobAssetReference<McTablesBlobAsset> McTablesBlob;
         [SerializeField] public GameObject octreePrefab;
+        private readonly Stack<GameObject> _objectPool = new();
+        private bool _isShuttingDown;
+        private Transform _objectPoolParent;
         [Range(300f, 1000f), SerializeField] public float viewDistance = 350;
 
         [SerializeField] private bool useColliders = true;
         public bool UseColliders => useColliders;
-
 
         //This MUST have a length of MaxLevelOfDetail + 1
         [SerializeField] public Vector2[] lodRanges = {
@@ -43,6 +45,8 @@ namespace Spellbound.MarchingCubes {
             SingletonManager.RegisterSingleton(this);
             McTablesBlob = McTablesBlobCreator.CreateMcTablesBlobAsset();
             AllocateDenseBuffers(McHelper.ChunkDataVolumeSize);
+            _objectPoolParent = new GameObject("OctreeLeafPool").transform;
+            _objectPoolParent.SetParent(transform);
         }
 
         private void Update() => OctreeBatchTransitionUpdate?.Invoke();
@@ -64,10 +68,44 @@ namespace Spellbound.MarchingCubes {
         }
 
         private void OnDestroy() {
+            _isShuttingDown = true;
+
             if (McTablesBlob.IsCreated)
                 McTablesBlob.Dispose();
 
+            ClearPool();
             DisposeDenseBuffers();
+        }
+
+        public GameObject GetPooledObject(Transform parent) {
+            GameObject go;
+
+            if (_objectPool.Count > 0) {
+                go = _objectPool.Pop();
+                go.SetActive(true);
+            }
+            else
+                go = Instantiate(octreePrefab);
+
+            go.transform.SetParent(parent, false);
+
+            return go;
+        }
+
+        public void ReleasePooledObject(GameObject go) {
+            if (go == null) return;
+
+            go.SetActive(false);
+
+            if (_objectPoolParent != null && !_isShuttingDown)
+                go.transform.SetParent(_objectPoolParent);
+            else
+                go.transform.SetParent(null); // Detach to avoid parenting to destroyed object
+            _objectPool.Push(go);
+        }
+
+        private void ClearPool() {
+            while (_objectPool.Count > 0) Destroy(_objectPool.Pop());
         }
 
         private void AllocateDenseBuffers(int arraySize) {
