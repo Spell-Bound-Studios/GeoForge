@@ -197,6 +197,7 @@ namespace Spellbound.MarchingCubes {
                             GetNormalAndColor(corner0Copy, corner1Copy, t, out var n, out var c);
                             var normal = n;
                             var color = c;
+                            var colorInterp = new float2((float)c.r / byte.MaxValue, 0);
 
                             //Debug.Log($"vertexIndex being loaded into transitionVertexIndices: {vertexIndex}");
 
@@ -214,7 +215,7 @@ namespace Spellbound.MarchingCubes {
                             }
 
                             TransitionMeshingVertexData.Add(new MeshingVertexData(vertex, normal,
-                                color));
+                                color, colorInterp));
                         }
 
                         transitionVertexIndices[i] = vertexIndex;
@@ -317,33 +318,38 @@ namespace Spellbound.MarchingCubes {
             normal = math.normalize(normal);
 
             // More efficient version without unsafe code
-            var uniqueMaterials = new NativeList<MaterialType>(12, Allocator.Temp);
-            var materialWeights = new NativeList<float>(12, Allocator.Temp);
+            var uniqueMaterials = new NativeList<MaterialType>(14, Allocator.Temp);
+            var materialWeights = new NativeList<float>(14, Allocator.Temp);
 
             var weight0 = 1f - t;
 
-            var voxelsToProcess = new NativeArray<VoxelData>(12, Allocator.Temp);
-            voxelsToProcess[0] = v0011;
-            voxelsToProcess[1] = v0211;
-            voxelsToProcess[2] = v0101;
-            voxelsToProcess[3] = v0121;
-            voxelsToProcess[4] = v0110;
-            voxelsToProcess[5] = v0112;
-            voxelsToProcess[6] = v1011;
-            voxelsToProcess[7] = v1211;
-            voxelsToProcess[8] = v1101;
-            voxelsToProcess[9] = v1121;
-            voxelsToProcess[10] = v1110;
-            voxelsToProcess[11] = v1112;
+            // Create array of voxels to process
+            var voxelsToProcess = new NativeArray<VoxelData>(14, Allocator.Temp);
+                                
+            voxelsToProcess[0] = voxel0;
+            voxelsToProcess[1] = v0011;
+            voxelsToProcess[2] = v0211;
+            voxelsToProcess[3] = v0101;
+            voxelsToProcess[4] = v0121;
+            voxelsToProcess[5] = v0110;
+            voxelsToProcess[6] = v0112;
+                                
+            voxelsToProcess[7] = voxel0;
+            voxelsToProcess[8] = v1011;
+            voxelsToProcess[9] = v1211;
+            voxelsToProcess[10] = v1101;
+            voxelsToProcess[11] = v1121;
+            voxelsToProcess[12] = v1110;
+            voxelsToProcess[13] = v1112;
 
-            for (var v = 0; v < 12; v++) {
+            for (var v = 0; v < 14; v++) {
                 var voxel = voxelsToProcess[v];
 
                 // Skip voxels with zero density (air)
                 if (voxel.Density == 0) continue;
 
                 var matIndex = voxel.MaterialType;
-                var baseWeight = v < 6 ? weight0 : t;
+                var baseWeight = v < 7 ? weight0 : t;
 
                 // Weight by density (normalized to 0-1 range, assuming density is 0-255)
                 var densityWeight = voxel.Density / 255f;
@@ -390,13 +396,9 @@ namespace Spellbound.MarchingCubes {
 
             uniqueMaterials.Dispose();
             materialWeights.Dispose();
+            
 
-            var blend = matBWeight / (matAWeight + matBWeight);
-            if (matAWeight + matBWeight == 0) blend = 0;
-
-            var blendByte = (byte)Mathf.RoundToInt(blend * 255f);
-
-            color = new Color32((byte)matA, (byte)matB, blendByte, 0);
+            color = new Color32((byte)matA, (byte)matB, (byte)matA, 0);
         }
 
         private bool IsDegenerateTriangle(float3 a, float3 b, float3 c) {
