@@ -257,30 +257,39 @@ namespace Spellbound.MarchingCubes {
                                 
                                 
                                 // More efficient version without unsafe code
-                                var uniqueMaterials = new NativeList<byte>(12, Allocator.Temp);
+                                var uniqueMaterials = new NativeList<MaterialType>(12, Allocator.Temp);
                                 var materialWeights = new NativeList<float>(12, Allocator.Temp);
 
                                 var weight0 = 1f - t;
 
                                 // Create array of voxels to process
-                                var voxelsToProcess = new NativeArray<byte>(12, Allocator.Temp);
-                                voxelsToProcess[0] = v0011.MatIndex;
-                                voxelsToProcess[1] = v0211.MatIndex;
-                                voxelsToProcess[2] = v0101.MatIndex;
-                                voxelsToProcess[3] = v0121.MatIndex;
-                                voxelsToProcess[4] = v0110.MatIndex;
-                                voxelsToProcess[5] = v0112.MatIndex;
-                                voxelsToProcess[6] = v1011.MatIndex;
-                                voxelsToProcess[7] = v1211.MatIndex;
-                                voxelsToProcess[8] = v1101.MatIndex;
-                                voxelsToProcess[9] = v1121.MatIndex;
-                                voxelsToProcess[10] = v1110.MatIndex;
-                                voxelsToProcess[11] = v1112.MatIndex;
+                                var voxelsToProcess = new NativeArray<VoxelData>(12, Allocator.Temp);
+                                voxelsToProcess[0] = v0011;
+                                voxelsToProcess[1] = v0211;
+                                voxelsToProcess[2] = v0101;
+                                voxelsToProcess[3] = v0121;
+                                voxelsToProcess[4] = v0110;
+                                voxelsToProcess[5] = v0112;
+                                voxelsToProcess[6] = v1011;
+                                voxelsToProcess[7] = v1211;
+                                voxelsToProcess[8] = v1101;
+                                voxelsToProcess[9] = v1121;
+                                voxelsToProcess[10] = v1110;
+                                voxelsToProcess[11] = v1112;
                                 
                                 for (int v = 0; v < 12; v++)
                                 {
-                                    byte matIndex = voxelsToProcess[v];
-                                    float weight = v < 6 ? weight0 : t;
+                                    var voxel = voxelsToProcess[v];
+    
+                                    // Skip voxels with zero density (air)
+                                    if (voxel.Density == 0) continue;
+    
+                                    MaterialType matIndex = voxel.MaterialType;
+                                    float baseWeight = v < 6 ? weight0 : t;
+    
+                                    // Weight by density (normalized to 0-1 range, assuming density is 0-255)
+                                    float densityWeight = voxel.Density / 255f;
+                                    float weight = baseWeight * densityWeight;
     
                                     int existingIndex = -1;
                                     for (int k = 0; k < uniqueMaterials.Length; k++)
@@ -306,8 +315,8 @@ namespace Spellbound.MarchingCubes {
                                 voxelsToProcess.Dispose();
 
                                 // Find top 2 materials
-                                byte matA = 0;
-                                byte matB = 0;
+                                MaterialType matA = 0;
+                                MaterialType matB = 0;
                                 float matAWeight = 0;
                                 float matBWeight = 0;
                                 
@@ -335,7 +344,7 @@ namespace Spellbound.MarchingCubes {
 
                                 var blendByte = (byte)Mathf.RoundToInt(blend * 255f);
 
-                                var color = new Color32(matA, matB, blendByte, 0);
+                                var color = new Color32((byte)matA, (byte)matB, blendByte, 0);
                                 Vertices.Add(new MeshingVertexData(vertex, normal, color));
                             }
 

@@ -11,24 +11,24 @@ namespace Spellbound.MarchingCubes {
     public struct VoxelEdit : IPacker {
         public int index;
         public byte density;
-        public byte matIndex;
+        public MaterialType MaterialType;
 
-        public VoxelEdit(int index, byte density, byte matIndex) {
+        public VoxelEdit(int index, byte density, MaterialType matIndex) {
             this.index = index;
             this.density = density;
-            this.matIndex = matIndex;
+            MaterialType = matIndex;
         }
 
         public void Pack(ref Span<byte> buffer) {
             Packer.WriteInt(ref buffer, index);
             Packer.WriteByte(ref buffer, density);
-            Packer.WriteByte(ref buffer, matIndex);
+            Packer.WriteByte(ref buffer, (byte)MaterialType);
         }
 
         public void Unpack(ref ReadOnlySpan<byte> buffer) {
             index = Packer.ReadInt(ref buffer);
             density = Packer.ReadByte(ref buffer);
-            matIndex = Packer.ReadByte(ref buffer);
+            MaterialType = (MaterialType)Packer.ReadByte(ref buffer);
         }
     }
 }
