@@ -8,7 +8,7 @@ Material:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: SpellboundTerrain
-  m_Shader: {fileID: -6465566751694194690, guid: 280686edb0ebb5f4e975c9edf5819b6d, type: 3}
+  m_Shader: {fileID: 4800000, guid: 9b4226c304ef73646a23f6195aa89d9a, type: 3}
   m_Parent: {fileID: 0}
   m_ModifiedSerializedProperties: 0
   m_ValidKeywords: []
@@ -54,7 +54,7 @@ Material:
         m_Offset: {x: 0, y: 0}
     m_Ints: []
     m_Floats:
-    - _AO: 2.72
+    - _AO: 2.73
     - _Blend: 1
     - _Index: 1
     - _Metallic: 0
