@@ -1,6 +1,8 @@
 // Copyright 2025 Spellbound Studio Inc.
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
 using Spellbound.Core;
 using Unity.Burst;
@@ -86,5 +88,8 @@ namespace Spellbound.MarchingCubes {
 
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Coord2DToIndex(int x, int z) => x + z * ChunkDataWidthSize;
+
+        public static List<MaterialType> GetAllMaterialTypes() =>
+                Enum.GetValues(typeof(MaterialType)).Cast<MaterialType>().ToList();
     }
 }
