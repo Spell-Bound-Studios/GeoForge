@@ -17,6 +17,10 @@ namespace Spellbound.MarchingCubes {
         public BlobAssetReference<McTablesBlobAsset> McTablesBlob;
         [SerializeField] public GameObject octreePrefab;
         private readonly Stack<GameObject> _objectPool = new();
+        private bool _isActive;
+        private Dictionary<int, List<Vector3Int>> _sharedIndicesLookup = new();
+        
+        public bool IsActive() => _isActive;
         private bool _isShuttingDown;
         private Transform _objectPoolParent;
         [Range(300f, 1000f), SerializeField] public float viewDistance = 350;
@@ -47,6 +51,7 @@ namespace Spellbound.MarchingCubes {
             AllocateDenseBuffers(McHelper.ChunkDataVolumeSize);
             _objectPoolParent = new GameObject("OctreeLeafPool").transform;
             _objectPoolParent.SetParent(transform);
+            InitializeSharedIndicesLookup();
         }
 
         private void Update() => OctreeBatchTransitionUpdate?.Invoke();
@@ -173,5 +178,190 @@ namespace Spellbound.MarchingCubes {
             _keyToSlot.Clear();
             _slotEvictionQueue.Clear();
         }
+        
+        
+        /// <summary>
+        /// Expected to run on server only.
+        /// Maps "raw" (world space) voxel edit to Chunks and Lists of local changes in each chunk.
+        /// This is required because there's data overlap between the chunks. 
+        /// </summary>
+        public void DistributeVoxelEdits(
+            List<RawVoxelEdit> rawVoxelEdits, HashSet<MaterialType> removableMatTypes) {
+            
+            var editsByChunkCoord = new Dictionary<Vector3Int, List<VoxelEdit>>();
+
+            var chunkManager = GetComponent<IVoxelTerrainChunkManager>();
+
+            foreach (var rawEdit in rawVoxelEdits) {
+                var centralCoord = SpellboundStaticHelper.WorldToChunk(rawEdit.WorldPosition);
+                var centralLocalPos = rawEdit.WorldPosition - centralCoord * SpellboundStaticHelper.ChunkSize;
+                var index = McStaticHelper.Coord3DToIndex(centralLocalPos.x, centralLocalPos.y, centralLocalPos.z);
+                
+                if (!editsByChunkCoord.TryGetValue(centralCoord, out var localEdits)) {
+                    localEdits = new List<VoxelEdit>();
+                    editsByChunkCoord[centralCoord] = localEdits;
+                }
+                
+                var chunk = chunkManager.GetChunkByCoord(centralCoord);
+                if (chunk == null) continue;
+                    
+                var existingVoxel = chunk.GetVoxelData(index);
+
+                if (!removableMatTypes.Contains(existingVoxel.MaterialType) &&
+                    rawEdit.DensityChange < 0) continue;
+
+                var newDensity = (byte)Mathf.Clamp(existingVoxel.Density + rawEdit.DensityChange, 0, 255);
+                    
+                var mat = existingVoxel.Density > rawEdit.DensityChange 
+                        ? existingVoxel.MaterialType :  rawEdit.NewMatIndex;
+                    
+                var localEdit = new VoxelEdit(index, newDensity, mat);
+                localEdits.Add(localEdit);
+                
+                if (_sharedIndicesLookup.TryGetValue(index, out var neighborCoords)) {
+                    foreach (var neighborCoord in neighborCoords) {
+                        var neighborLocalPos = rawEdit.WorldPosition - (centralCoord +  neighborCoord) * SpellboundStaticHelper.ChunkSize;
+                        var neighborIndex = McStaticHelper.Coord3DToIndex(neighborLocalPos.x, neighborLocalPos.y, neighborLocalPos.z);
+                        var trueNeighborCoord = neighborCoord + centralCoord;
+                        if (!editsByChunkCoord.TryGetValue(trueNeighborCoord, out var localNeighborEdits)) {
+                            localNeighborEdits = new List<VoxelEdit>();
+                            editsByChunkCoord[trueNeighborCoord] = localNeighborEdits;
+                        }
+                        var localNeighborEdit = new VoxelEdit(neighborIndex, newDensity, mat);
+                        localNeighborEdits.Add(localNeighborEdit);
+                    }
+                }
+            }
+
+            foreach (var kvp in editsByChunkCoord) {
+                chunkManager.GetChunkByCoord(kvp.Key).AddToVoxelEdits(kvp.Value);
+            }
+        }
+        
+        public VoxelData QueryVoxel(Vector3 position) {
+            var chunkManager = GetComponent<IVoxelTerrainChunkManager>();
+            if (chunkManager == null)
+                return new VoxelData();
+
+            var chunk = chunkManager.GetChunkByPosition(position);
+
+            if (chunk == null) {
+                return new VoxelData();
+            }
+
+            var positionRounded = new Vector3Int(
+                Mathf.RoundToInt(position.x),
+                Mathf.RoundToInt(position.y),
+                Mathf.RoundToInt(position.z));
+
+            if (!chunk.HasVoxelData())
+                return new VoxelData();
+
+            return chunk.GetVoxelData(positionRounded);
+        }
+
+        private void InitializeSharedIndicesLookup() {
+            List<Vector3Int> neighborCoords = new();
+
+            for (var dx = -1; dx <= 1; dx++) {
+                for (var dy = -1; dy <= 1; dy++) {
+                    for (var dz = -1; dz <= 1; dz++) {
+                        var coordDelta = new Vector3Int(dx, dy, dz);
+                        if (coordDelta == Vector3Int.zero)
+                            continue;
+                        
+                        neighborCoords.Add(new Vector3Int(dx, dy, dz));
+                    }
+                }
+            }
+            
+            var chunkBounds = new BoundsInt(
+                0,
+                0,
+                0,
+                SpellboundStaticHelper.ChunkSize + 3,
+                SpellboundStaticHelper.ChunkSize + 3,
+                SpellboundStaticHelper.ChunkSize + 3
+            );
+
+            for (var i = 0; i < McHelper.ChunkDataVolumeSize; i++) {
+                McStaticHelper.IndexToInt3(i, out var x, out var y, out var z);
+                var localPos = new Vector3Int(x, y, z);
+
+                foreach (var coord in neighborCoords) {
+                    var localPosNeighbor = localPos -  coord * SpellboundStaticHelper.ChunkSize;
+
+                    if (!chunkBounds.Contains(localPosNeighbor)) 
+                        continue;
+
+                    if (!_sharedIndicesLookup.TryGetValue(i, out var coordsSharingIndex)) {
+                        coordsSharingIndex = new List<Vector3Int>();
+                        _sharedIndicesLookup[i] = coordsSharingIndex;
+                    }
+                    coordsSharingIndex.Add(coord);
+                }
+            }
+        }
+        
+        /// <summary>
+        /// Expected to run on server only.
+        /// Maps "raw" (world space) voxel edit to Chunks and Lists of local changes in each chunk.
+        /// This is required because there's data overlap between the chunks. 
+        /// </summary>
+        public void DistributeVoxelEditsOld(
+            List<RawVoxelEdit> rawVoxelEdits, HashSet<MaterialType> removableMatTypes) {
+            var chunkBounds = new BoundsInt(
+                0,
+                0,
+                0,
+                SpellboundStaticHelper.ChunkSize + 3,
+                SpellboundStaticHelper.ChunkSize + 3,
+                SpellboundStaticHelper.ChunkSize + 3
+            );
+
+            var editsByChunkCoord = new Dictionary<Vector3Int, List<VoxelEdit>>();
+
+            var chunkManager = GetComponent<IVoxelTerrainChunkManager>();
+
+            foreach (var rawEdit in rawVoxelEdits) {
+                var affectedChunksByCoord = McStaticHelper.GetChunksTouchingPosition(rawEdit.WorldPosition);
+
+                foreach (var coord in affectedChunksByCoord) {
+                    var localPos = rawEdit.WorldPosition - coord * SpellboundStaticHelper.ChunkSize;
+
+                    if (!chunkBounds.Contains(localPos))
+                        continue;
+
+                    var index = McStaticHelper.Coord3DToIndex(localPos.x, localPos.y, localPos.z);
+
+                    if (!editsByChunkCoord.TryGetValue(coord, out var localEdits)) {
+                        localEdits = new List<VoxelEdit>();
+                        editsByChunkCoord[coord] = localEdits;
+                    }
+
+                    var chunk = chunkManager.GetChunkByCoord(coord);
+
+                    if (chunk == null) continue;
+
+                    var existingVoxel = chunk.GetVoxelData(index);
+
+                    if (!removableMatTypes.Contains(existingVoxel.MaterialType) &&
+                        rawEdit.DensityChange < 0) continue;
+
+                    var newDensity = (byte)Mathf.Clamp(existingVoxel.Density + rawEdit.DensityChange, 0, 255);
+                    
+                    var mat = existingVoxel.Density > rawEdit.DensityChange 
+                            ? existingVoxel.MaterialType :  rawEdit.NewMatIndex;
+                    
+                    var localEdit = new VoxelEdit(index, newDensity, mat);
+                    localEdits.Add(localEdit);
+                }
+            }
+
+            foreach (var kvp in editsByChunkCoord) {
+                chunkManager.GetChunkByCoord(kvp.Key).AddToVoxelEdits(kvp.Value);
+            }
+        }
+        
     }
 }

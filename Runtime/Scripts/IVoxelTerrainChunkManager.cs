@@ -9,7 +9,5 @@ namespace Spellbound.Core {
         public IVoxelTerrainChunk GetChunkByPosition(Vector3 position);
 
         public IVoxelTerrainChunk GetChunkByCoord(Vector3Int coord);
-
-        public void HandleVoxelEdits(Dictionary<Vector3Int, List<VoxelEdit>> editsByChunkCoord);
     }
 }
