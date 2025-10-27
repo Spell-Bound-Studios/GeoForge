@@ -9,7 +9,7 @@ namespace Spellbound.MarchingCubes {
     /// Defines the contract that a chunk must fulfill to integrate with the Marching Cubes Voxel System.
     /// </summary>
     public interface IVoxelTerrainChunk {
-        public NativeArray<VoxelData> GetVoxelArray();
+        public NativeArray<VoxelData> GetVoxelData();
 
         public DensityRange GetDensityRange();
 
@@ -18,9 +18,9 @@ namespace Spellbound.MarchingCubes {
 
         public Transform GetChunkTransform();
 
-        public void ReceivedProcGenData(NativeList<SparseVoxelData> voxels);
+        public void InitializeVoxelData(NativeList<SparseVoxelData> voxels);
 
-        public void UpdateSparseVoxels(NativeList<SparseVoxelData> voxels);
+        public void UpdateVoxelData(NativeList<SparseVoxelData> voxels);
 
         public bool IsDirty();
 
@@ -33,5 +33,7 @@ namespace Spellbound.MarchingCubes {
         public VoxelData GetVoxelData(Vector3Int position);
 
         public bool HasVoxelData();
+
+        public void ValidateOctreeEdits(Bounds bounds);
     }
 }

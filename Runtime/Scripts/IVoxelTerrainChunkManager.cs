@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Spellbound.MarchingCubes;
 using UnityEngine;
 
-namespace Spellbound.Core {
+namespace Spellbound.MarchingCubes {
     public interface IVoxelTerrainChunkManager {
         public IVoxelTerrainChunk GetChunkByPosition(Vector3 position);
 

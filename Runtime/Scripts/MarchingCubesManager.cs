@@ -163,7 +163,7 @@ namespace Spellbound.MarchingCubes {
             var jobHandle = packJob.Schedule();
             jobHandle.Complete();
 
-            indexAndChunkTuple.Item2.UpdateSparseVoxels(sparseData);
+            indexAndChunkTuple.Item2.UpdateVoxelData(sparseData);
             sparseData.Dispose();
 
             return indexAndChunkTuple.Item1;

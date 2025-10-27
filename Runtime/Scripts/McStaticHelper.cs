@@ -35,6 +35,29 @@ namespace Spellbound.MarchingCubes {
             ZMax = 1 << 5,
             All = ~0
         }
+        
+        public static TransitionFaceMask GetTransitionFaceMask(int index) =>
+                index switch {
+                    0 => TransitionFaceMask.XMin,
+                    1 => TransitionFaceMask.YMin,
+                    2 => TransitionFaceMask.ZMin,
+                    3 => TransitionFaceMask.XMax,
+                    4 => TransitionFaceMask.YMax,
+                    5 => TransitionFaceMask.ZMax,
+                    _ => TransitionFaceMask.XMin
+                };
+        
+        public static Vector3Int GetNeighborCoord(int index, Vector3Int chunkCoord) =>
+                index switch {
+                    0 => chunkCoord + Vector3Int.left,
+                    1 => chunkCoord + Vector3Int.down,
+                    2 => chunkCoord + Vector3Int.back,
+                    3 => chunkCoord + Vector3Int.right,
+                    4 => chunkCoord + Vector3Int.up,
+                    // 5 => chunkCoord + Vector3Int.forward, handled by the default case
+                    _ => chunkCoord + Vector3Int.forward
+                };
+
 
         public static int GetCoarsestLod(float distance, Vector2[] lodRanges) {
             for (var i = lodRanges.Length - 1; i >= 0; i--) {
