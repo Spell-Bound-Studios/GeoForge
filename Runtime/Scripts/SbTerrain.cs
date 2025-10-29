@@ -7,38 +7,45 @@ using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
     public static class SbTerrain {
-        
-        public static bool IsInitialized() {
-            return SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out _)
-                   && SingletonManager.TryGetSingletonInstance<IVoxelTerrainChunkManager>(out _);
-        }
+        public static bool IsInitialized() =>
+                SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out _)
+                && SingletonManager.TryGetSingletonInstance<IVoxelTerrainChunkManager>(out _);
 
         public static bool IsActive() {
             var mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
+
             return mcManager.IsActive();
         }
-        
+
         public static bool IsInsideTerrain(Vector3 position) {
             var mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
+
             return mcManager.QueryVoxel(position).Density >= McStaticHelper.DensityThreshold;
         }
-        
-        public static void RemoveSphere(Vector3 position) 
-            => TerraformCommands.RemoveSphere(position, 
-                new List<MaterialType> { MaterialType.Dirt }, 
-                6f, 
-                byte.MaxValue);
-        
-        public static void RemoveSphere( Vector3 position, 
-            List<MaterialType> diggableMaterialTypes, 
-            float radius, 
-            int delta) 
-            => TerraformCommands.RemoveSphere(position, diggableMaterialTypes, radius, delta);
-        
-        public static void RemoveSphere( Vector3 position, float radius, int delta) 
-            => TerraformCommands.RemoveSphere(position, 
-                McStaticHelper.GetAllMaterialTypes().ToList(), 
-                radius, 
-                delta);
+
+        public static void RemoveSphere(Vector3 position) =>
+                TerraformCommands.RemoveSphere(position,
+                    new List<MaterialType> { MaterialType.Dirt, MaterialType.Swamp, MaterialType.Ice },
+                    6f,
+                    byte.MaxValue);
+
+        public static void RemoveSphere(
+            Vector3 position,
+            List<MaterialType> diggableMaterialTypes,
+            float radius,
+            int delta) =>
+                TerraformCommands.RemoveSphere(position, diggableMaterialTypes, radius, delta);
+
+        public static void RemoveSphere(Vector3 position, float radius, int delta) =>
+                TerraformCommands.RemoveSphere(position,
+                    McStaticHelper.GetAllMaterialTypes().ToList(),
+                    radius,
+                    delta);
+
+        public static void AddSphere(Vector3 position) =>
+                TerraformCommands.AddSphere(position,
+                    MaterialType.Ice,
+                    4f,
+                    byte.MaxValue);
     }
 }

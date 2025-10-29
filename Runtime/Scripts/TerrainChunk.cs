@@ -1,25 +1,22 @@
-using System;
+// Copyright 2025 Spellbound Studio Inc.
+
 using System.Collections.Generic;
 using Spellbound.Core;
 using Unity.Collections;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
-    public class TerrainChunk : MonoBehaviour, IVoxelTerrainChunk
-    {
+    public class TerrainChunk : MonoBehaviour, IVoxelTerrainChunk {
         private Vector3Int _chunkCoord;
         private Bounds _bounds;
         private NativeList<SparseVoxelData> _sparseVoxels;
         private Dictionary<int, VoxelEdit> _voxelEdits;
         private OctreeNode _rootNode;
-        private Bounds _editBounds;
-        private bool _hasEdits;
         private DensityRange _densityRange;
         private MarchingCubesManager _mcManager;
         private IVoxelTerrainChunkManager _chunkManager;
         private bool _isDirty;
 
-        
         public NativeArray<VoxelData> GetVoxelData() => _mcManager.GetOrCreate(_chunkCoord, this, _sparseVoxels);
 
         public DensityRange GetDensityRange() => _densityRange;
@@ -30,14 +27,13 @@ namespace Spellbound.MarchingCubes {
         public Transform GetChunkTransform() => transform;
 
         public void InitializeVoxelData(NativeList<SparseVoxelData> voxels) {
-            if (_sparseVoxels.IsCreated) {
+            if (_sparseVoxels.IsCreated)
                 Debug.LogError($"_sparseVoxels is already created for this chunkCoord {_chunkCoord}.");
-            }
 
-            if (!voxels.IsCreated) {
-                Debug.LogError($"_sparseVoxels being initialized with a List is already created for this chunkCoord {_chunkCoord}.");
-            }
-            
+            if (!voxels.IsCreated)
+                Debug.LogError(
+                    $"_sparseVoxels being initialized with a List is already created for this chunkCoord {_chunkCoord}.");
+
             _sparseVoxels = new NativeList<SparseVoxelData>(voxels.Length, Allocator.Persistent);
             _sparseVoxels.AddRange(voxels.AsArray());
             _rootNode = new OctreeNode(Vector3Int.zero, McStaticHelper.MaxLevelOfDetail, this);
@@ -69,38 +65,45 @@ namespace Spellbound.MarchingCubes {
             if (neighborChunk == null)
                 return;
 
-
             neighborChunk.BroadcastNewLeaf(newLeaf, pos, index);
         }
 
         public void AddToVoxelEdits(List<VoxelEdit> newVoxelEdits) {
+            if (newVoxelEdits.Count == 0)
+                return;
+
             var voxelArray = _mcManager.GetOrCreate(_chunkCoord, this, _sparseVoxels);
+            var hasAnyEdits = false;
+            Bounds editBounds = default;
 
             foreach (var voxelEdit in newVoxelEdits) {
                 var index = voxelEdit.index;
+                var existingVoxel = voxelArray[index];
 
-                if (voxelEdit.density == voxelArray[index].Density &&
-                    voxelEdit.MaterialType == voxelArray[index].MaterialType)
+                // Skip if no change
+                if (voxelEdit.density == existingVoxel.Density &&
+                    voxelEdit.MaterialType == existingVoxel.MaterialType)
                     continue;
-                
+
                 voxelArray[index] = new VoxelData(voxelEdit.density, voxelEdit.MaterialType);
+
                 McStaticHelper.IndexToInt3(index, out var x, out var y, out var z);
                 var localPos = new Vector3Int(x, y, z);
 
-                if (!_hasEdits) {
-                    _editBounds = new Bounds(localPos, Vector3.zero);
-                    _hasEdits = true;
-                    _isDirty = true;
+                if (!hasAnyEdits) {
+                    editBounds = new Bounds(localPos, Vector3.zero);
+                    hasAnyEdits = true;
                 }
                 else
-                    _editBounds.Encapsulate(localPos);
+                    editBounds.Encapsulate(localPos);
 
-                _densityRange.Encapsulate(voxelArray[index].Density);
-               
-                
+                _densityRange.Encapsulate(voxelEdit.density); // Use voxelEdit.density directly
             }
-            ValidateOctreeEdits(_editBounds);
-            _hasEdits = false;
+
+            if (hasAnyEdits) {
+                _isDirty = true;
+                ValidateOctreeEdits(editBounds);
+            }
         }
 
         public VoxelData GetVoxelData(int index) {
@@ -121,19 +124,19 @@ namespace Spellbound.MarchingCubes {
         // TODO: Null checking twice is weird.
         public void ValidateOctreeEdits(Bounds bounds) {
             if (_rootNode == null)
-                _rootNode = new  OctreeNode(Vector3Int.zero, McStaticHelper.MaxLevelOfDetail, this);
+                _rootNode = new OctreeNode(Vector3Int.zero, McStaticHelper.MaxLevelOfDetail, this);
 
             var worldBounds = new Bounds(bounds.center + _chunkCoord * SpellboundStaticHelper.ChunkSize, bounds.size);
             _rootNode.ValidateOctreeEdits(worldBounds);
         }
-        
+
         public void ValidateOctreeLods(Vector3 playerPosition) {
             if (!_sparseVoxels.IsCreated)
                 return;
 
             _rootNode.ValidateOctreeLods(playerPosition);
         }
-        
+
         public void SetChunkFields(Vector3Int coord) {
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
             _chunkManager = SingletonManager.GetSingletonInstance<IVoxelTerrainChunkManager>();
@@ -145,7 +148,7 @@ namespace Spellbound.MarchingCubes {
             gameObject.name = coord.ToString();
         }
 
-        void OnDestroy() {
+        private void OnDestroy() {
             _rootNode?.Dispose();
 
             if (_sparseVoxels.IsCreated)
@@ -153,4 +156,3 @@ namespace Spellbound.MarchingCubes {
         }
     }
 }
-

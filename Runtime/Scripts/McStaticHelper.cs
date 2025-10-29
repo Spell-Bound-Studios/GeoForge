@@ -21,7 +21,7 @@ namespace Spellbound.MarchingCubes {
         public const int ChunkDataWidthSize = SpellboundStaticHelper.ChunkSize + 3;
         public const int ChunkDataAreaSize = ChunkDataWidthSize * ChunkDataWidthSize;
         public const int ChunkDataVolumeSize = ChunkDataWidthSize * ChunkDataWidthSize * ChunkDataWidthSize;
-        
+
         public static readonly Vector3Int ChunkCenter = Vector3Int.one * (1 + SpellboundStaticHelper.ChunkSize / 2);
         public static readonly Vector3Int ChunkExtents = Vector3Int.one * SpellboundStaticHelper.ChunkSize;
 
@@ -38,7 +38,7 @@ namespace Spellbound.MarchingCubes {
             ZMax = 1 << 5,
             All = ~0
         }
-        
+
         public static TransitionFaceMask GetTransitionFaceMask(int index) =>
                 index switch {
                     0 => TransitionFaceMask.XMin,
@@ -49,7 +49,7 @@ namespace Spellbound.MarchingCubes {
                     5 => TransitionFaceMask.ZMax,
                     _ => TransitionFaceMask.XMin
                 };
-        
+
         public static Vector3Int GetNeighborCoord(int index, Vector3Int chunkCoord) =>
                 index switch {
                     0 => chunkCoord + Vector3Int.left,
@@ -60,7 +60,6 @@ namespace Spellbound.MarchingCubes {
                     // 5 => chunkCoord + Vector3Int.forward, handled by the default case
                     _ => chunkCoord + Vector3Int.forward
                 };
-
 
         public static int GetCoarsestLod(float distance, Vector2[] lodRanges) {
             for (var i = lodRanges.Length - 1; i >= 0; i--) {
@@ -117,7 +116,7 @@ namespace Spellbound.MarchingCubes {
 
         public static List<MaterialType> GetAllMaterialTypes() =>
                 Enum.GetValues(typeof(MaterialType)).Cast<MaterialType>().ToList();
-        
+
         /// <summary>
         /// This is meant to be called externally so that a reference to a chunk can be retrieved from game logic.
         /// </summary>
@@ -140,6 +139,4 @@ namespace Spellbound.MarchingCubes {
             return chunkKeys.ToList();
         }
     }
-    
-    
 }

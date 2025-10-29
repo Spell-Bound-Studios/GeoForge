@@ -1,7 +1,5 @@
 // Copyright 2025 Spellbound Studio Inc.
 
-using System.Collections.Generic;
-using Spellbound.MarchingCubes;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
