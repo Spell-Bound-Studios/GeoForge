@@ -21,6 +21,9 @@ namespace Spellbound.MarchingCubes {
         public const int ChunkDataWidthSize = SpellboundStaticHelper.ChunkSize + 3;
         public const int ChunkDataAreaSize = ChunkDataWidthSize * ChunkDataWidthSize;
         public const int ChunkDataVolumeSize = ChunkDataWidthSize * ChunkDataWidthSize * ChunkDataWidthSize;
+        
+        public static readonly Vector3Int ChunkCenter = Vector3Int.one * (1 + SpellboundStaticHelper.ChunkSize / 2);
+        public static readonly Vector3Int ChunkExtents = Vector3Int.one * SpellboundStaticHelper.ChunkSize;
 
         public const byte DensityThreshold = 128;
 

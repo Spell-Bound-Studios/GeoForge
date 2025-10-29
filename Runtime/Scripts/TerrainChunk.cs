@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using Spellbound.Core;
 using Unity.Collections;
@@ -33,12 +34,14 @@ namespace Spellbound.MarchingCubes {
                 Debug.LogError($"_sparseVoxels is already created for this chunkCoord {_chunkCoord}.");
             }
 
-            if (voxels.IsCreated) {
+            if (!voxels.IsCreated) {
                 Debug.LogError($"_sparseVoxels being initialized with a List is already created for this chunkCoord {_chunkCoord}.");
             }
             
             _sparseVoxels = new NativeList<SparseVoxelData>(voxels.Length, Allocator.Persistent);
             _sparseVoxels.AddRange(voxels.AsArray());
+            _rootNode = new OctreeNode(Vector3Int.zero, McStaticHelper.MaxLevelOfDetail, this);
+            ValidateOctreeLods(Camera.main.transform.position);
         }
 
         public void UpdateVoxelData(NativeList<SparseVoxelData> voxels) {
@@ -78,7 +81,7 @@ namespace Spellbound.MarchingCubes {
 
                 if (voxelEdit.density == voxelArray[index].Density &&
                     voxelEdit.MaterialType == voxelArray[index].MaterialType)
-                    return;
+                    continue;
                 
                 voxelArray[index] = new VoxelData(voxelEdit.density, voxelEdit.MaterialType);
                 McStaticHelper.IndexToInt3(index, out var x, out var y, out var z);
@@ -93,9 +96,11 @@ namespace Spellbound.MarchingCubes {
                     _editBounds.Encapsulate(localPos);
 
                 _densityRange.Encapsulate(voxelArray[index].Density);
-                ValidateOctreeEdits(_editBounds);
+               
                 
             }
+            ValidateOctreeEdits(_editBounds);
+            _hasEdits = false;
         }
 
         public VoxelData GetVoxelData(int index) {
@@ -121,7 +126,31 @@ namespace Spellbound.MarchingCubes {
             var worldBounds = new Bounds(bounds.center + _chunkCoord * SpellboundStaticHelper.ChunkSize, bounds.size);
             _rootNode.ValidateOctreeEdits(worldBounds);
         }
-   
+        
+        public void ValidateOctreeLods(Vector3 playerPosition) {
+            if (!_sparseVoxels.IsCreated)
+                return;
+
+            _rootNode.ValidateOctreeLods(playerPosition);
+        }
+        
+        public void SetChunkFields(Vector3Int coord) {
+            _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
+            _chunkManager = SingletonManager.GetSingletonInstance<IVoxelTerrainChunkManager>();
+            _chunkCoord = coord;
+
+            _bounds = new Bounds(
+                coord * SpellboundStaticHelper.ChunkSize + McStaticHelper.ChunkCenter,
+                McStaticHelper.ChunkExtents);
+            gameObject.name = coord.ToString();
+        }
+
+        void OnDestroy() {
+            _rootNode?.Dispose();
+
+            if (_sparseVoxels.IsCreated)
+                _sparseVoxels.Dispose();
+        }
     }
 }
 

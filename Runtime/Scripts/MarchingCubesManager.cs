@@ -54,7 +54,7 @@ namespace Spellbound.MarchingCubes {
             InitializeSharedIndicesLookup();
         }
 
-        private void Update() => OctreeBatchTransitionUpdate?.Invoke();
+        private void LateUpdate() => OctreeBatchTransitionUpdate?.Invoke();
 
         private void OnValidate() {
             lodRanges = new Vector2[McStaticHelper.MaxLevelOfDetail + 1];
@@ -187,7 +187,6 @@ namespace Spellbound.MarchingCubes {
         /// </summary>
         public void DistributeVoxelEdits(
             List<RawVoxelEdit> rawVoxelEdits, HashSet<MaterialType> removableMatTypes) {
-            
             var editsByChunkCoord = new Dictionary<Vector3Int, List<VoxelEdit>>();
 
             var chunkManager = GetComponent<IVoxelTerrainChunkManager>();
@@ -203,8 +202,10 @@ namespace Spellbound.MarchingCubes {
                 }
                 
                 var chunk = chunkManager.GetChunkByCoord(centralCoord);
-                if (chunk == null) continue;
-                    
+
+                if (chunk == null)
+                    continue;
+
                 var existingVoxel = chunk.GetVoxelData(index);
 
                 if (!removableMatTypes.Contains(existingVoxel.MaterialType) &&
@@ -234,7 +235,13 @@ namespace Spellbound.MarchingCubes {
             }
 
             foreach (var kvp in editsByChunkCoord) {
-                chunkManager.GetChunkByCoord(kvp.Key).AddToVoxelEdits(kvp.Value);
+                var chunk = chunkManager.GetChunkByCoord(kvp.Key);
+
+                if (chunk == null) {
+                    continue;
+                }
+                    
+                chunk.AddToVoxelEdits(kvp.Value);
             }
         }
         

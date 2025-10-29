@@ -35,5 +35,9 @@ namespace Spellbound.MarchingCubes {
         public bool HasVoxelData();
 
         public void ValidateOctreeEdits(Bounds bounds);
+
+        public void SetChunkFields(Vector3Int coord);
+
+        public void ValidateOctreeLods(Vector3 povPosition);
     }
 }

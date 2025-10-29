@@ -29,8 +29,10 @@ namespace Spellbound.MarchingCubes {
                         var falloff = 1f - dist / radius;
                         var adjustedDelta = Mathf.RoundToInt(delta * falloff);
 
-                        if (adjustedDelta != 0)
+                        if (adjustedDelta != 0) {
                             rawVoxelEdits.Add(new RawVoxelEdit(voxelPos, -adjustedDelta, 0));
+                        }
+                            
                     }
                 }
             }

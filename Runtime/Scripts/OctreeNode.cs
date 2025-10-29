@@ -135,7 +135,6 @@ namespace Spellbound.MarchingCubes {
 
             if (IsLeaf) {
                 UpdateLeaf();
-
                 return;
             }
 
@@ -217,7 +216,6 @@ namespace Spellbound.MarchingCubes {
 
                 var transitionJobHandle = transitionMarchingCubeJob.Schedule();
                 transitionJobHandle.Complete();
-                _transitionMask = 0;
                 _allTransitionTriangles.CopyFrom(transitionMarchingCubeJob.TransitionTriangles);
                 _transitionRanges.CopyFrom(transitionMarchingCubeJob.TransitionRanges);
                 UpdateTransitionVertexBuffer(transitionMarchingCubeJob.TransitionMeshingVertexData);
@@ -256,6 +254,8 @@ namespace Spellbound.MarchingCubes {
             if (_leafGo == null) return;
 
             MarchAndMesh();
+            if (_lod != 0) 
+                HandleTransitionUpdate();
         }
 
         private void UpdateLeafMesh(NativeList<MeshingVertexData> vertices, NativeList<int> triangles) {
@@ -304,6 +304,8 @@ namespace Spellbound.MarchingCubes {
             _transitionGo.name = $"Transition " +
                                  $"at {_localPosition.x}, {_localPosition.y}, {_localPosition.z}";
             _transitionGo.transform.parent = _leafGo.transform;
+            
+            _transitionMask = 0;
 
             if (!_allTransitionTriangles.IsCreated) _allTransitionTriangles = new NativeList<int>(Allocator.Persistent);
 
