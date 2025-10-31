@@ -7,12 +7,16 @@ namespace Spellbound.MarchingCubes {
     public struct DensityRange {
         private byte _min;
         private byte _max;
+        private byte _densityThreshold;
         private bool _isSkippable;
 
-        public DensityRange(byte min, byte max) {
+
+        public DensityRange(byte min, byte max, byte densityThreshold) {
             _min = min;
             _max = max;
-            _isSkippable = _min >= McStaticHelper.DensityThreshold || _max < McStaticHelper.DensityThreshold;
+            _densityThreshold = densityThreshold;
+            _isSkippable = _min >= _densityThreshold || _max < _densityThreshold;
+            
         }
 
         public void Encapsulate(byte density) {
@@ -21,7 +25,7 @@ namespace Spellbound.MarchingCubes {
 
             if (density < _min) _min = density;
             if (density > _max) _max = density;
-            _isSkippable = _min >= McStaticHelper.DensityThreshold || _max < McStaticHelper.DensityThreshold;
+            _isSkippable = _min >= _densityThreshold || _max < _densityThreshold;
         }
 
         public bool IsSkippable() => _isSkippable;

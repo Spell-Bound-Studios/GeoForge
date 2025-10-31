@@ -3,6 +3,7 @@
 using System.Runtime.CompilerServices;
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 
@@ -13,6 +14,7 @@ namespace Spellbound.MarchingCubes {
     /// </summary>
     [BurstCompile]
     public struct SparseToDenseVoxelDataJob : IJobParallelFor {
+        [ReadOnly] public BlobAssetReference<McConfigBlobAsset> ConfigBlob;
         [NativeDisableParallelForRestriction] public NativeArray<VoxelData> Voxels;
 
         [ReadOnly] public NativeList<SparseVoxelData> SparseVoxels;
@@ -20,7 +22,8 @@ namespace Spellbound.MarchingCubes {
         [NativeDisableParallelForRestriction] public NativeArray<DensityRange> DensityRange;
 
         public void Execute(int deckIndex) {
-            var voxelsPerDeck = McStaticHelper.ChunkDataAreaSize;
+            ref var config = ref ConfigBlob.Value;
+            var voxelsPerDeck = config.ChunkDataAreaSize;
             var start = deckIndex * voxelsPerDeck;
             var end = start + voxelsPerDeck;
 

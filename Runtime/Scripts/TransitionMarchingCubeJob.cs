@@ -15,7 +15,8 @@ namespace Spellbound.MarchingCubes {
     /// </summary>
     [BurstCompile]
     public struct TransitionMarchingCubeJob : IJob {
-        [ReadOnly] public BlobAssetReference<McTablesBlobAsset> Tables;
+        [ReadOnly] public BlobAssetReference<McTablesBlobAsset> TablesBlob;
+        [ReadOnly] public BlobAssetReference<McConfigBlobAsset> ConfigBlob;
 
         [NativeDisableParallelForRestriction, ReadOnly]
         public NativeArray<VoxelData> VoxelArray;
@@ -49,54 +50,56 @@ namespace Spellbound.MarchingCubes {
         }
 
         private void GenerateTransitionMesh(McStaticHelper.TransitionFaceMask direction) {
+            ref var tables = ref TablesBlob.Value;
+            ref var config = ref ConfigBlob.Value;
             const int padding = 1;
             var lodScale = 1 << Lod;
 
             var transitionCurrentCache =
-                    new NativeArray<int>(McStaticHelper.CubesMarchedPerOctreeLeaf * 10, Allocator.Temp);
+                    new NativeArray<int>(config.CubesMarchedPerOctreeLeaf * 10, Allocator.Temp);
 
             var transitionPreviousCache =
-                    new NativeArray<int>(McStaticHelper.CubesMarchedPerOctreeLeaf * 10, Allocator.Temp);
+                    new NativeArray<int>(config.CubesMarchedPerOctreeLeaf * 10, Allocator.Temp);
             var transitionVertexIndices = new NativeArray<int>(36, Allocator.Temp);
             var transitionCellValues = new NativeArray<VoxelData>(13, Allocator.Temp);
 
-            for (var y = 0; y < McStaticHelper.CubesMarchedPerOctreeLeaf; y++) {
-                for (var x = 0; x < McStaticHelper.CubesMarchedPerOctreeLeaf; x++) {
+            for (var y = 0; y < config.CubesMarchedPerOctreeLeaf; y++) {
+                for (var x = 0; x < config.CubesMarchedPerOctreeLeaf; x++) {
                     for (var i = 0; i < 13; i++) {
-                        var offset = Tables.Value.TransitionCornerOffset[i];
+                        var offset = tables.TransitionCornerOffset[i];
 
                         var voxelPosition = Start + new int3(padding, padding, padding) + FaceToLocalSpace(direction,
-                                    McStaticHelper.CubesMarchedPerOctreeLeaf * 2, x * 2 + offset.x, y * 2 + offset.y,
+                                    config.CubesMarchedPerOctreeLeaf * 2, x * 2 + offset.x, y * 2 + offset.y,
                                     0) *
                                 (lodScale >> 1);
 
                         transitionCellValues[i] = VoxelArray[McStaticHelper.Coord3DToIndex(
-                            voxelPosition.x, voxelPosition.y, voxelPosition.z)];
+                            voxelPosition.x, voxelPosition.y, voxelPosition.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
                     }
 
-                    var caseCode = (transitionCellValues[0].Density >= McStaticHelper.DensityThreshold ? 1 : 0)
-                                   | (transitionCellValues[1].Density >= McStaticHelper.DensityThreshold ? 2 : 0)
-                                   | (transitionCellValues[2].Density >= McStaticHelper.DensityThreshold ? 4 : 0)
-                                   | (transitionCellValues[5].Density >= McStaticHelper.DensityThreshold ? 8 : 0)
-                                   | (transitionCellValues[8].Density >= McStaticHelper.DensityThreshold ? 16 : 0)
-                                   | (transitionCellValues[7].Density >= McStaticHelper.DensityThreshold ? 32 : 0)
-                                   | (transitionCellValues[6].Density >= McStaticHelper.DensityThreshold ? 64 : 0)
-                                   | (transitionCellValues[3].Density >= McStaticHelper.DensityThreshold ? 128 : 0)
-                                   | (transitionCellValues[4].Density >= McStaticHelper.DensityThreshold ? 256 : 0);
+                    var caseCode = (transitionCellValues[0].Density >= config.DensityThreshold ? 1 : 0)
+                                   | (transitionCellValues[1].Density >= config.DensityThreshold ? 2 : 0)
+                                   | (transitionCellValues[2].Density >= config.DensityThreshold ? 4 : 0)
+                                   | (transitionCellValues[5].Density >= config.DensityThreshold ? 8 : 0)
+                                   | (transitionCellValues[8].Density >= config.DensityThreshold ? 16 : 0)
+                                   | (transitionCellValues[7].Density >= config.DensityThreshold ? 32 : 0)
+                                   | (transitionCellValues[6].Density >= config.DensityThreshold ? 64 : 0)
+                                   | (transitionCellValues[3].Density >= config.DensityThreshold ? 128 : 0)
+                                   | (transitionCellValues[4].Density >= config.DensityThreshold ? 256 : 0);
 
-                    transitionCurrentCache[0 * McStaticHelper.CubesMarchedPerOctreeLeaf + x] = -1;
-                    transitionCurrentCache[1 * McStaticHelper.CubesMarchedPerOctreeLeaf + x] = -1;
-                    transitionCurrentCache[2 * McStaticHelper.CubesMarchedPerOctreeLeaf + x] = -1;
-                    transitionCurrentCache[7 * McStaticHelper.CubesMarchedPerOctreeLeaf + x] = -1;
+                    transitionCurrentCache[0 * config.CubesMarchedPerOctreeLeaf + x] = -1;
+                    transitionCurrentCache[1 * config.CubesMarchedPerOctreeLeaf + x] = -1;
+                    transitionCurrentCache[2 * config.CubesMarchedPerOctreeLeaf + x] = -1;
+                    transitionCurrentCache[7 * config.CubesMarchedPerOctreeLeaf + x] = -1;
 
                     if (caseCode == 0 || caseCode == 511) continue;
 
                     var cacheValidator = (x != 0 ? 0b01 : 0)
                                          | (y != 0 ? 0b10 : 0);
 
-                    int cellClass = Tables.Value.TransitionCellClass[caseCode];
-                    ref var edgeCodes = ref Tables.Value.TransitionVertexData[caseCode];
-                    ref var cellVertCount = ref Tables.Value.TransitionVertexCount[cellClass & 0x7F];
+                    int cellClass = tables.TransitionCellClass[caseCode];
+                    ref var edgeCodes = ref tables.TransitionVertexData[caseCode];
+                    ref var cellVertCount = ref tables.TransitionVertexCount[cellClass & 0x7F];
 
                     for (var i = 0; i < cellVertCount; ++i) {
                         var edgeCode = edgeCodes[i];
@@ -110,12 +113,12 @@ namespace Spellbound.MarchingCubes {
                         var cacheDir = (byte)(edgeCode >> 12);
 
                         if (density1 == 0) {
-                            var trCornerData = Tables.Value.TransitionCornerData[cornerIdx1];
+                            var trCornerData = tables.TransitionCornerData[cornerIdx1];
                             cacheDir = (byte)((trCornerData >> 4) & 0x0F);
                             cacheIdx = (byte)(trCornerData & 0x0F);
                         }
                         else if (density0 == 0) {
-                            var trCornerData = Tables.Value.TransitionCornerData[cornerIdx0];
+                            var trCornerData = tables.TransitionCornerData[cornerIdx0];
                             cacheDir = (byte)((trCornerData >> 4) & 0x0F);
                             cacheIdx = (byte)(trCornerData & 0x0F);
                         }
@@ -129,21 +132,21 @@ namespace Spellbound.MarchingCubes {
 
                         if (isVertexCacheable) {
                             vertexIndex =
-                                    selectedCacheDock[cacheIdx * McStaticHelper.CubesMarchedPerOctreeLeaf + cachePosX];
+                                    selectedCacheDock[cacheIdx * config.CubesMarchedPerOctreeLeaf + cachePosX];
                         }
 
                         if (!isVertexCacheable || vertexIndex == -1) {
                             vertexIndex = TransitionMeshingVertexData.Length;
 
-                            var cornerOffset0 = Tables.Value.TransitionCornerOffset[cornerIdx0];
-                            var cornerOffset1 = Tables.Value.TransitionCornerOffset[cornerIdx1];
+                            var cornerOffset0 = tables.TransitionCornerOffset[cornerIdx0];
+                            var cornerOffset1 = tables.TransitionCornerOffset[cornerIdx1];
 
                             var corner0Copy = Start + new int3(padding, padding, padding) + FaceToLocalSpace(direction,
-                                McStaticHelper.CubesMarchedPerOctreeLeaf * 2,
+                                config.CubesMarchedPerOctreeLeaf * 2,
                                 x * 2 + cornerOffset0.x, y * 2 + cornerOffset0.y, 0) * (lodScale >> 1);
 
                             var corner1Copy = Start + new int3(padding, padding, padding) + FaceToLocalSpace(direction,
-                                McStaticHelper.CubesMarchedPerOctreeLeaf * 2,
+                                config.CubesMarchedPerOctreeLeaf * 2,
                                 x * 2 + cornerOffset1.x, y * 2 + cornerOffset1.y, 0) * (lodScale >> 1);
 
                             var bIsLowResFace = cacheIdx > 6;
@@ -156,17 +159,17 @@ namespace Spellbound.MarchingCubes {
                                 var samplePos = (int3)math.round(midPointLocalPos);
 
                                 var midPointDensity =
-                                        VoxelArray[McStaticHelper.Coord3DToIndex(samplePos.x, samplePos.y, samplePos.z)]
+                                        VoxelArray[McStaticHelper.Coord3DToIndex(samplePos.x, samplePos.y, samplePos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize)]
                                                 .Density;
 
                                 var isMidPointDensityAboveThreshold =
-                                        midPointDensity >= McStaticHelper.DensityThreshold;
+                                        midPointDensity >= config.DensityThreshold;
 
                                 var isVert0DensityAboveThreshold =
                                         VoxelArray[
                                                     McStaticHelper.Coord3DToIndex(corner0Copy.x, corner0Copy.y,
-                                                        corner0Copy.z)]
-                                                .Density >= McStaticHelper.DensityThreshold;
+                                                        corner0Copy.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize)]
+                                                .Density >= config.DensityThreshold;
 
                                 var isVertexNearerToVert1 =
                                         (isMidPointDensityAboveThreshold && isVert0DensityAboveThreshold)
@@ -180,14 +183,14 @@ namespace Spellbound.MarchingCubes {
                             }
 
                             var index0 = McStaticHelper.Coord3DToIndex(corner0Copy.x, corner0Copy.y,
-                                corner0Copy.z);
+                                corner0Copy.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
                             var voxel0 = VoxelArray[index0];
 
                             var index1 = McStaticHelper.Coord3DToIndex(corner1Copy.x, corner1Copy.y,
-                                corner1Copy.z);
+                                corner1Copy.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
                             var voxel1 = VoxelArray[index1];
 
-                            var t = ((float)McStaticHelper.DensityThreshold - voxel0.Density) /
+                            var t = ((float)config.DensityThreshold - voxel0.Density) /
                                     (voxel1.Density - voxel0.Density);
 
                             t = math.clamp(t, 0, 1); // safety clamp
@@ -206,11 +209,11 @@ namespace Spellbound.MarchingCubes {
                             // This puts the vertex data into the vertex array, which is used to Build the Mesh
 
                             if (cacheDir == 8) {
-                                transitionCurrentCache[cacheIdx * McStaticHelper.CubesMarchedPerOctreeLeaf + x] =
+                                transitionCurrentCache[cacheIdx * config.CubesMarchedPerOctreeLeaf + x] =
                                         vertexIndex;
                             }
                             else if (isVertexCacheable && cacheDir != 4) {
-                                selectedCacheDock[cacheIdx * McStaticHelper.CubesMarchedPerOctreeLeaf + cachePosX] =
+                                selectedCacheDock[cacheIdx * config.CubesMarchedPerOctreeLeaf + cachePosX] =
                                         vertexIndex;
                             }
 
@@ -221,9 +224,9 @@ namespace Spellbound.MarchingCubes {
                         transitionVertexIndices[i] = vertexIndex;
                     }
 
-                    var indexCount = Tables.Value.TransitionTriangleCount[cellClass & 0x7F];
+                    var indexCount = tables.TransitionTriangleCount[cellClass & 0x7F];
 
-                    ref var cellIndices = ref Tables.Value.TransitionIndices[cellClass & 0x7F];
+                    ref var cellIndices = ref tables.TransitionIndices[cellClass & 0x7F];
 
                     var bFlipWinding = (cellClass & 0x80) > 0;
 
@@ -253,6 +256,8 @@ namespace Spellbound.MarchingCubes {
         }
 
         private void GetNormalAndColor(int3 corner0, int3 corner1, float t, out float3 normal, out Color32 color) {
+            ref var config = ref ConfigBlob.Value;
+            
             var vertPosX0 = corner0.x;
             var vertPosY0 = corner0.y;
             var vertPosZ0 = corner0.z;
@@ -261,46 +266,46 @@ namespace Spellbound.MarchingCubes {
             var vertPosZ1 = corner1.z;
 
             var voxel0 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0)];
+                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
 
             var voxel1 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1)];
+                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
 
             var v0011 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0 - 1, vertPosY0, vertPosZ0)];
+                McStaticHelper.Coord3DToIndex(vertPosX0 - 1, vertPosY0, vertPosZ0, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
 
             var v0211 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0 + 1, vertPosY0, vertPosZ0)];
+                McStaticHelper.Coord3DToIndex(vertPosX0 + 1, vertPosY0, vertPosZ0, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
 
             var v0101 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 - 1, vertPosZ0)];
+                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 - 1, vertPosZ0, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
 
             var v0121 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 + 1, vertPosZ0)];
+                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 + 1, vertPosZ0, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
 
             var v0110 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 - 1)];
+                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 - 1, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
 
             var v0112 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 + 1)];
+                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 + 1, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
 
             var v1011 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1 - 1, vertPosY1, vertPosZ1)];
+                McStaticHelper.Coord3DToIndex(vertPosX1 - 1, vertPosY1, vertPosZ1, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
 
             var v1211 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1 + 1, vertPosY1, vertPosZ1)];
+                McStaticHelper.Coord3DToIndex(vertPosX1 + 1, vertPosY1, vertPosZ1, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
 
             var v1101 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 - 1, vertPosZ1)];
+                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 - 1, vertPosZ1, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
 
             var v1121 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 + 1, vertPosZ1)];
+                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 + 1, vertPosZ1, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
 
             var v1110 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 - 1)];
+                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 - 1, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
 
             var v1112 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 + 1)];
+                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 + 1, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
 
             var normal0 = new float3(v0011.Density - v0211.Density,
                 v0101.Density - v0121.Density,
@@ -334,7 +339,7 @@ namespace Spellbound.MarchingCubes {
             voxelsToProcess[5] = v0110;
             voxelsToProcess[6] = v0112;
 
-            voxelsToProcess[7] = voxel0;
+            voxelsToProcess[7] = voxel1;
             voxelsToProcess[8] = v1011;
             voxelsToProcess[9] = v1211;
             voxelsToProcess[10] = v1101;

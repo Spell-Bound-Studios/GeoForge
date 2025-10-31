@@ -34,20 +34,21 @@ namespace Spellbound.MarchingCubes {
         private bool IsLeaf => _children == null;
         private NativeArray<VoxelData> VoxelData => _chunk.GetVoxelData();
 
-        private Vector3Int WorldPosition => _chunk.GetChunkCoord() * SpellboundStaticHelper.ChunkSize;
+        private Vector3Int WorldPosition => _chunk.GetChunkCoord() * _mcManager.McConfigBlob.Value.ChunkSize;
 
         public OctreeNode(Vector3Int localPosition, int lod, IVoxelTerrainChunk chunk) {
             _localPosition = localPosition;
             _lod = lod;
             _chunk = chunk;
+            _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
 
-            var octreeSize = McStaticHelper.CubesMarchedPerOctreeLeaf * math.pow(2, _lod) + 2;
+            var octreeSize = _mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf * math.pow(2, _lod) + 2;
 
             _bounds = new Bounds(WorldPosition + _localPosition + Vector3.one * octreeSize / 2,
                 Vector3.one * octreeSize);
-
-            _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
+            
         }
+        
 
         public void Dispose() {
             if (_children != null) {
@@ -92,7 +93,7 @@ namespace Spellbound.MarchingCubes {
 
             _children = new OctreeNode[8];
             var childLod = _lod - 1;
-            var childSize = McStaticHelper.CubesMarchedPerOctreeLeaf << childLod;
+            var childSize = _mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf << childLod;
 
             for (var i = 0; i < 8; i++) {
                 var offset = new Vector3Int(
@@ -108,26 +109,35 @@ namespace Spellbound.MarchingCubes {
         public void ValidateOctreeLods(Vector3 playerPosition) {
             var octreePos = WorldPosition
                             + _localPosition
-                            + Vector3.one * (McStaticHelper.CubesMarchedPerOctreeLeaf << (_lod - 1));
-            var (coarsestLod, finestLod) = GetLodRange(octreePos, playerPosition);
+                            + Vector3.one * (_mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf << (_lod - 1));
+            var targetLod = GetLodRange(octreePos, playerPosition);
 
-            if (_chunk.GetDensityRange().IsSkippable())
-                return;
+             if (_chunk.GetDensityRange().IsSkippable()) 
+                 return;
 
-            if (_lod <= finestLod || (_lod == coarsestLod && _leafGo == null)) {
-                MakeLeaf();
+             if (targetLod == -1) {
+                 _leafGo?.SetActive(false);
+                 return;
+             }
+             
 
+            if (_lod <= targetLod) {
+                if (_leafGo == null) {
+                    MakeLeaf();
+                }
+                _leafGo?.SetActive(true);
                 return;
             }
-
-            if (_lod > coarsestLod)
+            
+            
+            if (_lod > targetLod)
                 Subdivide();
-
-            if (IsLeaf)
-                return;
-
+            
+                
+            
             foreach (var child in _children)
                 child.ValidateOctreeLods(playerPosition);
+            
         }
 
         public void ValidateOctreeEdits(Bounds bounds) {
@@ -147,6 +157,7 @@ namespace Spellbound.MarchingCubes {
             OctreeNode neighbor, Vector3 facePos, McStaticHelper.TransitionFaceMask faceMask) {
             if (!_bounds.Contains(facePos))
                 return;
+            
 
             if (!IsLeaf) {
                 foreach (var child in _children)
@@ -173,17 +184,17 @@ namespace Spellbound.MarchingCubes {
             neighbor.UpdateTransitionMask(faceMask, true);
         }
 
-        private (int, int) GetLodRange(Vector3 octreePos, Vector3 playerPos) {
+        private int GetLodRange(Vector3 octreePos, Vector3 playerPos) {
             var distance = Vector3.Distance(octreePos, playerPos);
-            var coarsestLod = McStaticHelper.GetCoarsestLod(distance, _mcManager.lodRanges);
-            var finestLod = McStaticHelper.GetFinestLod(distance, _mcManager.lodRanges);
+            var targetLod = McStaticHelper.GetLod(distance, _mcManager.McConfigBlob.Value.LodRanges.ToArray());
 
-            return (coarsestLod, finestLod);
+            return targetLod;
         }
 
         private void MarchAndMesh() {
             var marchingCubeJob = new MarchingCubeJob {
-                Tables = _mcManager.McTablesBlob,
+                TablesBlob = _mcManager.McTablesBlob,
+                ConfigBlob = _mcManager.McConfigBlob,
                 VoxelArray = VoxelData,
 
                 // New Allocation - Ensure this is disposed of after the job.
@@ -198,7 +209,8 @@ namespace Spellbound.MarchingCubes {
 
             if (_lod != 0) {
                 var transitionMarchingCubeJob = new TransitionMarchingCubeJob {
-                    Tables = _mcManager.McTablesBlob,
+                    TablesBlob = _mcManager.McTablesBlob,
+                    ConfigBlob = _mcManager.McConfigBlob,
                     VoxelArray = VoxelData,
 
                     // New Allocation - Ensure this is disposed of after the job.
@@ -242,7 +254,7 @@ namespace Spellbound.MarchingCubes {
             _mesh = new Mesh();
             _leafGo.GetComponent<MeshFilter>().mesh = _mesh;
 
-            _leafGo.name = $"LeafSize {McStaticHelper.CubesMarchedPerOctreeLeaf << _lod} " +
+            _leafGo.name = $"LeafSize {_mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod} " +
                            $"at {_localPosition.x}, {_localPosition.y}, {_localPosition.z}";
         }
 
@@ -253,8 +265,6 @@ namespace Spellbound.MarchingCubes {
         }
 
         private void UpdateLeafMesh(NativeList<MeshingVertexData> vertices, NativeList<int> triangles) {
-            if (triangles.Length < 3 || vertices.Length < 3)
-                return;
 
             _mesh.SetVertexBufferParams(vertices.Length, MeshingVertexData.VertexBufferMemoryLayout);
 
@@ -282,6 +292,9 @@ namespace Spellbound.MarchingCubes {
 
             _mesh.SetSubMesh(0, subMesh);
             _mesh.RecalculateBounds();
+            
+            if (triangles.Length < 3 || vertices.Length < 3)
+                return;
 
             if (_mcManager.UseColliders && _leafGo.TryGetComponent<MeshCollider>(out var meshCollider))
                 meshCollider.sharedMesh = _mesh;
@@ -335,8 +348,7 @@ namespace Spellbound.MarchingCubes {
 
             _transitionMask = newTransitionMask;
 
-            if (_transitionDirtyFlag)
-                return;
+            if (_transitionDirtyFlag) return;
 
             _transitionDirtyFlag = true;
             _mcManager.OctreeBatchTransitionUpdate += HandleTransitionUpdate;
@@ -353,10 +365,7 @@ namespace Spellbound.MarchingCubes {
 
             var triangles =
                     GetFilteredTransitionTriangles(_allTransitionTriangles, _transitionRanges, _transitionMask);
-
-            if (triangles.Length < 3)
-                return;
-
+            
             _transitionMesh.SetIndexBufferParams(triangles.Length, IndexFormat.UInt32);
 
             _transitionMesh.SetIndexBufferData(
@@ -377,6 +386,7 @@ namespace Spellbound.MarchingCubes {
         private NativeList<int> GetFilteredTransitionTriangles(
             NativeList<int> allTriangles, NativeArray<int2> triangleRanges,
             int transitionMask) {
+            
             _filteredTransitionTriangles.Clear();
 
             for (var i = 0; i < 6; i++) {
@@ -394,7 +404,7 @@ namespace Spellbound.MarchingCubes {
 
         private void BroadcastNewLeaf() {
             var neighborPositions = GetFaceCenters();
-            for (var i = 0; i < 6; i++) _chunk.BroadcastNewLeaf(this, neighborPositions[i], i);
+            for (var i = 0; i < 6; i++) _chunk.BroadcastNewLeafAcrossChunks(this, neighborPositions[i], i);
         }
 
         private Vector3[] GetFaceCenters() =>

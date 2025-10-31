@@ -1,0 +1,33 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: db6f99adcc05024419ea841a74e53f9e, type: 3}
+  m_Name: DefaultConfig
+  m_EditorClassIdentifier: 
+  resolution: 1
+  cubesPerMarch: 16
+  viewDistance: 725
+  lodRangeScale: 3
+  marchingCubeDensityThreshold: 0.5
+  chunkSize: 128
+  lods: 4
+  lodRanges:
+  - {x: 0, y: 48}
+  - {x: 48, y: 144}
+  - {x: 144, y: 336}
+  - {x: 336, y: 720}
+  useBuiltInMap: 1
+  builtInMap:
+    mapSize: {x: 3, y: 1, z: 3}
+    startState: 1
+    top: 0
+    bottom: 1
+    sides: 1

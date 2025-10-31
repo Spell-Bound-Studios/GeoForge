@@ -45,6 +45,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0e236c09a8a93ae419d10d8c20914a0f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  _terrainConfig: {fileID: 11400000, guid: 9d538542db90cab4a959c742aee04ae9, type: 2}
   octreePrefab: {fileID: 2677637181052615796, guid: 9a7674aaa7f6410458e017bb736f98a4, type: 3}
   viewDistance: 700
   useColliders: 1

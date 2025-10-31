@@ -15,17 +15,17 @@ namespace Spellbound.MarchingCubes {
     /// </summary>
     [BurstCompile]
     public static class McStaticHelper {
-        public const int MaxLevelOfDetail = 3;
-        public const int CubesMarchedPerOctreeLeaf = 16; // must be ChunkSize >> MaxLevelOfDetail, eg: 32 /2 /2 = 8
+        //public const int MaxLevelOfDetail = 3;
+        //public const int CubesMarchedPerOctreeLeaf = 16; // must be ChunkSize >> MaxLevelOfDetail, eg: 32 /2 /2 = 8
 
-        public const int ChunkDataWidthSize = SpellboundStaticHelper.ChunkSize + 3;
-        public const int ChunkDataAreaSize = ChunkDataWidthSize * ChunkDataWidthSize;
-        public const int ChunkDataVolumeSize = ChunkDataWidthSize * ChunkDataWidthSize * ChunkDataWidthSize;
+        //public const int ChunkDataWidthSize = SpellboundStaticHelper.ChunkSize + 3;
+        //public const int ChunkDataAreaSize = ChunkDataWidthSize * ChunkDataWidthSize;
+        //public const int ChunkDataVolumeSize = ChunkDataWidthSize * ChunkDataWidthSize * ChunkDataWidthSize;
 
-        public static readonly Vector3Int ChunkCenter = Vector3Int.one * (1 + SpellboundStaticHelper.ChunkSize / 2);
-        public static readonly Vector3Int ChunkExtents = Vector3Int.one * SpellboundStaticHelper.ChunkSize;
+        //public static readonly Vector3Int ChunkCenter = Vector3Int.one * (1 + SpellboundStaticHelper.ChunkSize / 2);
+        //public static readonly Vector3Int ChunkExtents = Vector3Int.one * SpellboundStaticHelper.ChunkSize;
 
-        public const byte DensityThreshold = 128;
+        //public const byte DensityThreshold = 128;
 
         [Flags]
         public enum TransitionFaceMask {
@@ -61,26 +61,26 @@ namespace Spellbound.MarchingCubes {
                     _ => chunkCoord + Vector3Int.forward
                 };
 
-        public static int GetCoarsestLod(float distance, Vector2[] lodRanges) {
-            for (var i = lodRanges.Length - 1; i >= 0; i--) {
-                var range = lodRanges[i];
-
-                if (distance >= range.x && distance <= range.y) return i;
+        public static int GetLod(float distance, Vector2[] lodRanges)
+        {
+            for (int i = 0; i < lodRanges.Length; i++)
+            {
+                if (distance <= lodRanges[i].y)
+                    return i;
             }
 
-            return lodRanges.Length - 1;
+            // If distance is beyond all ranges, return -1
+            return -1;
         }
+        
+        public static Vector3Int WorldToChunk(Vector3 pos, int chunkSize)  =>
+                new(
+                    Mathf.FloorToInt((pos.x - 1) / chunkSize),
+                    Mathf.FloorToInt((pos.y - 1) / chunkSize),
+                    Mathf.FloorToInt((pos.z - 1) / chunkSize)
+                );
 
-        public static int GetFinestLod(float distance, Vector2[] lodRanges) {
-            for (var i = 0; i < lodRanges.Length; i++) {
-                var range = lodRanges[i];
-
-                if (distance <= range.y) return i;
-            }
-
-            return 0;
-        }
-
+        /*
         private static readonly int2[] CornerPositions = {
             new(1, 1),
             new(1, ChunkDataWidthSize - 2),
@@ -94,25 +94,28 @@ namespace Spellbound.MarchingCubes {
             Coord2DToIndex(CornerPositions[2].x, CornerPositions[2].y),
             Coord2DToIndex(CornerPositions[3].x, CornerPositions[3].y)
         };
+        */
 
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void IndexToInt3(int index, out int x, out int y, out int z) {
-            y = index / ChunkDataAreaSize;
-            z = index / ChunkDataWidthSize % ChunkDataWidthSize;
-            x = index % ChunkDataWidthSize;
+        public static void IndexToInt3(int index, int chunkDataAreaSize, int chunkDataWidthSize, 
+            out int x, out int y, out int z) {
+            y = index / chunkDataAreaSize;
+            z = index / chunkDataWidthSize % chunkDataWidthSize;
+            x = index % chunkDataWidthSize;
         }
 
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Coord3DToIndex(int x, int y, int z) => x + z * ChunkDataWidthSize + y * ChunkDataAreaSize;
+        public static int Coord3DToIndex(int x, int y, int z, int chunkDataAreaSize, int chunkDataWidthSize) 
+            => x + z * chunkDataWidthSize + y * chunkDataAreaSize;
 
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void IndexToInt2(int index, out int x, out int z) {
-            z = index / ChunkDataWidthSize;
-            x = index % ChunkDataWidthSize;
+        public static void IndexToInt2(int index, int chunkDataWidthSize, out int x, out int z) {
+            z = index / chunkDataWidthSize;
+            x = index % chunkDataWidthSize;
         }
 
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Coord2DToIndex(int x, int z) => x + z * ChunkDataWidthSize;
+        public static int Coord2DToIndex(int x, int z, int chunkDataWidthSize) => x + z * chunkDataWidthSize;
 
         public static List<MaterialType> GetAllMaterialTypes() =>
                 Enum.GetValues(typeof(MaterialType)).Cast<MaterialType>().ToList();
@@ -120,12 +123,12 @@ namespace Spellbound.MarchingCubes {
         /// <summary>
         /// This is meant to be called externally so that a reference to a chunk can be retrieved from game logic.
         /// </summary>
-        public static List<Vector3Int> GetChunksTouchingPosition(Vector3Int position) {
+        public static List<Vector3Int> GetChunksTouchingPosition(Vector3Int position, int chunksize) {
             //Should be able to create a map to do this efficiently instead of bruteforce
             var chunkKeys = new HashSet<Vector3Int>();
 
             // Compute base chunk coord (floor division handles negatives correctly)
-            var baseCoord = SpellboundStaticHelper.WorldToChunk(position);
+            var baseCoord = WorldToChunk(position, chunksize);
 
             for (var dx = -1; dx <= 1; dx++) {
                 for (var dy = -1; dy <= 1; dy++) {

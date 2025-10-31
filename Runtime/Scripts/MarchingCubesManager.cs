@@ -15,7 +15,9 @@ namespace Spellbound.MarchingCubes {
     /// Manager for handling the LODs and cached Dense/Unpacked Voxel Arrays for Marching Cubes.
     /// </summary>
     public class MarchingCubesManager : MonoBehaviour {
-        public BlobAssetReference<McTablesBlobAsset> McTablesBlob;
+        public BlobAssetReference<McTablesBlobAsset> McTablesBlob { get; private set; }
+        [SerializeField] private TerrainConfig _terrainConfig; 
+        public BlobAssetReference<McConfigBlobAsset> McConfigBlob { get; private set; }
         [SerializeField] public GameObject octreePrefab;
         private readonly Stack<GameObject> _objectPool = new();
         private bool _isActive;
@@ -24,22 +26,14 @@ namespace Spellbound.MarchingCubes {
         public bool IsActive() => _isActive;
         private bool _isShuttingDown;
         private Transform _objectPoolParent;
-        [Range(300f, 1000f), SerializeField] public float viewDistance = 350;
-
+        
         [SerializeField] private bool useColliders = true;
         public bool UseColliders => useColliders;
 
         private JobHandle _combinedJobHandle;
         private Dictionary<OctreeNode, MarchJobData> _pendingMarchJobData = new();
         private Dictionary<OctreeNode, TransitionMarchJobData> _pendingTransitionMarchJobData = new();
-
-        //This MUST have a length of MaxLevelOfDetail + 1
-        [SerializeField] public Vector2[] lodRanges = {
-            new(0, 80),
-            new(60, 120),
-            new(120, 250),
-            new(200, 350)
-        };
+        
 
         private const int MaxEntries = 10;
 
@@ -51,9 +45,15 @@ namespace Spellbound.MarchingCubes {
         public event Action OctreeBatchTransitionUpdate;
 
         private void Awake() {
+            if (_terrainConfig == null) {
+                Debug.LogError("Marching Cubes TerrainConfig is null");
+
+                return;
+            }
             SingletonManager.RegisterSingleton(this);
             McTablesBlob = McTablesBlobCreator.CreateMcTablesBlobAsset();
-            AllocateDenseBuffers(McHelper.ChunkDataVolumeSize);
+            McConfigBlob = McConfigBlobCreator.CreateMcSettingsBlobAsset(_terrainConfig);
+            AllocateDenseBuffers(McConfigBlob.Value.ChunkDataVolumeSize);
             _objectPoolParent = new GameObject("OctreeLeafPool").transform;
             _objectPoolParent.SetParent(transform);
             InitializeSharedIndicesLookup();
@@ -62,7 +62,8 @@ namespace Spellbound.MarchingCubes {
         private void LateUpdate() => OctreeBatchTransitionUpdate?.Invoke();
 
         private void OnValidate() {
-            lodRanges = new Vector2[McStaticHelper.MaxLevelOfDetail + 1];
+            /*
+            lodRanges = new Vector2[McConfigBlob.Value.LevelsOfDetail + 1];
 
             for (var i = 0; i < lodRanges.Length; i++) {
                 var div = Mathf.Pow(2, lodRanges.Length - 1 - i);
@@ -75,6 +76,7 @@ namespace Spellbound.MarchingCubes {
 
                 lodRanges[i] = new Vector2(lodRanges[i - 1].y, Mathf.Clamp(viewDistance, 0, viewDistance / div));
             }
+            */
         }
 
         private void OnDestroy() {
@@ -82,6 +84,9 @@ namespace Spellbound.MarchingCubes {
 
             if (McTablesBlob.IsCreated)
                 McTablesBlob.Dispose();
+            
+            if (McConfigBlob.IsCreated)
+                McConfigBlob.Dispose();
 
             ClearPool();
             DisposeDenseBuffers();
@@ -133,14 +138,15 @@ namespace Spellbound.MarchingCubes {
             var buffer = _denseBuffers[slot];
 
             var densityRangeArray = new NativeArray<DensityRange>(1, Allocator.TempJob);
-            densityRangeArray[0] = new DensityRange(byte.MaxValue, byte.MinValue);
+            densityRangeArray[0] = new DensityRange(byte.MaxValue, byte.MinValue, McConfigBlob.Value.DensityThreshold);
 
             var unpackJob = new SparseToDenseVoxelDataJob {
+                ConfigBlob = McConfigBlob,
                 Voxels = buffer,
                 SparseVoxels = sparseData,
                 DensityRange = densityRangeArray
             };
-            var jobHandle = unpackJob.Schedule(McHelper.ChunkDataWidthSize, 1);
+            var jobHandle = unpackJob.Schedule(McConfigBlob.Value.ChunkDataWidthSize, 1);
             jobHandle.Complete();
             chunk.SetDensityRange(unpackJob.DensityRange[0]);
             unpackJob.DensityRange.Dispose();
@@ -194,11 +200,13 @@ namespace Spellbound.MarchingCubes {
             var editsByChunkCoord = new Dictionary<Vector3Int, List<VoxelEdit>>();
 
             var chunkManager = GetComponent<IVoxelTerrainChunkManager>();
+            
+            ref var config = ref McConfigBlob.Value;
 
             foreach (var rawEdit in rawVoxelEdits) {
-                var centralCoord = SpellboundStaticHelper.WorldToChunk(rawEdit.WorldPosition);
-                var centralLocalPos = rawEdit.WorldPosition - centralCoord * SpellboundStaticHelper.ChunkSize;
-                var index = McStaticHelper.Coord3DToIndex(centralLocalPos.x, centralLocalPos.y, centralLocalPos.z);
+                var centralCoord = McStaticHelper.WorldToChunk(rawEdit.WorldPosition, config.ChunkSize);
+                var centralLocalPos = rawEdit.WorldPosition - centralCoord * McConfigBlob.Value.ChunkSize;
+                var index = McStaticHelper.Coord3DToIndex(centralLocalPos.x, centralLocalPos.y, centralLocalPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
 
                 var chunk = chunkManager.GetChunkByCoord(centralCoord);
 
@@ -226,10 +234,10 @@ namespace Spellbound.MarchingCubes {
                 if (_sharedIndicesLookup.TryGetValue(index, out var neighborCoords)) {
                     foreach (var neighborCoord in neighborCoords) {
                         var neighborLocalPos = rawEdit.WorldPosition -
-                                               (centralCoord + neighborCoord) * SpellboundStaticHelper.ChunkSize;
+                                               (centralCoord + neighborCoord) * config.ChunkSize;
 
                         var neighborIndex = McStaticHelper.Coord3DToIndex(neighborLocalPos.x, neighborLocalPos.y,
-                            neighborLocalPos.z);
+                            neighborLocalPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
                         var trueNeighborCoord = neighborCoord + centralCoord;
 
                         if (!editsByChunkCoord.TryGetValue(trueNeighborCoord, out var localNeighborEdits)) {
@@ -290,22 +298,24 @@ namespace Spellbound.MarchingCubes {
                     }
                 }
             }
+            ref var config = ref McConfigBlob.Value;
 
             var chunkBounds = new BoundsInt(
                 0,
                 0,
                 0,
-                SpellboundStaticHelper.ChunkSize + 3,
-                SpellboundStaticHelper.ChunkSize + 3,
-                SpellboundStaticHelper.ChunkSize + 3
+                config.ChunkSize + 3,
+                config.ChunkSize + 3,
+                config.ChunkSize + 3
             );
 
-            for (var i = 0; i < McHelper.ChunkDataVolumeSize; i++) {
-                McStaticHelper.IndexToInt3(i, out var x, out var y, out var z);
+            
+            for (var i = 0; i < config.ChunkDataVolumeSize; i++) {
+                McStaticHelper.IndexToInt3(i, config.ChunkDataAreaSize, config.ChunkDataWidthSize,  out var x, out var y, out var z);
                 var localPos = new Vector3Int(x, y, z);
 
                 foreach (var coord in neighborCoords) {
-                    var localPosNeighbor = localPos - coord * SpellboundStaticHelper.ChunkSize;
+                    var localPosNeighbor = localPos - coord * config.ChunkSize;
 
                     if (!chunkBounds.Contains(localPosNeighbor))
                         continue;

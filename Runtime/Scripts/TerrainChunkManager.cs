@@ -17,7 +17,7 @@ namespace Spellbound.MarchingCubes {
         private NativeList<SparseVoxelData> _dummyData;
 
         public IVoxelTerrainChunk GetChunkByPosition(Vector3 position) {
-            var coord = SpellboundStaticHelper.WorldToChunk(position);
+            var coord = McStaticHelper.WorldToChunk(position, SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value.ChunkSize);
 
             return GetChunkByCoord(coord);
         }
@@ -28,7 +28,7 @@ namespace Spellbound.MarchingCubes {
 
         private void Start() {
             GenerateSimpleData();
-            Initialize();
+            StartCoroutine(Initialize());
             StartCoroutine(ValidateChunkLods());
         }
 
@@ -37,30 +37,27 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void GenerateSimpleData() {
+            if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
+                Debug.LogError("MarchingCubesManager not found");
+                return;
+            }
+            ref var config = ref mcManager.McConfigBlob.Value;
+                
             _dummyData = new NativeList<SparseVoxelData>(Allocator.Persistent);
-            var emptyVoxel = new VoxelData(byte.MinValue, MaterialType.Dirt);
-            var fullVoxel = new VoxelData(byte.MaxValue, MaterialType.Dirt);
-            _dummyData.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, MaterialType.Ice), 0));
-
-            _dummyData.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, MaterialType.Sand),
-                McStaticHelper.ChunkDataAreaSize * 30));
-
-            _dummyData.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, MaterialType.Swamp),
-                McStaticHelper.ChunkDataAreaSize * 60));
-
+            _dummyData.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, MaterialType.Sand), 0));
             _dummyData.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, MaterialType.Dirt),
-                McStaticHelper.ChunkDataAreaSize * 90));
-
+                config.ChunkDataAreaSize * (config.ChunkDataWidthSize - 12)));
             _dummyData.Add(new SparseVoxelData(new VoxelData(byte.MinValue, MaterialType.Dirt),
-                McStaticHelper.ChunkDataAreaSize * 120));
+                config.ChunkDataAreaSize * (config.ChunkDataWidthSize - 4)));
         }
 
-        public void Initialize() {
+        IEnumerator Initialize() {
             for (var x = 0; x < cubeSizeInChunks.x; x++) {
                 for (var y = 0; y < cubeSizeInChunks.y; y++) {
                     for (var z = 0; z < cubeSizeInChunks.z; z++) {
                         var chunk = RegisterChunk(new Vector3Int(x, y, z));
                         chunk.InitializeVoxelData(_dummyData);
+                        yield return null;
                     }
                 }
             }
@@ -77,7 +74,7 @@ namespace Spellbound.MarchingCubes {
         private IVoxelTerrainChunk CreateNChunk(Vector3Int chunkCoord) {
             var chunkObj = Instantiate(
                 _chunkPrefab,
-                chunkCoord * SpellboundStaticHelper.ChunkSize,
+                chunkCoord * SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value.ChunkSize,
                 Quaternion.identity,
                 transform
             );

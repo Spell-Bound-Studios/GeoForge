@@ -20,13 +20,13 @@ namespace Spellbound.MarchingCubes {
         public static bool IsInsideTerrain(Vector3 position) {
             var mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
 
-            return mcManager.QueryVoxel(position).Density >= McStaticHelper.DensityThreshold;
+            return mcManager.QueryVoxel(position).Density >= mcManager.McConfigBlob.Value.DensityThreshold;
         }
 
         public static void RemoveSphere(Vector3 position) =>
                 TerraformCommands.RemoveSphere(position,
                     new List<MaterialType> { MaterialType.Dirt, MaterialType.Swamp, MaterialType.Ice },
-                    6f,
+                    4f,
                     byte.MaxValue);
 
         public static void RemoveSphere(
