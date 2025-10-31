@@ -212,7 +212,7 @@ namespace Spellbound.MarchingCubes {
             ref var config = ref McConfigBlob.Value;
 
             foreach (var rawEdit in rawVoxelEdits) {
-                var centralCoord = SpellboundStaticHelper.WorldToChunk(rawEdit.WorldPosition);
+                var centralCoord = McStaticHelper.WorldToChunk(rawEdit.WorldPosition, McConfigBlob.Value.ChunkSize);
                 var centralLocalPos = rawEdit.WorldPosition - centralCoord * SpellboundStaticHelper.ChunkSize;
                 var index = McStaticHelper.Coord3DToIndex(centralLocalPos.x, centralLocalPos.y, centralLocalPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
 

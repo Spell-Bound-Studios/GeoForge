@@ -51,7 +51,7 @@ namespace Spellbound.MarchingCubes {
 
         public bool IsDirty() => _isDirty;
 
-        public void BroadcastNewLeaf(OctreeNode newLeaf, Vector3 pos, int index) {
+        public void BroadcastNewLeafAcrossChunks(OctreeNode newLeaf, Vector3 pos, int index) {
             if (_bounds.Contains(pos)) {
                 _rootNode?.ValidateTransition(newLeaf, pos, McStaticHelper.GetTransitionFaceMask(index));
 
@@ -65,7 +65,7 @@ namespace Spellbound.MarchingCubes {
             if (neighborChunk == null)
                 return;
 
-            neighborChunk.BroadcastNewLeaf(newLeaf, pos, index);
+            neighborChunk.BroadcastNewLeafAcrossChunks(newLeaf, pos, index);
         }
 
         public void AddToVoxelEdits(List<VoxelEdit> newVoxelEdits) {
@@ -146,7 +146,7 @@ namespace Spellbound.MarchingCubes {
             _chunkCoord = coord;
 
             _bounds = new Bounds(
-                coord * SpellboundStaticHelper.ChunkSize + config.ChunkExtents,
+                coord * config.ChunkSize + config.ChunkExtents,
                 config.ChunkExtents);
             gameObject.name = coord.ToString();
         }

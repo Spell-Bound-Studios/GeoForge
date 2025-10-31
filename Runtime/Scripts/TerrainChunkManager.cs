@@ -17,7 +17,7 @@ namespace Spellbound.MarchingCubes {
         private NativeList<SparseVoxelData> _dummyData;
 
         public IVoxelTerrainChunk GetChunkByPosition(Vector3 position) {
-            var coord = SpellboundStaticHelper.WorldToChunk(position);
+            var coord = McStaticHelper.WorldToChunk(position, SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value.ChunkSize);
 
             return GetChunkByCoord(coord);
         }

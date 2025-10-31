@@ -111,8 +111,8 @@ namespace Spellbound.MarchingCubes {
                             + Vector3.one * (_mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf << (_lod - 1));
             var (coarsestLod, finestLod) = GetLodRange(octreePos, playerPosition);
 
-            if (_chunk.GetDensityRange().IsSkippable())
-                return;
+             if (_chunk.GetDensityRange().IsSkippable()) 
+                 return;
 
             if (_lod <= finestLod || (_lod == coarsestLod && _leafGo == null)) {
                 MakeLeaf();
@@ -357,8 +357,6 @@ namespace Spellbound.MarchingCubes {
             var triangles =
                     GetFilteredTransitionTriangles(_allTransitionTriangles, _transitionRanges, _transitionMask);
             
-            Debug.Log($"trianges length is {triangles.Length}");
-            
             _transitionMesh.SetIndexBufferParams(triangles.Length, IndexFormat.UInt32);
 
             _transitionMesh.SetIndexBufferData(
@@ -397,7 +395,7 @@ namespace Spellbound.MarchingCubes {
 
         private void BroadcastNewLeaf() {
             var neighborPositions = GetFaceCenters();
-            for (var i = 0; i < 6; i++) _chunk.BroadcastNewLeaf(this, neighborPositions[i], i);
+            for (var i = 0; i < 6; i++) _chunk.BroadcastNewLeafAcrossChunks(this, neighborPositions[i], i);
         }
 
         private Vector3[] GetFaceCenters() =>
@@ -436,7 +434,6 @@ namespace Spellbound.MarchingCubes {
             _allTransitionTriangles.CopyFrom(triangles);
             _transitionRanges.CopyFrom(triangleRanges);
             UpdateTransitionVertexBuffer(vertices);
-            _transitionDirtyFlag = true;
         }
     }
 }

@@ -24,7 +24,7 @@ namespace Spellbound.MarchingCubes {
 
         public bool IsDirty();
 
-        public void BroadcastNewLeaf(OctreeNode newLeaf, Vector3 pos, int index);
+        public void BroadcastNewLeafAcrossChunks(OctreeNode newLeaf, Vector3 pos, int index);
 
         public void AddToVoxelEdits(List<VoxelEdit> newVoxelEdits);
 
