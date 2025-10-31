@@ -46,8 +46,7 @@ namespace Spellbound.MarchingCubes {
 
             _bounds = new Bounds(WorldPosition + _localPosition + Vector3.one * octreeSize / 2,
                 Vector3.one * octreeSize);
-
-
+            
         }
 
         public void Dispose() {
@@ -148,6 +147,7 @@ namespace Spellbound.MarchingCubes {
             OctreeNode neighbor, Vector3 facePos, McStaticHelper.TransitionFaceMask faceMask) {
             if (!_bounds.Contains(facePos))
                 return;
+            
 
             if (!IsLeaf) {
                 foreach (var child in _children)
@@ -339,8 +339,7 @@ namespace Spellbound.MarchingCubes {
 
             _transitionMask = newTransitionMask;
 
-            if (_transitionDirtyFlag)
-                return;
+            if (_transitionDirtyFlag) return;
 
             _transitionDirtyFlag = true;
             _mcManager.OctreeBatchTransitionUpdate += HandleTransitionUpdate;
@@ -357,6 +356,8 @@ namespace Spellbound.MarchingCubes {
 
             var triangles =
                     GetFilteredTransitionTriangles(_allTransitionTriangles, _transitionRanges, _transitionMask);
+            
+            Debug.Log($"trianges length is {triangles.Length}");
             
             _transitionMesh.SetIndexBufferParams(triangles.Length, IndexFormat.UInt32);
 
@@ -378,6 +379,7 @@ namespace Spellbound.MarchingCubes {
         private NativeList<int> GetFilteredTransitionTriangles(
             NativeList<int> allTriangles, NativeArray<int2> triangleRanges,
             int transitionMask) {
+            
             _filteredTransitionTriangles.Clear();
 
             for (var i = 0; i < 6; i++) {
