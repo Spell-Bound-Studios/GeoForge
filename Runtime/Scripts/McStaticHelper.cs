@@ -61,24 +61,16 @@ namespace Spellbound.MarchingCubes {
                     _ => chunkCoord + Vector3Int.forward
                 };
 
-        public static int GetCoarsestLod(float distance, Vector2[] lodRanges) {
-            for (var i = lodRanges.Length - 1; i >= 0; i--) {
-                var range = lodRanges[i];
-
-                if (distance >= range.x && distance <= range.y) return i;
+        public static int GetLod(float distance, Vector2[] lodRanges)
+        {
+            for (int i = 0; i < lodRanges.Length; i++)
+            {
+                if (distance <= lodRanges[i].y)
+                    return i;
             }
 
-            return lodRanges.Length - 1;
-        }
-
-        public static int GetFinestLod(float distance, Vector2[] lodRanges) {
-            for (var i = 0; i < lodRanges.Length; i++) {
-                var range = lodRanges[i];
-
-                if (distance <= range.y) return i;
-            }
-
-            return 0;
+            // If distance is beyond all ranges, return -1
+            return -1;
         }
         
         public static Vector3Int WorldToChunk(Vector3 pos, int chunkSize)  =>

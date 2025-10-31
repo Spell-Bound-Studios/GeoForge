@@ -26,22 +26,14 @@ namespace Spellbound.MarchingCubes {
         public bool IsActive() => _isActive;
         private bool _isShuttingDown;
         private Transform _objectPoolParent;
-        [Range(300f, 1000f), SerializeField] public float viewDistance = 350;
-
+        
         [SerializeField] private bool useColliders = true;
         public bool UseColliders => useColliders;
 
         private JobHandle _combinedJobHandle;
         private Dictionary<OctreeNode, MarchJobData> _pendingMarchJobData = new();
         private Dictionary<OctreeNode, TransitionMarchJobData> _pendingTransitionMarchJobData = new();
-
-        //This MUST have a length of MaxLevelOfDetail + 1
-        [SerializeField] public Vector2[] lodRanges = {
-            new(0, 80),
-            new(60, 120),
-            new(120, 250),
-            new(200, 350)
-        };
+        
 
         private const int MaxEntries = 10;
 
@@ -212,8 +204,8 @@ namespace Spellbound.MarchingCubes {
             ref var config = ref McConfigBlob.Value;
 
             foreach (var rawEdit in rawVoxelEdits) {
-                var centralCoord = McStaticHelper.WorldToChunk(rawEdit.WorldPosition, McConfigBlob.Value.ChunkSize);
-                var centralLocalPos = rawEdit.WorldPosition - centralCoord * SpellboundStaticHelper.ChunkSize;
+                var centralCoord = McStaticHelper.WorldToChunk(rawEdit.WorldPosition, config.ChunkSize);
+                var centralLocalPos = rawEdit.WorldPosition - centralCoord * McConfigBlob.Value.ChunkSize;
                 var index = McStaticHelper.Coord3DToIndex(centralLocalPos.x, centralLocalPos.y, centralLocalPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
 
                 var chunk = chunkManager.GetChunkByCoord(centralCoord);
@@ -242,7 +234,7 @@ namespace Spellbound.MarchingCubes {
                 if (_sharedIndicesLookup.TryGetValue(index, out var neighborCoords)) {
                     foreach (var neighborCoord in neighborCoords) {
                         var neighborLocalPos = rawEdit.WorldPosition -
-                                               (centralCoord + neighborCoord) * SpellboundStaticHelper.ChunkSize;
+                                               (centralCoord + neighborCoord) * config.ChunkSize;
 
                         var neighborIndex = McStaticHelper.Coord3DToIndex(neighborLocalPos.x, neighborLocalPos.y,
                             neighborLocalPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
@@ -306,23 +298,24 @@ namespace Spellbound.MarchingCubes {
                     }
                 }
             }
+            ref var config = ref McConfigBlob.Value;
 
             var chunkBounds = new BoundsInt(
                 0,
                 0,
                 0,
-                SpellboundStaticHelper.ChunkSize + 3,
-                SpellboundStaticHelper.ChunkSize + 3,
-                SpellboundStaticHelper.ChunkSize + 3
+                config.ChunkSize + 3,
+                config.ChunkSize + 3,
+                config.ChunkSize + 3
             );
 
-            ref var config = ref McConfigBlob.Value;
+            
             for (var i = 0; i < config.ChunkDataVolumeSize; i++) {
                 McStaticHelper.IndexToInt3(i, config.ChunkDataAreaSize, config.ChunkDataWidthSize,  out var x, out var y, out var z);
                 var localPos = new Vector3Int(x, y, z);
 
                 foreach (var coord in neighborCoords) {
-                    var localPosNeighbor = localPos - coord * SpellboundStaticHelper.ChunkSize;
+                    var localPosNeighbor = localPos - coord * config.ChunkSize;
 
                     if (!chunkBounds.Contains(localPosNeighbor))
                         continue;

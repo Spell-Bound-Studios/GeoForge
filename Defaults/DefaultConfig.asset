@@ -13,7 +13,17 @@ MonoBehaviour:
   m_Name: DefaultConfig
   m_EditorClassIdentifier: 
   resolution: 1
-  viewDistance: 700
+  cubesPerMarch: 16
+  viewDistance: 725
+  lodRangeScale: 3
+  marchingCubeDensityThreshold: 0.5
+  chunkSize: 128
+  lods: 4
+  lodRanges:
+  - {x: 0, y: 48}
+  - {x: 48, y: 144}
+  - {x: 144, y: 336}
+  - {x: 336, y: 720}
   useBuiltInMap: 1
   builtInMap:
     mapSize: {x: 3, y: 1, z: 3}
@@ -21,7 +31,3 @@ MonoBehaviour:
     top: 0
     bottom: 1
     sides: 1
-  advancedSettings:
-    maxChunkSize: 128
-    maxCubesPerMarch: 16
-    marchingCubeDensityThreshold: 0.5

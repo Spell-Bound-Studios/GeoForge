@@ -179,6 +179,10 @@ PrefabInstance:
       propertyPath: useColliders
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 2016066429253463668, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
+      propertyPath: viewDistance
+      value: 496
+      objectReference: {fileID: 0}
     - target: {fileID: 3762426764964721819, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: m_Name
       value: Terrain

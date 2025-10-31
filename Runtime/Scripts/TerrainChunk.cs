@@ -115,7 +115,7 @@ namespace Spellbound.MarchingCubes {
 
         public VoxelData GetVoxelData(Vector3Int position) {
             ref var config = ref _mcManager.McConfigBlob.Value;
-            var localPos = position - _chunkCoord * SpellboundStaticHelper.ChunkSize;
+            var localPos = position - _chunkCoord * config.ChunkSize;
             var index = McStaticHelper.Coord3DToIndex(localPos.x, localPos.y, localPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
 
             return GetVoxelData(index);
@@ -125,10 +125,11 @@ namespace Spellbound.MarchingCubes {
 
         // TODO: Null checking twice is weird.
         public void ValidateOctreeEdits(Bounds bounds) {
+            ref var config = ref _mcManager.McConfigBlob.Value;
             if (_rootNode == null)
-                _rootNode = new OctreeNode(Vector3Int.zero, _mcManager.McConfigBlob.Value.LevelsOfDetail, this);
+                _rootNode = new OctreeNode(Vector3Int.zero, config.LevelsOfDetail, this);
 
-            var worldBounds = new Bounds(bounds.center + _chunkCoord * SpellboundStaticHelper.ChunkSize, bounds.size);
+            var worldBounds = new Bounds(bounds.center + _chunkCoord * config.ChunkSize, bounds.size);
             _rootNode.ValidateOctreeEdits(worldBounds);
         }
 
@@ -137,6 +138,11 @@ namespace Spellbound.MarchingCubes {
                 return;
 
             _rootNode.ValidateOctreeLods(playerPosition);
+            
+        }
+
+        void OnDrawGizmos() {
+            Gizmos.DrawWireCube(_bounds.center, _bounds.size);
         }
 
         public void SetChunkFields(Vector3Int coord) {
@@ -146,7 +152,7 @@ namespace Spellbound.MarchingCubes {
             _chunkCoord = coord;
 
             _bounds = new Bounds(
-                coord * config.ChunkSize + config.ChunkExtents,
+                coord * config.ChunkSize + config.ChunkCenter,
                 config.ChunkExtents);
             gameObject.name = coord.ToString();
         }
