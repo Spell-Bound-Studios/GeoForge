@@ -10,13 +10,11 @@ namespace Spellbound.MarchingCubes {
         private byte _densityThreshold;
         private bool _isSkippable;
 
-
         public DensityRange(byte min, byte max, byte densityThreshold) {
             _min = min;
             _max = max;
             _densityThreshold = densityThreshold;
             _isSkippable = _min >= _densityThreshold || _max < _densityThreshold;
-            
         }
 
         public void Encapsulate(byte density) {

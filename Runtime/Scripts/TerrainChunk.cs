@@ -30,9 +30,10 @@ namespace Spellbound.MarchingCubes {
             if (_sparseVoxels.IsCreated)
                 Debug.LogError($"_sparseVoxels is already created for this chunkCoord {_chunkCoord}.");
 
-            if (!voxels.IsCreated)
+            if (!voxels.IsCreated) {
                 Debug.LogError(
                     $"_sparseVoxels being initialized with a List is already created for this chunkCoord {_chunkCoord}.");
+            }
 
             _sparseVoxels = new NativeList<SparseVoxelData>(voxels.Length, Allocator.Persistent);
             _sparseVoxels.AddRange(voxels.AsArray());
@@ -77,6 +78,7 @@ namespace Spellbound.MarchingCubes {
             Bounds editBounds = default;
 
             ref var config = ref _mcManager.McConfigBlob.Value;
+
             foreach (var voxelEdit in newVoxelEdits) {
                 var index = voxelEdit.index;
                 var existingVoxel = voxelArray[index];
@@ -88,7 +90,8 @@ namespace Spellbound.MarchingCubes {
 
                 voxelArray[index] = new VoxelData(voxelEdit.density, voxelEdit.MaterialType);
 
-                McStaticHelper.IndexToInt3(index, config.ChunkDataAreaSize, config.ChunkDataWidthSize, out var x, out var y, out var z);
+                McStaticHelper.IndexToInt3(index, config.ChunkDataAreaSize, config.ChunkDataWidthSize, out var x,
+                    out var y, out var z);
                 var localPos = new Vector3Int(x, y, z);
 
                 if (!hasAnyEdits) {
@@ -116,7 +119,9 @@ namespace Spellbound.MarchingCubes {
         public VoxelData GetVoxelData(Vector3Int position) {
             ref var config = ref _mcManager.McConfigBlob.Value;
             var localPos = position - _chunkCoord * config.ChunkSize;
-            var index = McStaticHelper.Coord3DToIndex(localPos.x, localPos.y, localPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
+
+            var index = McStaticHelper.Coord3DToIndex(localPos.x, localPos.y, localPos.z, config.ChunkDataAreaSize,
+                config.ChunkDataWidthSize);
 
             return GetVoxelData(index);
         }
@@ -126,6 +131,7 @@ namespace Spellbound.MarchingCubes {
         // TODO: Null checking twice is weird.
         public void ValidateOctreeEdits(Bounds bounds) {
             ref var config = ref _mcManager.McConfigBlob.Value;
+
             if (_rootNode == null)
                 _rootNode = new OctreeNode(Vector3Int.zero, config.LevelsOfDetail, this);
 
@@ -138,12 +144,9 @@ namespace Spellbound.MarchingCubes {
                 return;
 
             _rootNode.ValidateOctreeLods(playerPosition);
-            
         }
 
-        void OnDrawGizmos() {
-            Gizmos.DrawWireCube(_bounds.center, _bounds.size);
-        }
+        private void OnDrawGizmos() => Gizmos.DrawWireCube(_bounds.center, _bounds.size);
 
         public void SetChunkFields(Vector3Int coord) {
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();

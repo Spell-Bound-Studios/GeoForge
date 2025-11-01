@@ -17,7 +17,8 @@ namespace Spellbound.MarchingCubes {
         private NativeList<SparseVoxelData> _dummyData;
 
         public IVoxelTerrainChunk GetChunkByPosition(Vector3 position) {
-            var coord = McStaticHelper.WorldToChunk(position, SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value.ChunkSize);
+            var coord = McStaticHelper.WorldToChunk(position,
+                SingletonManager.GetSingletonInstance<MarchingCubesManager>().McConfigBlob.Value.ChunkSize);
 
             return GetChunkByCoord(coord);
         }
@@ -39,24 +40,29 @@ namespace Spellbound.MarchingCubes {
         public void GenerateSimpleData() {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
                 Debug.LogError("MarchingCubesManager not found");
+
                 return;
             }
+
             ref var config = ref mcManager.McConfigBlob.Value;
-                
+
             _dummyData = new NativeList<SparseVoxelData>(Allocator.Persistent);
             _dummyData.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, MaterialType.Sand), 0));
+
             _dummyData.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, MaterialType.Dirt),
                 config.ChunkDataAreaSize * (config.ChunkDataWidthSize - 12)));
+
             _dummyData.Add(new SparseVoxelData(new VoxelData(byte.MinValue, MaterialType.Dirt),
                 config.ChunkDataAreaSize * (config.ChunkDataWidthSize - 4)));
         }
 
-        IEnumerator Initialize() {
+        private IEnumerator Initialize() {
             for (var x = 0; x < cubeSizeInChunks.x; x++) {
                 for (var y = 0; y < cubeSizeInChunks.y; y++) {
                     for (var z = 0; z < cubeSizeInChunks.z; z++) {
                         var chunk = RegisterChunk(new Vector3Int(x, y, z));
                         chunk.InitializeVoxelData(_dummyData);
+
                         yield return null;
                     }
                 }

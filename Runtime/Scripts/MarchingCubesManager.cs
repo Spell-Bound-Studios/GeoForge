@@ -8,7 +8,6 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
-using McHelper = Spellbound.MarchingCubes.McStaticHelper;
 
 namespace Spellbound.MarchingCubes {
     /// <summary>
@@ -16,8 +15,9 @@ namespace Spellbound.MarchingCubes {
     /// </summary>
     public class MarchingCubesManager : MonoBehaviour {
         public BlobAssetReference<McTablesBlobAsset> McTablesBlob { get; private set; }
-        [SerializeField] private TerrainConfig _terrainConfig; 
+        [SerializeField] private TerrainConfig _terrainConfig;
         public BlobAssetReference<McConfigBlobAsset> McConfigBlob { get; private set; }
+        public BlobAssetReference<McChunkInterpolationBlobAsset> McChunkInterpolationBlob { get; private set; }
         [SerializeField] public GameObject octreePrefab;
         private readonly Stack<GameObject> _objectPool = new();
         private bool _isActive;
@@ -26,14 +26,13 @@ namespace Spellbound.MarchingCubes {
         public bool IsActive() => _isActive;
         private bool _isShuttingDown;
         private Transform _objectPoolParent;
-        
+
         [SerializeField] private bool useColliders = true;
         public bool UseColliders => useColliders;
 
         private JobHandle _combinedJobHandle;
         private Dictionary<OctreeNode, MarchJobData> _pendingMarchJobData = new();
         private Dictionary<OctreeNode, TransitionMarchJobData> _pendingTransitionMarchJobData = new();
-        
 
         private const int MaxEntries = 10;
 
@@ -50,9 +49,13 @@ namespace Spellbound.MarchingCubes {
 
                 return;
             }
+
             SingletonManager.RegisterSingleton(this);
             McTablesBlob = McTablesBlobCreator.CreateMcTablesBlobAsset();
-            McConfigBlob = McConfigBlobCreator.CreateMcSettingsBlobAsset(_terrainConfig);
+            McConfigBlob = McConfigBlobCreator.CreateMcConfigBlobAsset(_terrainConfig);
+
+            McChunkInterpolationBlob =
+                    McChunkInterpolationBlobCreator.CreateMcChunkInterpolationBlobAsset(_terrainConfig);
             AllocateDenseBuffers(McConfigBlob.Value.ChunkDataVolumeSize);
             _objectPoolParent = new GameObject("OctreeLeafPool").transform;
             _objectPoolParent.SetParent(transform);
@@ -61,32 +64,17 @@ namespace Spellbound.MarchingCubes {
 
         private void LateUpdate() => OctreeBatchTransitionUpdate?.Invoke();
 
-        private void OnValidate() {
-            /*
-            lodRanges = new Vector2[McConfigBlob.Value.LevelsOfDetail + 1];
-
-            for (var i = 0; i < lodRanges.Length; i++) {
-                var div = Mathf.Pow(2, lodRanges.Length - 1 - i);
-
-                if (i == 0) {
-                    lodRanges[i] = new Vector2(0, Mathf.Clamp(viewDistance, 0, viewDistance / div));
-
-                    continue;
-                }
-
-                lodRanges[i] = new Vector2(lodRanges[i - 1].y, Mathf.Clamp(viewDistance, 0, viewDistance / div));
-            }
-            */
-        }
-
         private void OnDestroy() {
             _isShuttingDown = true;
 
             if (McTablesBlob.IsCreated)
                 McTablesBlob.Dispose();
-            
+
             if (McConfigBlob.IsCreated)
                 McConfigBlob.Dispose();
+
+            if (McChunkInterpolationBlob.IsCreated)
+                McChunkInterpolationBlob.Dispose();
 
             ClearPool();
             DisposeDenseBuffers();
@@ -200,13 +188,15 @@ namespace Spellbound.MarchingCubes {
             var editsByChunkCoord = new Dictionary<Vector3Int, List<VoxelEdit>>();
 
             var chunkManager = GetComponent<IVoxelTerrainChunkManager>();
-            
+
             ref var config = ref McConfigBlob.Value;
 
             foreach (var rawEdit in rawVoxelEdits) {
                 var centralCoord = McStaticHelper.WorldToChunk(rawEdit.WorldPosition, config.ChunkSize);
                 var centralLocalPos = rawEdit.WorldPosition - centralCoord * McConfigBlob.Value.ChunkSize;
-                var index = McStaticHelper.Coord3DToIndex(centralLocalPos.x, centralLocalPos.y, centralLocalPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
+
+                var index = McStaticHelper.Coord3DToIndex(centralLocalPos.x, centralLocalPos.y, centralLocalPos.z,
+                    config.ChunkDataAreaSize, config.ChunkDataWidthSize);
 
                 var chunk = chunkManager.GetChunkByCoord(centralCoord);
 
@@ -298,6 +288,7 @@ namespace Spellbound.MarchingCubes {
                     }
                 }
             }
+
             ref var config = ref McConfigBlob.Value;
 
             var chunkBounds = new BoundsInt(
@@ -309,9 +300,9 @@ namespace Spellbound.MarchingCubes {
                 config.ChunkSize + 3
             );
 
-            
             for (var i = 0; i < config.ChunkDataVolumeSize; i++) {
-                McStaticHelper.IndexToInt3(i, config.ChunkDataAreaSize, config.ChunkDataWidthSize,  out var x, out var y, out var z);
+                McStaticHelper.IndexToInt3(i, config.ChunkDataAreaSize, config.ChunkDataWidthSize, out var x, out var y,
+                    out var z);
                 var localPos = new Vector3Int(x, y, z);
 
                 foreach (var coord in neighborCoords) {

@@ -129,11 +129,11 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: cubeSizeInChunks.x
-      value: 3
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 19282421627647620, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: cubeSizeInChunks.z
-      value: 3
+      value: 10
       objectReference: {fileID: 0}
     - target: {fileID: 264447736065509064, guid: 5b65309a33e876c4eb2f82aa1c085b30, type: 3}
       propertyPath: m_LocalPosition.x

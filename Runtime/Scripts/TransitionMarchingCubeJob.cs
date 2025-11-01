@@ -74,7 +74,8 @@ namespace Spellbound.MarchingCubes {
                                 (lodScale >> 1);
 
                         transitionCellValues[i] = VoxelArray[McStaticHelper.Coord3DToIndex(
-                            voxelPosition.x, voxelPosition.y, voxelPosition.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
+                            voxelPosition.x, voxelPosition.y, voxelPosition.z, config.ChunkDataAreaSize,
+                            config.ChunkDataWidthSize)];
                     }
 
                     var caseCode = (transitionCellValues[0].Density >= config.DensityThreshold ? 1 : 0)
@@ -159,7 +160,9 @@ namespace Spellbound.MarchingCubes {
                                 var samplePos = (int3)math.round(midPointLocalPos);
 
                                 var midPointDensity =
-                                        VoxelArray[McStaticHelper.Coord3DToIndex(samplePos.x, samplePos.y, samplePos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize)]
+                                        VoxelArray[
+                                                    McStaticHelper.Coord3DToIndex(samplePos.x, samplePos.y, samplePos.z,
+                                                        config.ChunkDataAreaSize, config.ChunkDataWidthSize)]
                                                 .Density;
 
                                 var isMidPointDensityAboveThreshold =
@@ -168,7 +171,8 @@ namespace Spellbound.MarchingCubes {
                                 var isVert0DensityAboveThreshold =
                                         VoxelArray[
                                                     McStaticHelper.Coord3DToIndex(corner0Copy.x, corner0Copy.y,
-                                                        corner0Copy.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize)]
+                                                        corner0Copy.z, config.ChunkDataAreaSize,
+                                                        config.ChunkDataWidthSize)]
                                                 .Density >= config.DensityThreshold;
 
                                 var isVertexNearerToVert1 =
@@ -257,7 +261,7 @@ namespace Spellbound.MarchingCubes {
 
         private void GetNormalAndColor(int3 corner0, int3 corner1, float t, out float3 normal, out Color32 color) {
             ref var config = ref ConfigBlob.Value;
-            
+
             var vertPosX0 = corner0.x;
             var vertPosY0 = corner0.y;
             var vertPosZ0 = corner0.z;
@@ -266,46 +270,60 @@ namespace Spellbound.MarchingCubes {
             var vertPosZ1 = corner1.z;
 
             var voxel0 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
+                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0, config.ChunkDataAreaSize,
+                    config.ChunkDataWidthSize)];
 
             var voxel1 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
+                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1, config.ChunkDataAreaSize,
+                    config.ChunkDataWidthSize)];
 
             var v0011 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0 - 1, vertPosY0, vertPosZ0, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
+                McStaticHelper.Coord3DToIndex(vertPosX0 - 1, vertPosY0, vertPosZ0, config.ChunkDataAreaSize,
+                    config.ChunkDataWidthSize)];
 
             var v0211 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0 + 1, vertPosY0, vertPosZ0, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
+                McStaticHelper.Coord3DToIndex(vertPosX0 + 1, vertPosY0, vertPosZ0, config.ChunkDataAreaSize,
+                    config.ChunkDataWidthSize)];
 
             var v0101 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 - 1, vertPosZ0, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
+                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 - 1, vertPosZ0, config.ChunkDataAreaSize,
+                    config.ChunkDataWidthSize)];
 
             var v0121 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 + 1, vertPosZ0, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
+                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 + 1, vertPosZ0, config.ChunkDataAreaSize,
+                    config.ChunkDataWidthSize)];
 
             var v0110 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 - 1, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
+                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 - 1, config.ChunkDataAreaSize,
+                    config.ChunkDataWidthSize)];
 
             var v0112 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 + 1, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
+                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 + 1, config.ChunkDataAreaSize,
+                    config.ChunkDataWidthSize)];
 
             var v1011 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1 - 1, vertPosY1, vertPosZ1, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
+                McStaticHelper.Coord3DToIndex(vertPosX1 - 1, vertPosY1, vertPosZ1, config.ChunkDataAreaSize,
+                    config.ChunkDataWidthSize)];
 
             var v1211 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1 + 1, vertPosY1, vertPosZ1, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
+                McStaticHelper.Coord3DToIndex(vertPosX1 + 1, vertPosY1, vertPosZ1, config.ChunkDataAreaSize,
+                    config.ChunkDataWidthSize)];
 
             var v1101 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 - 1, vertPosZ1, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
+                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 - 1, vertPosZ1, config.ChunkDataAreaSize,
+                    config.ChunkDataWidthSize)];
 
             var v1121 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 + 1, vertPosZ1, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
+                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 + 1, vertPosZ1, config.ChunkDataAreaSize,
+                    config.ChunkDataWidthSize)];
 
             var v1110 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 - 1, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
+                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 - 1, config.ChunkDataAreaSize,
+                    config.ChunkDataWidthSize)];
 
             var v1112 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 + 1, config.ChunkDataAreaSize, config.ChunkDataWidthSize)];
+                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 + 1, config.ChunkDataAreaSize,
+                    config.ChunkDataWidthSize)];
 
             var normal0 = new float3(v0011.Density - v0211.Density,
                 v0101.Density - v0121.Density,

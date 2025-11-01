@@ -4,9 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using Spellbound.Core;
 using Unity.Burst;
-using Unity.Mathematics;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
@@ -61,10 +59,8 @@ namespace Spellbound.MarchingCubes {
                     _ => chunkCoord + Vector3Int.forward
                 };
 
-        public static int GetLod(float distance, Vector2[] lodRanges)
-        {
-            for (int i = 0; i < lodRanges.Length; i++)
-            {
+        public static int GetLod(float distance, Vector2[] lodRanges) {
+            for (var i = 0; i < lodRanges.Length; i++) {
                 if (distance <= lodRanges[i].y)
                     return i;
             }
@@ -72,8 +68,8 @@ namespace Spellbound.MarchingCubes {
             // If distance is beyond all ranges, return -1
             return -1;
         }
-        
-        public static Vector3Int WorldToChunk(Vector3 pos, int chunkSize)  =>
+
+        public static Vector3Int WorldToChunk(Vector3 pos, int chunkSize) =>
                 new(
                     Mathf.FloorToInt((pos.x - 1) / chunkSize),
                     Mathf.FloorToInt((pos.y - 1) / chunkSize),
@@ -97,7 +93,8 @@ namespace Spellbound.MarchingCubes {
         */
 
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void IndexToInt3(int index, int chunkDataAreaSize, int chunkDataWidthSize, 
+        public static void IndexToInt3(
+            int index, int chunkDataAreaSize, int chunkDataWidthSize,
             out int x, out int y, out int z) {
             y = index / chunkDataAreaSize;
             z = index / chunkDataWidthSize % chunkDataWidthSize;
@@ -105,8 +102,8 @@ namespace Spellbound.MarchingCubes {
         }
 
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Coord3DToIndex(int x, int y, int z, int chunkDataAreaSize, int chunkDataWidthSize) 
-            => x + z * chunkDataWidthSize + y * chunkDataAreaSize;
+        public static int Coord3DToIndex(int x, int y, int z, int chunkDataAreaSize, int chunkDataWidthSize) =>
+                x + z * chunkDataWidthSize + y * chunkDataAreaSize;
 
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void IndexToInt2(int index, int chunkDataWidthSize, out int x, out int z) {
