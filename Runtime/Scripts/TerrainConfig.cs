@@ -56,7 +56,7 @@ namespace Spellbound.MarchingCubes {
                 // clamp to maximum allowed chunk size
                 if (currentChunkSize > this.chunkSize) currentChunkSize = this.chunkSize;
 
-                var radius = lodRangeScale * cubesPerMarch * (Mathf.Pow(2, n + 1) - 1);
+                var radius = lodRangeScale * cubesPerMarch * Mathf.Pow(2, n + 1);
                 if (radius > viewDistance) radius = viewDistance;
 
                 var minRadius = radiiList.Count == 0 ? 0 : radiiList[^1].y;

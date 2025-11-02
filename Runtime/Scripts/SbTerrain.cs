@@ -26,7 +26,7 @@ namespace Spellbound.MarchingCubes {
         public static void RemoveSphere(Vector3 position) =>
                 TerraformCommands.RemoveSphere(position,
                     new List<MaterialType> { MaterialType.Dirt, MaterialType.Swamp, MaterialType.Ice },
-                    4f,
+                    3f,
                     byte.MaxValue);
 
         public static void RemoveSphere(
@@ -45,7 +45,7 @@ namespace Spellbound.MarchingCubes {
         public static void AddSphere(Vector3 position) =>
                 TerraformCommands.AddSphere(position,
                     MaterialType.Ice,
-                    4f,
+                    2f,
                     byte.MaxValue);
     }
 }
