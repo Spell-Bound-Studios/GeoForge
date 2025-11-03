@@ -62,7 +62,10 @@ namespace Spellbound.MarchingCubes {
             InitializeSharedIndicesLookup();
         }
 
-        private void LateUpdate() => OctreeBatchTransitionUpdate?.Invoke();
+        private void LateUpdate() {
+            OctreeBatchTransitionUpdate?.Invoke();
+            CompleteAndApplyMarchingCubesJobs();
+        } 
 
         private void OnDestroy() {
             _isShuttingDown = true;

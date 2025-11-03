@@ -190,9 +190,9 @@ namespace Spellbound.MarchingCubes {
                 VoxelArray = VoxelData,
 
                 // New Allocation - Ensure this is disposed of after the job.
-                Vertices = new NativeList<MeshingVertexData>(Allocator.TempJob),
+                Vertices = new NativeList<MeshingVertexData>(Allocator.Persistent),
                 // New Allocation - Ensure this is disposed of after the job.
-                Triangles = new NativeList<int>(Allocator.TempJob),
+                Triangles = new NativeList<int>(Allocator.Persistent),
                 Lod = _lod,
                 Start = new int3(_localPosition.x, _localPosition.y, _localPosition.z)
             };
@@ -206,10 +206,10 @@ namespace Spellbound.MarchingCubes {
                     VoxelArray = VoxelData,
 
                     // New Allocation - Ensure this is disposed of after the job.
-                    TransitionMeshingVertexData = new NativeList<MeshingVertexData>(Allocator.TempJob),
+                    TransitionMeshingVertexData = new NativeList<MeshingVertexData>(Allocator.Persistent),
 
-                    TransitionTriangles = new NativeList<int>(Allocator.TempJob),
-                    TransitionRanges = new NativeArray<int2>(6, Allocator.TempJob),
+                    TransitionTriangles = new NativeList<int>(Allocator.Persistent),
+                    TransitionRanges = new NativeArray<int2>(6, Allocator.Persistent),
 
                     Lod = _lod,
                     Start = new int3(_localPosition.x, _localPosition.y, _localPosition.z)
