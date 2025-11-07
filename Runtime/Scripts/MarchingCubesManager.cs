@@ -43,6 +43,18 @@ namespace Spellbound.MarchingCubes {
 
         public event Action OctreeBatchTransitionUpdate;
 
+
+        [SerializeField] private int genCacheSize = 2;
+        [SerializeField] private int lodCacheSize = 2;
+        private VoxelArrayLruCache _generationCache;
+        private VoxelArrayLruCache _lodCache;
+        
+        private void InitializeLruCaches() {
+            _generationCache = new VoxelArrayLruCache(capacity: genCacheSize);
+            //_lodCache = new VoxelArrayLruCache(capacity: lodCacheSize);
+        }
+
+
         private void Awake() {
             if (_terrainConfig == null) {
                 Debug.LogError("Marching Cubes TerrainConfig is null");
@@ -60,7 +72,10 @@ namespace Spellbound.MarchingCubes {
             _objectPoolParent = new GameObject("OctreeLeafPool").transform;
             _objectPoolParent.SetParent(transform);
             InitializeSharedIndicesLookup();
+            InitializeLruCaches();
         }
+
+        
 
         private void LateUpdate() {
             OctreeBatchTransitionUpdate?.Invoke();
