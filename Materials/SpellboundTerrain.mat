@@ -62,7 +62,7 @@ Material:
     - _QueueOffset: 0
     - _Scale: 0.07
     - _Smoothness: 0
-    - _Tiling: 0.1
+    - _Tiling: 0.2
     - _temp_blend: 0.52
     - _tempblend: -6.65
     m_Colors:
