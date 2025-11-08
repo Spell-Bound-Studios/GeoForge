@@ -4,9 +4,6 @@ Shader "Spellbound/Spellbound Terrain"
     {
         _Blend("Blend", Float) = 8
         _Tiling("Tiling", Float) = 0.05
-        _Metallic("Metallic", Float) = 0
-        _Smoothness("Smoothness", Float) = 0
-        _AO("AO", Float) = 0
         [NoScaleOffset]_TerrainAlbedoArray("TerrainAlbedoArray", 2DArray) = "" {}
         [NoScaleOffset]_TerrainMetalSmoothArray("TerrainMetalSmoothArray", 2DArray) = "" {}
         [HideInInspector]_QueueOffset("_QueueOffset", Float) = 0
@@ -322,9 +319,6 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
-        float _Metallic;
-        float _Smoothness;
-        float _AO;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -543,14 +537,16 @@ Shader "Spellbound/Spellbound Terrain"
             float _SampleTexture2DArray_36ebdea543024a01b4c694ef5c161a2f_A_7_Float = _SampleTexture2DArray_36ebdea543024a01b4c694ef5c161a2f_RGBA_0_Vector4.a;
             float4 _Lerp_4c419025b66a4f3eac25f921069a9fac_Out_3_Vector4;
             Unity_Lerp_float4(_Lerp_5e7471adc1004f0fbe7ba4b877c88637_Out_3_Vector4, _SampleTexture2DArray_36ebdea543024a01b4c694ef5c161a2f_RGBA_0_Vector4, (_Split_3690e7172951494d811295287d62f6a9_B_3_Float.xxxx), _Lerp_4c419025b66a4f3eac25f921069a9fac_Out_3_Vector4);
-            float _Property_91c8fe4e950341bea6a7f3518d4ad72d_Out_0_Float = _Smoothness;
-            float _Property_6435b6520e30431482337a45bdd41625_Out_0_Float = _AO;
+            float _Split_3264dfc20eb84c93971370a089767e2c_R_1_Float = _Lerp_4c419025b66a4f3eac25f921069a9fac_Out_3_Vector4[0];
+            float _Split_3264dfc20eb84c93971370a089767e2c_G_2_Float = _Lerp_4c419025b66a4f3eac25f921069a9fac_Out_3_Vector4[1];
+            float _Split_3264dfc20eb84c93971370a089767e2c_B_3_Float = _Lerp_4c419025b66a4f3eac25f921069a9fac_Out_3_Vector4[2];
+            float _Split_3264dfc20eb84c93971370a089767e2c_A_4_Float = _Lerp_4c419025b66a4f3eac25f921069a9fac_Out_3_Vector4[3];
             surface.BaseColor = (_Lerp_6d5efb7386c24058b77436625a1eae4d_Out_3_Vector4.xyz);
             surface.NormalTS = IN.TangentSpaceNormal;
             surface.Emission = float3(0, 0, 0);
-            surface.Metallic = (_Lerp_4c419025b66a4f3eac25f921069a9fac_Out_3_Vector4).x;
-            surface.Smoothness = _Property_91c8fe4e950341bea6a7f3518d4ad72d_Out_0_Float;
-            surface.Occlusion = _Property_6435b6520e30431482337a45bdd41625_Out_0_Float;
+            surface.Metallic = _Split_3264dfc20eb84c93971370a089767e2c_R_1_Float;
+            surface.Smoothness = _Split_3264dfc20eb84c93971370a089767e2c_A_4_Float;
+            surface.Occlusion = _Split_3264dfc20eb84c93971370a089767e2c_G_2_Float;
             return surface;
         }
         
@@ -928,9 +924,6 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
-        float _Metallic;
-        float _Smoothness;
-        float _AO;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -1149,14 +1142,16 @@ Shader "Spellbound/Spellbound Terrain"
             float _SampleTexture2DArray_36ebdea543024a01b4c694ef5c161a2f_A_7_Float = _SampleTexture2DArray_36ebdea543024a01b4c694ef5c161a2f_RGBA_0_Vector4.a;
             float4 _Lerp_4c419025b66a4f3eac25f921069a9fac_Out_3_Vector4;
             Unity_Lerp_float4(_Lerp_5e7471adc1004f0fbe7ba4b877c88637_Out_3_Vector4, _SampleTexture2DArray_36ebdea543024a01b4c694ef5c161a2f_RGBA_0_Vector4, (_Split_3690e7172951494d811295287d62f6a9_B_3_Float.xxxx), _Lerp_4c419025b66a4f3eac25f921069a9fac_Out_3_Vector4);
-            float _Property_91c8fe4e950341bea6a7f3518d4ad72d_Out_0_Float = _Smoothness;
-            float _Property_6435b6520e30431482337a45bdd41625_Out_0_Float = _AO;
+            float _Split_3264dfc20eb84c93971370a089767e2c_R_1_Float = _Lerp_4c419025b66a4f3eac25f921069a9fac_Out_3_Vector4[0];
+            float _Split_3264dfc20eb84c93971370a089767e2c_G_2_Float = _Lerp_4c419025b66a4f3eac25f921069a9fac_Out_3_Vector4[1];
+            float _Split_3264dfc20eb84c93971370a089767e2c_B_3_Float = _Lerp_4c419025b66a4f3eac25f921069a9fac_Out_3_Vector4[2];
+            float _Split_3264dfc20eb84c93971370a089767e2c_A_4_Float = _Lerp_4c419025b66a4f3eac25f921069a9fac_Out_3_Vector4[3];
             surface.BaseColor = (_Lerp_6d5efb7386c24058b77436625a1eae4d_Out_3_Vector4.xyz);
             surface.NormalTS = IN.TangentSpaceNormal;
             surface.Emission = float3(0, 0, 0);
-            surface.Metallic = (_Lerp_4c419025b66a4f3eac25f921069a9fac_Out_3_Vector4).x;
-            surface.Smoothness = _Property_91c8fe4e950341bea6a7f3518d4ad72d_Out_0_Float;
-            surface.Occlusion = _Property_6435b6520e30431482337a45bdd41625_Out_0_Float;
+            surface.Metallic = _Split_3264dfc20eb84c93971370a089767e2c_R_1_Float;
+            surface.Smoothness = _Split_3264dfc20eb84c93971370a089767e2c_A_4_Float;
+            surface.Occlusion = _Split_3264dfc20eb84c93971370a089767e2c_G_2_Float;
             return surface;
         }
         
@@ -1414,9 +1409,6 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
-        float _Metallic;
-        float _Smoothness;
-        float _AO;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -1718,9 +1710,6 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
-        float _Metallic;
-        float _Smoothness;
-        float _AO;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -2023,9 +2012,6 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
-        float _Metallic;
-        float _Smoothness;
-        float _AO;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -2347,9 +2333,6 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
-        float _Metallic;
-        float _Smoothness;
-        float _AO;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -2701,9 +2684,6 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
-        float _Metallic;
-        float _Smoothness;
-        float _AO;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -3148,9 +3128,6 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
-        float _Metallic;
-        float _Smoothness;
-        float _AO;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -3485,9 +3462,6 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
-        float _Metallic;
-        float _Smoothness;
-        float _AO;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -3958,9 +3932,6 @@ Shader "Spellbound/Spellbound Terrain"
         CBUFFER_START(UnityPerMaterial)
         float _Blend;
         float _Tiling;
-        float _Metallic;
-        float _Smoothness;
-        float _AO;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
