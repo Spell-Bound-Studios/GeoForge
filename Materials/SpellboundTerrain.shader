@@ -102,7 +102,6 @@ Shader "Spellbound/Spellbound Terrain"
         /* WARNING: $splice Could not find named fragment 'PassInstancing' */
         #define SHADERPASS SHADERPASS_FORWARD
         #define _FOG_FRAGMENT 1
-        #define _RECEIVE_SHADOWS_OFF 1
         
         
         // custom interpolator pre-include
@@ -140,7 +139,7 @@ Shader "Spellbound/Spellbound Terrain"
              float4 uv0 : TEXCOORD0;
              float4 uv1 : TEXCOORD1;
              float4 uv2 : TEXCOORD2;
-             float4 color : COLOR;
+             nointerpolation float4 color : COLOR;
             #if UNITY_ANY_INSTANCING_ENABLED || defined(ATTRIBUTES_NEED_INSTANCEID)
              uint instanceID : INSTANCEID_SEMANTIC;
             #endif
@@ -152,7 +151,7 @@ Shader "Spellbound/Spellbound Terrain"
              float3 normalWS;
              float4 tangentWS;
              float4 texCoord0;
-             nointerpolation float4 color;
+             float4 color;
             #if defined(LIGHTMAP_ON)
              float2 staticLightmapUV;
             #endif
@@ -709,7 +708,6 @@ Shader "Spellbound/Spellbound Terrain"
         /* WARNING: $splice Could not find named fragment 'PassInstancing' */
         #define SHADERPASS SHADERPASS_GBUFFER
         #define _FOG_FRAGMENT 1
-        #define _RECEIVE_SHADOWS_OFF 1
         
         
         // custom interpolator pre-include
