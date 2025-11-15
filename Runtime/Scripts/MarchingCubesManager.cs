@@ -13,7 +13,7 @@ namespace Spellbound.MarchingCubes {
     /// <summary>
     /// Manager for handling the LODs and cached Dense/Unpacked Voxel Arrays for Marching Cubes.
     /// </summary>
-    public class MarchingCubesManager : MonoBehaviour {
+    public partial class MarchingCubesManager : MonoBehaviour {
         public BlobAssetReference<McTablesBlobAsset> McTablesBlob { get; private set; }
         [SerializeField] private TerrainConfig _terrainConfig;
         public BlobAssetReference<McConfigBlobAsset> McConfigBlob { get; private set; }
@@ -29,23 +29,7 @@ namespace Spellbound.MarchingCubes {
 
         [SerializeField] private bool useColliders = true;
         public bool UseColliders => useColliders;
-
-        private JobHandle _combinedJobHandle;
-        private Dictionary<OctreeNode, MarchJobData> _pendingMarchJobData = new();
-        private Dictionary<OctreeNode, TransitionMarchJobData> _pendingTransitionMarchJobData = new();
-
-        private Dictionary<OctreeNode, Vector3Int> _nodeToChunkCoord = new();
-
-        private const int MaxEntries = 10;
-
-        private readonly NativeArray<VoxelData>[] _denseBuffers = new NativeArray<VoxelData>[MaxEntries];
-        private readonly Dictionary<Vector3Int, int> _keyToSlot = new();
-
-        private readonly int[] _slotReferenceCounts = new int[MaxEntries];
-
-        private readonly Queue<(int, IVoxelTerrainChunk)> _slotEvictionQueue = new();
-        private readonly Vector3Int[] _slotToKey = new Vector3Int[MaxEntries];
-
+        
         public event Action OctreeBatchTransitionUpdate;
 
         private void Awake() {
@@ -61,7 +45,7 @@ namespace Spellbound.MarchingCubes {
 
             McChunkInterpolationBlob =
                     McChunkInterpolationBlobCreator.CreateMcChunkInterpolationBlobAsset(_terrainConfig);
-            AllocateDenseBuffers(McConfigBlob.Value.ChunkDataVolumeSize);
+            AllocateDenseBuffer(McConfigBlob.Value.ChunkDataVolumeSize);
             _objectPoolParent = new GameObject("OctreeLeafPool").transform;
             _objectPoolParent.SetParent(transform);
             InitializeSharedIndicesLookup();
@@ -69,7 +53,6 @@ namespace Spellbound.MarchingCubes {
 
         private void LateUpdate() {
             OctreeBatchTransitionUpdate?.Invoke();
-            CompleteAndApplyMarchingCubesJobs();
         }
 
         private void OnDestroy() {
@@ -85,7 +68,7 @@ namespace Spellbound.MarchingCubes {
                 McChunkInterpolationBlob.Dispose();
 
             ClearPool();
-            DisposeDenseBuffers();
+            DisposeDenseBuffer();
         }
 
         public GameObject GetPooledObject(Transform parent) {
@@ -117,111 +100,6 @@ namespace Spellbound.MarchingCubes {
 
         private void ClearPool() {
             while (_objectPool.Count > 0) Destroy(_objectPool.Pop());
-        }
-
-        private void AllocateDenseBuffers(int arraySize) {
-            for (var i = 0; i < MaxEntries; i++) {
-                _denseBuffers[i] = new NativeArray<VoxelData>(arraySize, Allocator.Persistent);
-                _slotReferenceCounts[i] = 0;
-            }
-        }
-
-        public NativeArray<VoxelData> GetOrCreate(
-            Vector3Int coord, IVoxelTerrainChunk chunk,
-            NativeList<SparseVoxelData> sparseData) {
-            if (_keyToSlot.TryGetValue(coord, out var existingSlot)) return _denseBuffers[existingSlot];
-
-            var slot = _keyToSlot.Count < MaxEntries ? _keyToSlot.Count : EvictDenseBuffer();
-
-            var buffer = _denseBuffers[slot];
-
-            var densityRangeArray = new NativeArray<DensityRange>(1, Allocator.TempJob);
-            densityRangeArray[0] = new DensityRange(byte.MaxValue, byte.MinValue, McConfigBlob.Value.DensityThreshold);
-
-            var unpackJob = new SparseToDenseVoxelDataJob {
-                ConfigBlob = McConfigBlob,
-                Voxels = buffer,
-                SparseVoxels = sparseData,
-                DensityRange = densityRangeArray
-            };
-            var jobHandle = unpackJob.Schedule(McConfigBlob.Value.ChunkDataWidthSize, 1);
-            jobHandle.Complete();
-            chunk.SetDensityRange(unpackJob.DensityRange[0]);
-            unpackJob.DensityRange.Dispose();
-            _keyToSlot[coord] = slot;
-            _slotToKey[slot] = coord;
-            _slotEvictionQueue.Enqueue((slot, chunk));
-
-            return buffer;
-        }
-
-        private int EvictDenseBuffer() {
-            var attempts = 0;
-
-            while (_slotEvictionQueue.Count > 0 && attempts < MaxEntries) {
-                var indexAndChunkTuple = _slotEvictionQueue.Dequeue();
-                var slot = indexAndChunkTuple.Item1;
-
-                if (_slotReferenceCounts[slot] > 0) {
-                    _slotEvictionQueue.Enqueue(indexAndChunkTuple);
-                    attempts++;
-
-                    continue;
-                }
-
-                var oldKey = _slotToKey[slot];
-                _keyToSlot.Remove(oldKey);
-
-                if (indexAndChunkTuple.Item2 == null || !indexAndChunkTuple.Item2.IsDirty())
-                    return slot;
-
-                var sparseData = new NativeList<SparseVoxelData>(Allocator.TempJob);
-
-                var packJob = new DenseToSparseVoxelDataJob {
-                    Voxels = _denseBuffers[slot],
-                    SparseVoxels = sparseData
-                };
-                var jobHandle = packJob.Schedule();
-                jobHandle.Complete();
-
-                indexAndChunkTuple.Item2.UpdateVoxelData(sparseData);
-                sparseData.Dispose();
-
-                return slot;
-            }
-
-            Debug.LogError(
-                $"All {MaxEntries} cache slots are locked by active jobs! Increase MaxEntries or reduce concurrent chunk generation.");
-
-            var fallback = _slotEvictionQueue.Dequeue();
-            _slotEvictionQueue.Enqueue(fallback);
-
-            return fallback.Item1;
-        }
-
-        private void DisposeDenseBuffers() {
-            for (var i = 0; i < MaxEntries; i++) {
-                if (_denseBuffers[i].IsCreated)
-                    _denseBuffers[i].Dispose();
-            }
-
-            _keyToSlot.Clear();
-            _slotEvictionQueue.Clear();
-        }
-
-        private void LockChunkData(Vector3Int coord) {
-            if (_keyToSlot.TryGetValue(coord, out var slot)) _slotReferenceCounts[slot]++;
-        }
-
-        private void UnlockChunkData(Vector3Int coord) {
-            if (_keyToSlot.TryGetValue(coord, out var slot)) {
-                _slotReferenceCounts[slot]--;
-
-                if (_slotReferenceCounts[slot] < 0) {
-                    Debug.LogError($"Reference count went negative for slot {slot} (coord {coord})");
-                    _slotReferenceCounts[slot] = 0;
-                }
-            }
         }
 
         /// <summary>
@@ -269,12 +147,12 @@ namespace Spellbound.MarchingCubes {
 
                 if (_sharedIndicesLookup.TryGetValue(index, out var neighborCoords)) {
                     foreach (var neighborCoord in neighborCoords) {
-                        var neighborLocalPos = rawEdit.WorldPosition -
-                                               (centralCoord + neighborCoord) * config.ChunkSize;
+                        var trueNeighborCoord = neighborCoord + centralCoord;
+                        var neighborLocalPos = rawEdit.WorldPosition - trueNeighborCoord * config.ChunkSize;
 
                         var neighborIndex = McStaticHelper.Coord3DToIndex(neighborLocalPos.x, neighborLocalPos.y,
                             neighborLocalPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
-                        var trueNeighborCoord = neighborCoord + centralCoord;
+
 
                         if (!editsByChunkCoord.TryGetValue(trueNeighborCoord, out var localNeighborEdits)) {
                             localNeighborEdits = new List<VoxelEdit>();
@@ -294,8 +172,6 @@ namespace Spellbound.MarchingCubes {
 
                 chunk.AddToVoxelEdits(kvp.Value);
             }
-
-            CompleteAndApplyMarchingCubesJobs();
         }
 
         public VoxelData QueryVoxel(Vector3 position) {
@@ -365,68 +241,6 @@ namespace Spellbound.MarchingCubes {
                     coordsSharingIndex.Add(coord);
                 }
             }
-        }
-
-        public void RegisterMarchJob(
-            OctreeNode node,
-            JobHandle jobHandle,
-            NativeList<MeshingVertexData> vertices,
-            NativeList<int> triangles,
-            Vector3Int chunkCoord) {
-            _combinedJobHandle = JobHandle.CombineDependencies(_combinedJobHandle, jobHandle);
-
-            _pendingMarchJobData[node] = new MarchJobData {
-                Vertices = vertices,
-                Triangles = triangles
-            };
-
-            _nodeToChunkCoord[node] = chunkCoord;
-            LockChunkData(chunkCoord);
-        }
-
-        public void RegisterTransitionJob(
-            OctreeNode node,
-            JobHandle jobHandle,
-            NativeList<MeshingVertexData> vertices,
-            NativeList<int> triangles,
-            NativeArray<int2> ranges,
-            Vector3Int chunkCoord) {
-            _combinedJobHandle = JobHandle.CombineDependencies(_combinedJobHandle, jobHandle);
-
-            _pendingTransitionMarchJobData[node] = new TransitionMarchJobData {
-                Vertices = vertices,
-                Triangles = triangles,
-                Ranges = ranges
-            };
-
-            if (!_nodeToChunkCoord.ContainsKey(node)) {
-                _nodeToChunkCoord[node] = chunkCoord;
-                LockChunkData(chunkCoord);
-            }
-        }
-
-        public void CompleteAndApplyMarchingCubesJobs() {
-            if (_pendingMarchJobData.Count == 0 && _pendingTransitionMarchJobData.Count == 0)
-                return;
-
-            _combinedJobHandle.Complete();
-
-            foreach (var kvp in _pendingTransitionMarchJobData) {
-                kvp.Key.ApplyTransitionMarchResults(kvp.Value.Vertices, kvp.Value.Triangles, kvp.Value.Ranges);
-                kvp.Value.Dispose();
-            }
-
-            foreach (var kvp in _pendingMarchJobData) {
-                kvp.Key.ApplyMarchResults(kvp.Value.Vertices, kvp.Value.Triangles);
-                kvp.Value.Dispose();
-
-                if (_nodeToChunkCoord.TryGetValue(kvp.Key, out var chunkCoord)) UnlockChunkData(chunkCoord);
-            }
-
-            _pendingMarchJobData.Clear();
-            _pendingTransitionMarchJobData.Clear();
-            _nodeToChunkCoord.Clear();
-            _combinedJobHandle = default;
         }
     }
 }

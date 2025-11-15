@@ -15,9 +15,8 @@ namespace Spellbound.MarchingCubes {
         private DensityRange _densityRange;
         private MarchingCubesManager _mcManager;
         private IVoxelTerrainChunkManager _chunkManager;
-        private bool _isDirty;
 
-        public NativeArray<VoxelData> GetVoxelData() => _mcManager.GetOrCreate(_chunkCoord, this, _sparseVoxels);
+        public NativeArray<VoxelData> GetVoxelDataArray() => _mcManager.GetOrUnpackVoxelArray(_chunkCoord, this, _sparseVoxels);
 
         public DensityRange GetDensityRange() => _densityRange;
 
@@ -47,11 +46,8 @@ namespace Spellbound.MarchingCubes {
 
             _sparseVoxels.Clear();
             _sparseVoxels.CopyFrom(voxels);
-            _isDirty = false;
         }
-
-        public bool IsDirty() => _isDirty;
-
+        
         public void BroadcastNewLeafAcrossChunks(OctreeNode newLeaf, Vector3 pos, int index) {
             if (_bounds.Contains(pos)) {
                 _rootNode?.ValidateTransition(newLeaf, pos, McStaticHelper.GetTransitionFaceMask(index));
@@ -73,7 +69,7 @@ namespace Spellbound.MarchingCubes {
             if (newVoxelEdits.Count == 0)
                 return;
 
-            var voxelArray = _mcManager.GetOrCreate(_chunkCoord, this, _sparseVoxels);
+            var voxelArray = GetVoxelDataArray();
             var hasAnyEdits = false;
             Bounds editBounds = default;
 
@@ -105,15 +101,18 @@ namespace Spellbound.MarchingCubes {
             }
 
             if (hasAnyEdits) {
-                _isDirty = true;
                 ValidateOctreeEdits(editBounds);
             }
+            
+            _mcManager.PackVoxelArray();
+            _mcManager.CompleteAndApplyMarchingCubesJobs();
         }
 
         public VoxelData GetVoxelData(int index) {
-            var voxels = _mcManager.GetOrCreate(_chunkCoord, this, _sparseVoxels);
+            ref var config = ref _mcManager.McConfigBlob.Value;
+            var sparseIndex = McStaticHelper.BinarySearchVoxelData(index, config.ChunkDataVolumeSize, _sparseVoxels);
 
-            return voxels[index];
+            return _sparseVoxels[sparseIndex].Voxel;
         }
 
         public VoxelData GetVoxelData(Vector3Int position) {
@@ -144,6 +143,7 @@ namespace Spellbound.MarchingCubes {
                 return;
 
             _rootNode.ValidateOctreeLods(playerPosition);
+            _mcManager.CompleteAndApplyMarchingCubesJobs();
         }
 
         private void OnDrawGizmos() => Gizmos.DrawWireCube(_bounds.center, _bounds.size);

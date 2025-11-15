@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using Unity.Burst;
+using Unity.Collections;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
@@ -116,6 +117,32 @@ namespace Spellbound.MarchingCubes {
 
         public static List<MaterialType> GetAllMaterialTypes() =>
                 Enum.GetValues(typeof(MaterialType)).Cast<MaterialType>().ToList();
+        
+        [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int BinarySearchVoxelData(int targetIndex, int chunkDataVolumeSize, in NativeList<SparseVoxelData> sparseVoxels) {
+            int left = 0, right = sparseVoxels.Length - 1;
+            var result = 0;
+
+            while (left <= right) {
+                var mid = (left + right) / 2;
+                var startIndex = sparseVoxels[mid].StartIndex;
+
+                var nextStart = mid == sparseVoxels.Length - 1
+                        ? chunkDataVolumeSize
+                        : sparseVoxels[mid + 1].StartIndex;
+
+                if (targetIndex >= startIndex && targetIndex < nextStart) return mid;
+
+                if (targetIndex < startIndex)
+                    right = mid - 1;
+                else {
+                    left = mid + 1;
+                    result = left;
+                }
+            }
+
+            return result;
+        }
 
         /// <summary>
         /// This is meant to be called externally so that a reference to a chunk can be retrieved from game logic.

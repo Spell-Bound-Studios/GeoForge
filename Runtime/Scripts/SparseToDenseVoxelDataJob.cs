@@ -27,7 +27,7 @@ namespace Spellbound.MarchingCubes {
             var start = deckIndex * voxelsPerDeck;
             var end = start + voxelsPerDeck;
 
-            var rleIndex = BinarySearchForStart(start);
+            var rleIndex = McStaticHelper.BinarySearchVoxelData(start, ConfigBlob.Value.ChunkDataVolumeSize, SparseVoxels);
 
             while (rleIndex < SparseVoxels.Length) {
                 var rle = SparseVoxels[rleIndex];
@@ -49,32 +49,6 @@ namespace Spellbound.MarchingCubes {
 
                 rleIndex++;
             }
-        }
-
-        [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int BinarySearchForStart(int targetIndex) {
-            int left = 0, right = SparseVoxels.Length - 1;
-            var result = 0;
-
-            while (left <= right) {
-                var mid = (left + right) / 2;
-                var startIndex = SparseVoxels[mid].StartIndex;
-
-                var nextStart = mid == SparseVoxels.Length - 1
-                        ? Voxels.Length
-                        : SparseVoxels[mid + 1].StartIndex;
-
-                if (targetIndex >= startIndex && targetIndex < nextStart) return mid;
-
-                if (targetIndex < startIndex)
-                    right = mid - 1;
-                else {
-                    left = mid + 1;
-                    result = left;
-                }
-            }
-
-            return result;
         }
     }
 }

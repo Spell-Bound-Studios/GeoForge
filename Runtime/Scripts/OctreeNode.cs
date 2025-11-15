@@ -32,7 +32,7 @@ namespace Spellbound.MarchingCubes {
         private readonly MarchingCubesManager _mcManager;
 
         private bool IsLeaf => _children == null;
-        private NativeArray<VoxelData> VoxelData => _chunk.GetVoxelData();
+        private NativeArray<VoxelData> VoxelData => _chunk.GetVoxelDataArray();
 
         private Vector3Int WorldPosition => _chunk.GetChunkCoord() * _mcManager.McConfigBlob.Value.ChunkSize;
 

@@ -108,7 +108,6 @@ namespace Spellbound.MarchingCubes {
                         continue;
 
                     chunk.ValidateOctreeLods(Camera.main.transform.position);
-                    mcManager.CompleteAndApplyMarchingCubesJobs();
 
                     count++;
 
