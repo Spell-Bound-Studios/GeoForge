@@ -64,6 +64,14 @@ namespace Spellbound.MarchingCubes {
             var transitionCellValues = new NativeArray<VoxelData>(13, Allocator.Temp);
 
             for (var y = 0; y < config.CubesMarchedPerOctreeLeaf; y++) {
+                // Initialize specific cache slots at the start of each row
+                for (var initX = 0; initX < config.CubesMarchedPerOctreeLeaf; initX++) {
+                    transitionCurrentCache[0 * config.CubesMarchedPerOctreeLeaf + initX] = -1;
+                    transitionCurrentCache[1 * config.CubesMarchedPerOctreeLeaf + initX] = -1;
+                    transitionCurrentCache[2 * config.CubesMarchedPerOctreeLeaf + initX] = -1;
+                    transitionCurrentCache[7 * config.CubesMarchedPerOctreeLeaf + initX] = -1;
+                }
+
                 for (var x = 0; x < config.CubesMarchedPerOctreeLeaf; x++) {
                     for (var i = 0; i < 13; i++) {
                         var offset = tables.TransitionCornerOffset[i];
@@ -87,11 +95,6 @@ namespace Spellbound.MarchingCubes {
                                    | (transitionCellValues[6].Density >= config.DensityThreshold ? 64 : 0)
                                    | (transitionCellValues[3].Density >= config.DensityThreshold ? 128 : 0)
                                    | (transitionCellValues[4].Density >= config.DensityThreshold ? 256 : 0);
-
-                    transitionCurrentCache[0 * config.CubesMarchedPerOctreeLeaf + x] = -1;
-                    transitionCurrentCache[1 * config.CubesMarchedPerOctreeLeaf + x] = -1;
-                    transitionCurrentCache[2 * config.CubesMarchedPerOctreeLeaf + x] = -1;
-                    transitionCurrentCache[7 * config.CubesMarchedPerOctreeLeaf + x] = -1;
 
                     if (caseCode == 0 || caseCode == 511) continue;
 
@@ -206,26 +209,23 @@ namespace Spellbound.MarchingCubes {
                             var color = c;
                             var colorInterp = new float2((float)c.r / byte.MaxValue, 0);
 
-                            //Debug.Log($"vertexIndex being loaded into transitionVertexIndices: {vertexIndex}");
+                            transitionVertexIndices[i] = vertexIndex;
 
-                            transitionVertexIndices[i] = TransitionMeshingVertexData.Length;
-
-                            // This puts the vertex data into the vertex array, which is used to Build the Mesh
-
+                            // Cache the vertex index before adding
                             if (cacheDir == 8) {
-                                transitionCurrentCache[cacheIdx * config.CubesMarchedPerOctreeLeaf + x] =
-                                        vertexIndex;
+                                transitionCurrentCache[cacheIdx * config.CubesMarchedPerOctreeLeaf + x] = vertexIndex;
                             }
                             else if (isVertexCacheable && cacheDir != 4) {
-                                selectedCacheDock[cacheIdx * config.CubesMarchedPerOctreeLeaf + cachePosX] =
-                                        vertexIndex;
+                                selectedCacheDock[cacheIdx * config.CubesMarchedPerOctreeLeaf + cachePosX] = vertexIndex;
                             }
 
-                            TransitionMeshingVertexData.Add(new MeshingVertexData(vertex, normal,
-                                color, colorInterp));
+                            // Add the vertex to the list AFTER caching its index
+                            TransitionMeshingVertexData.Add(new MeshingVertexData(vertex, normal, color, colorInterp));
                         }
-
-                        transitionVertexIndices[i] = vertexIndex;
+                        else {
+                            // For cached vertices, still need to set the index
+                            transitionVertexIndices[i] = vertexIndex;
+                        }
                     }
 
                     var indexCount = tables.TransitionTriangleCount[cellClass & 0x7F];

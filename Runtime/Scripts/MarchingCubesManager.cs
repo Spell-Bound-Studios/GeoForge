@@ -31,6 +31,9 @@ namespace Spellbound.MarchingCubes {
         public event Action OctreeBatchTransitionUpdate;
 
         private void Awake() {
+            
+            Application.targetFrameRate = 60;   // Cap at 60 FPS
+            
             if (_terrainConfig == null) {
                 Debug.LogError("Marching Cubes TerrainConfig is null");
 
