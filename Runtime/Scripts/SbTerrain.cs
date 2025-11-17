@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Spellbound.Core;
+using Spellbound.Core.Console;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
@@ -41,11 +42,17 @@ namespace Spellbound.MarchingCubes {
                     McStaticHelper.GetAllMaterialTypes().ToList(),
                     radius,
                     delta);
-
-        public static void AddSphere(Vector3 position) =>
+        
+        /// <summary>
+        /// AddSphere is the positive terraform technique where a user can pass in the position, radius, and voxel
+        /// density to the method.
+        /// </summary>
+        /// Console Usage: AddSphere 2 255
+        [ConsoleUtilityCommand("AddSphere", "Positive terraform with 2 radius")]
+        public static void AddSphere(Vector3 position, float radius = 2f, int delta = 255) =>
                 TerraformCommands.AddSphere(position,
                     MaterialType.Ice,
-                    2f,
-                    byte.MaxValue);
+                    radius,
+                    delta);
     }
 }
