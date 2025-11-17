@@ -19,12 +19,12 @@ namespace Spellbound.MarchingCubes {
                     PresetCommandRegistry.GetUtilityCommandsByClass(typeof(SbTerrain));
 
             var sb = new StringBuilder();
+            
             sb.AppendLine("=== Terraform Commands ===");
             sb.AppendLine();
 
-            foreach (var (commandName, description) in commands) {
+            foreach (var (commandName, description) in commands)
                 sb.AppendLine($"{commandName,-25} {description}");
-            }
 
             return CommandResult.Ok(sb.ToString());
         }
