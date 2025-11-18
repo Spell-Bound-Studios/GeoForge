@@ -22,7 +22,7 @@ namespace Spellbound.MarchingCubes {
         public CommandResult Execute(string[] args) {
             // Get all commands from SbTerrain class
             var commands = 
-                    PresetCommandRegistry.GetUtilityCommandsByClass(typeof(SbTerrain));
+                    AttributeCommandRegistry.GetUtilityCommandsByClass(typeof(SbTerrain));
 
             var sb = new StringBuilder();
             
