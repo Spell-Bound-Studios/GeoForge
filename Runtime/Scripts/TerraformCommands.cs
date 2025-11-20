@@ -13,13 +13,13 @@ namespace Spellbound.MarchingCubes {
                 return;
 
             ref var config = ref marchingCubesManager.McConfigBlob.Value;
-            
+
             var rawVoxelEdits = new List<RawVoxelEdit>();
 
             // Convert everything to normalized voxel space (multiply by 1/resolution)
             var normalizedPosition = position / config.Resolution;
             var normalizedRadius = radius / config.Resolution;
-    
+
             // Now work entirely in normalized space
             var center = normalizedPosition;
             var r = Mathf.CeilToInt(normalizedRadius);
@@ -34,14 +34,14 @@ namespace Spellbound.MarchingCubes {
                             Mathf.RoundToInt(center.y) + y,
                             Mathf.RoundToInt(center.z) + z
                         );
-                
+
                         // Distance from exact center (not rounded)
                         var offset = new Vector3(
                             voxelPos.x - center.x,
                             voxelPos.y - center.y,
                             voxelPos.z - center.z
                         );
-                
+
                         var distSq = offset.x * offset.x + offset.y * offset.y + offset.z * offset.z;
 
                         if (distSq > radiusSq)
@@ -51,7 +51,7 @@ namespace Spellbound.MarchingCubes {
                         var falloff = 1f - dist / normalizedRadius;
                         var adjustedDelta = Mathf.RoundToInt(delta * falloff);
 
-                        if (adjustedDelta != 0) 
+                        if (adjustedDelta != 0)
                             rawVoxelEdits.Add(new RawVoxelEdit(voxelPos, -adjustedDelta, 0));
                     }
                 }
@@ -65,26 +65,47 @@ namespace Spellbound.MarchingCubes {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var marchingCubesManager))
                 return;
 
+            ref var config = ref marchingCubesManager.McConfigBlob.Value;
+
             var rawVoxelEdits = new List<RawVoxelEdit>();
-            var center = Vector3Int.RoundToInt(position);
-            var r = Mathf.CeilToInt(radius);
-            var radiusSq = radius * radius; // Use squared distance to avoid sqrt
+
+            // Convert everything to normalized voxel space (multiply by 1/resolution)
+            var normalizedPosition = position / config.Resolution;
+            var normalizedRadius = radius / config.Resolution;
+
+            // Now work entirely in normalized space
+            var center = normalizedPosition;
+            var r = Mathf.CeilToInt(normalizedRadius);
+            var radiusSq = normalizedRadius * normalizedRadius;
 
             for (var x = -r; x <= r; x++) {
                 for (var y = -r; y <= r; y++) {
                     for (var z = -r; z <= r; z++) {
-                        var offset = new Vector3Int(x, y, z);
+                        // Voxel position in normalized space
+                        var voxelPos = new Vector3Int(
+                            Mathf.RoundToInt(center.x) + x,
+                            Mathf.RoundToInt(center.y) + y,
+                            Mathf.RoundToInt(center.z) + z
+                        );
+
+                        // Distance from exact center (not rounded)
+                        var offset = new Vector3(
+                            voxelPos.x - center.x,
+                            voxelPos.y - center.y,
+                            voxelPos.z - center.z
+                        );
+
                         var distSq = offset.x * offset.x + offset.y * offset.y + offset.z * offset.z;
 
                         if (distSq > radiusSq)
                             continue;
 
-                        var dist = Mathf.Sqrt(distSq); // Only calculate sqrt when needed
-                        var falloff = 1f - dist / radius;
+                        var dist = Mathf.Sqrt(distSq);
+                        var falloff = 1f - dist / normalizedRadius;
                         var adjustedDelta = Mathf.RoundToInt(delta * falloff);
 
                         if (adjustedDelta != 0)
-                            rawVoxelEdits.Add(new RawVoxelEdit(center + offset, adjustedDelta, addedMaterial));
+                            rawVoxelEdits.Add(new RawVoxelEdit(voxelPos, adjustedDelta, addedMaterial));
                     }
                 }
             }

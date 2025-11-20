@@ -42,7 +42,7 @@ namespace Spellbound.MarchingCubes {
                     McStaticHelper.GetAllMaterialTypes().ToList(),
                     radius,
                     delta);
-        
+
         /// <summary>
         /// AddSphere is the positive terraform technique where a user can pass in the position, radius, and voxel
         /// density to the method.

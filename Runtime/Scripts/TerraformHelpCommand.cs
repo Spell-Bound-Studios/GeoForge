@@ -21,11 +21,11 @@ namespace Spellbound.MarchingCubes {
         /// </summary>
         public CommandResult Execute(string[] args) {
             // Get all commands from SbTerrain class
-            var commands = 
+            var commands =
                     AttributeCommandRegistry.GetUtilityCommandsByClass(typeof(SbTerrain));
 
             var sb = new StringBuilder();
-            
+
             sb.AppendLine("=== Terraform Commands ===");
             sb.AppendLine();
 

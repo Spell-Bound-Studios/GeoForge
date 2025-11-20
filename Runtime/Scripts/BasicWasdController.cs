@@ -16,7 +16,7 @@ namespace Spellbound.MarchingCubes {
         private void Update() {
             HandleMovement();
 
-            if (Input.GetKey(KeyCode.Alpha1))
+            if (Input.GetKeyDown(KeyCode.Alpha1))
                 RaycastTerraformRemove();
             else if (Input.GetKeyDown(KeyCode.Alpha2))
                 RaycastTerraformAdd();

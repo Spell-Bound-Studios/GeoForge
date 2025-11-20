@@ -357,7 +357,9 @@ namespace Spellbound.MarchingCubes {
                                 var colorInterp = new float2((float)matA / byte.MaxValue, 0);
 
                                 var color = new Color32((byte)matA, (byte)matB, 0, 0);
-                                Vertices.Add(new MeshingVertexData(vertex * config.Resolution, normal, color, colorInterp));
+
+                                Vertices.Add(new MeshingVertexData(vertex * config.Resolution, normal, color,
+                                    colorInterp));
                             }
 
                             // For both new vertices and vertices re-used from previous cubes, the vertex index is

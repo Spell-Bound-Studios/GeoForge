@@ -41,9 +41,11 @@ namespace Spellbound.MarchingCubes {
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
             ref var config = ref _mcManager.McConfigBlob.Value;
 
-            var octreeSize = _mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf * config.Resolution * math.pow(2, _lod) + 2;
+            var octreeSize = _mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf * config.Resolution *
+                    math.pow(2, _lod) + 2;
 
-            _bounds = new Bounds(WorldPosition + (Vector3)_localPosition * config.Resolution + Vector3.one * octreeSize / 2,
+            _bounds = new Bounds(
+                WorldPosition + (Vector3)_localPosition * config.Resolution + Vector3.one * octreeSize / 2,
                 Vector3.one * octreeSize);
         }
 
@@ -108,7 +110,8 @@ namespace Spellbound.MarchingCubes {
 
             var octreePos = WorldPosition
                             + (Vector3)_localPosition * config.Resolution
-                            + Vector3.one * (config.Resolution * (_mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf << (_lod - 1)));
+                            + Vector3.one * (config.Resolution *
+                                             (_mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf << (_lod - 1)));
             var targetLod = GetLodRange(octreePos, playerPosition);
 
             if (_chunk.GetDensityRange().IsSkippable())
@@ -396,6 +399,7 @@ namespace Spellbound.MarchingCubes {
 
         private Vector3[] GetFaceCenters() {
             ref var config = ref _mcManager.McConfigBlob.Value;
+
             return new[] {
                 new Vector3(_bounds.min.x - config.Resolution, _bounds.center.y, _bounds.center.z),
                 new Vector3(_bounds.center.x, _bounds.min.y - config.Resolution, _bounds.center.z),
@@ -405,7 +409,6 @@ namespace Spellbound.MarchingCubes {
                 new Vector3(_bounds.center.x, _bounds.center.y, _bounds.max.z + config.Resolution)
             };
         }
-                
 
         private McStaticHelper.TransitionFaceMask GetOppositeTransition(
             McStaticHelper.TransitionFaceMask transitionMask) =>

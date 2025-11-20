@@ -7,9 +7,8 @@ using UnityEngine;
 namespace Spellbound.MarchingCubes {
     [CreateAssetMenu(menuName = "Spellbound/MarchingCubes/TerrainSettings")]
     public class TerrainConfig : ScriptableObject {
-        [Header("Marching Cubes Settings")] 
-        
-        [Range(0f, 5f)]public float resolution = 1;
+        [Header("Marching Cubes Settings"), Range(0f, 5f)]
+        public float resolution = 1;
 
         [Range(8, 32)] public int cubesPerMarch = 16;
 
@@ -46,7 +45,7 @@ namespace Spellbound.MarchingCubes {
 
             if (sizeOfMarch == 0)
                 sizeOfMarch = 1;
-            
+
             resolution = sizeOfMarch / (float)cubesPerMarch;
 
             ComputeLods(out chunkSize, out lods, out lodRanges);

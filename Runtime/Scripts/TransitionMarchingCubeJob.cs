@@ -207,21 +207,25 @@ namespace Spellbound.MarchingCubes {
                             var colorInterp = new float2((float)c.r / byte.MaxValue, 0);
 
                             if (bIsLowResFace) {
-                                if (cacheDir == 8)
+                                if (cacheDir == 8) {
                                     transitionCurrentCache[cacheIdx * config.CubesMarchedPerOctreeLeaf + x] =
                                             vertexIndex;
-                                else if (isVertexCacheable)
+                                }
+                                else if (isVertexCacheable) {
                                     selectedCacheDock[cacheIdx * config.CubesMarchedPerOctreeLeaf + cachePosX] =
                                             vertexIndex;
+                                }
                             }
 
                             if (cacheDir == 8)
                                 transitionCurrentCache[cacheIdx * config.CubesMarchedPerOctreeLeaf + x] = vertexIndex;
-                            else if (isVertexCacheable && cacheDir != 4)
+                            else if (isVertexCacheable && cacheDir != 4) {
                                 selectedCacheDock[cacheIdx * config.CubesMarchedPerOctreeLeaf + cachePosX] =
                                         vertexIndex;
+                            }
 
-                            TransitionMeshingVertexData.Add(new MeshingVertexData(vertex * config.Resolution, normal, color, colorInterp));
+                            TransitionMeshingVertexData.Add(new MeshingVertexData(vertex * config.Resolution, normal,
+                                color, colorInterp));
                         }
 
                         transitionVertexIndices[i] = vertexIndex;

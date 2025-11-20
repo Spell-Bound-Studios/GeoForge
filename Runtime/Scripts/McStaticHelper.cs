@@ -71,11 +71,11 @@ namespace Spellbound.MarchingCubes {
             return lodRanges.Length - 1;
         }
 
-        public static Vector3Int WorldToChunk(Vector3 pos, int chunkSize) =>
+        public static Vector3Int WorldToChunk(Vector3 pos, int chunkSize, float resolution) =>
                 new(
-                    Mathf.FloorToInt((pos.x - 1) / chunkSize),
-                    Mathf.FloorToInt((pos.y - 1) / chunkSize),
-                    Mathf.FloorToInt((pos.z - 1) / chunkSize)
+                    Mathf.FloorToInt((pos.x - resolution) / chunkSize),
+                    Mathf.FloorToInt((pos.y - resolution) / chunkSize),
+                    Mathf.FloorToInt((pos.z - resolution) / chunkSize)
                 );
 
         /*
@@ -144,28 +144,6 @@ namespace Spellbound.MarchingCubes {
             }
 
             return result;
-        }
-
-        /// <summary>
-        /// This is meant to be called externally so that a reference to a chunk can be retrieved from game logic.
-        /// </summary>
-        public static List<Vector3Int> GetChunksTouchingPosition(Vector3Int position, int chunksize) {
-            //Should be able to create a map to do this efficiently instead of bruteforce
-            var chunkKeys = new HashSet<Vector3Int>();
-
-            // Compute base chunk coord (floor division handles negatives correctly)
-            var baseCoord = WorldToChunk(position, chunksize);
-
-            for (var dx = -1; dx <= 1; dx++) {
-                for (var dy = -1; dy <= 1; dy++) {
-                    for (var dz = -1; dz <= 1; dz++) {
-                        var neighborCoord = baseCoord + new Vector3Int(dx, dy, dz);
-                        chunkKeys.Add(neighborCoord);
-                    }
-                }
-            }
-
-            return chunkKeys.ToList();
         }
     }
 }
