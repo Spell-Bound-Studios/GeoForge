@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Spellbound.Core;
 using Unity.Collections;
 using UnityEngine;
@@ -17,6 +18,9 @@ namespace Spellbound.MarchingCubes {
         private MarchingCubesManager _mcManager;
         private IVolume _chunkManager;
         private MonoBehaviour _owner;
+        private Dictionary<int, VoxelData> _xOverrides = new();
+        private Dictionary<int, VoxelData> _yOverrides = new();
+        private Dictionary<int, VoxelData> _zOverrides = new ();
 
         public Vector3Int ChunkCoord => _chunkCoord;
         public DensityRange DensityRange => _densityRange;
@@ -38,6 +42,50 @@ namespace Spellbound.MarchingCubes {
             _owner.gameObject.name = coord.ToString();
         }
 
+        public void SetOverrides(Dictionary<(BoundaryOverrides.Axis, int), VoxelData> voxelOverrides) {
+            foreach (var kvp in voxelOverrides) {
+                switch (kvp.Key.Item1) {
+                    case BoundaryOverrides.Axis.X:
+                        _xOverrides.Add(kvp.Key.Item2, kvp.Value);
+                        break;
+                    case BoundaryOverrides.Axis.Y:
+                        _yOverrides.Add(kvp.Key.Item2, kvp.Value);
+                        break;
+                    case BoundaryOverrides.Axis.Z:
+                        _zOverrides.Add(kvp.Key.Item2, kvp.Value);
+                        break;
+                }
+            }
+        }
+
+        private void ValidateVoxels() {
+            ref var config = ref _mcManager.McConfigBlob.Value;
+            var voxelArray = GetVoxelDataArray();
+            var hasOverridenVoxels = false;
+            for (var i = 0; i < voxelArray.Length; i++) {
+                McStaticHelper.IndexToInt3(i, config.ChunkDataAreaSize, config.ChunkDataWidthSize, out var x,
+                    out var y, out var z);
+                VoxelData overrideVoxel;
+                if (_yOverrides.TryGetValue(y, out overrideVoxel)) {
+                    voxelArray[i] = overrideVoxel;
+                    hasOverridenVoxels = true;
+                }
+                else if (_xOverrides.TryGetValue(x, out overrideVoxel)) {
+                    voxelArray[i] = overrideVoxel;
+                    hasOverridenVoxels = true;
+                }
+                else if (_zOverrides.TryGetValue(z, out overrideVoxel)) {
+                    voxelArray[i] = overrideVoxel;
+                    hasOverridenVoxels = true;
+                }
+                
+            }
+            if (hasOverridenVoxels)
+                _mcManager.PackVoxelArray();
+                
+            _mcManager.ReleaseVoxelArray();
+        }
+
         public void InitializeVoxels(NativeList<SparseVoxelData> voxels) {
             if (_sparseVoxels.IsCreated) {
                 Debug.LogError($"_sparseVoxels is already created for this chunkCoord {_chunkCoord}.");
@@ -54,6 +102,7 @@ namespace Spellbound.MarchingCubes {
 
             _sparseVoxels = new NativeList<SparseVoxelData>(voxels.Length, Allocator.Persistent);
             _sparseVoxels.AddRange(voxels.AsArray());
+            ValidateVoxels();
 
             _densityRange = new DensityRange(byte.MinValue, byte.MaxValue,
                 _mcManager.McConfigBlob.Value.DensityThreshold);
@@ -72,6 +121,12 @@ namespace Spellbound.MarchingCubes {
 
             foreach (var voxelEdit in voxelEdits) {
                 var index = voxelEdit.index;
+                McStaticHelper.IndexToInt3(index, config.ChunkDataAreaSize, config.ChunkDataWidthSize, out var x,
+                    out var y, out var z);
+                if (_xOverrides.ContainsKey(x) || _yOverrides.ContainsKey(y) || _zOverrides.ContainsKey(z)) 
+                    continue;
+                
+                var voxelPos = new Vector3Int(x, y, z);
                 var existingVoxel = voxelArray[index];
 
                 if (voxelEdit.density == existingVoxel.Density &&
@@ -79,10 +134,6 @@ namespace Spellbound.MarchingCubes {
                     continue;
 
                 voxelArray[index] = new VoxelData(voxelEdit.density, voxelEdit.MaterialType);
-
-                McStaticHelper.IndexToInt3(index, config.ChunkDataAreaSize, config.ChunkDataWidthSize, out var x,
-                    out var y, out var z);
-                var voxelPos = new Vector3Int(x, y, z);
 
                 if (!hasEdits) {
                     editBounds = new BoundsInt(voxelPos, Vector3Int.one);
