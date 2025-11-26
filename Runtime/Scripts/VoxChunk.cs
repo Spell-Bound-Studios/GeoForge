@@ -2,9 +2,9 @@
 
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using Spellbound.Core;
 using Unity.Collections;
+using Unity.Jobs;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
@@ -18,9 +18,7 @@ namespace Spellbound.MarchingCubes {
         private MarchingCubesManager _mcManager;
         private IVolume _chunkManager;
         private MonoBehaviour _owner;
-        private Dictionary<int, VoxelData> _xOverrides = new();
-        private Dictionary<int, VoxelData> _yOverrides = new();
-        private Dictionary<int, VoxelData> _zOverrides = new ();
+        private VoxelOverrides _voxelOverrides;
 
         public Vector3Int ChunkCoord => _chunkCoord;
         public DensityRange DensityRange => _densityRange;
@@ -31,6 +29,7 @@ namespace Spellbound.MarchingCubes {
         public VoxChunk(MonoBehaviour owner) {
             _owner = owner;
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
+            _voxelOverrides = new VoxelOverrides();
         }
 
         public void SetCoordAndFields(Vector3Int coord) {
@@ -42,47 +41,48 @@ namespace Spellbound.MarchingCubes {
             _owner.gameObject.name = coord.ToString();
         }
 
-        public void SetOverrides(Dictionary<(BoundaryOverrides.Axis, int), VoxelData> voxelOverrides) {
-            foreach (var kvp in voxelOverrides) {
-                switch (kvp.Key.Item1) {
-                    case BoundaryOverrides.Axis.X:
-                        _xOverrides.Add(kvp.Key.Item2, kvp.Value);
-                        break;
-                    case BoundaryOverrides.Axis.Y:
-                        _yOverrides.Add(kvp.Key.Item2, kvp.Value);
-                        break;
-                    case BoundaryOverrides.Axis.Z:
-                        _zOverrides.Add(kvp.Key.Item2, kvp.Value);
-                        break;
-                }
-            }
+        public void SetOverrides(IEnumerable<(Axis axis, int slice, VoxelData voxel)> overrides) {
+            foreach (var (axis, slice, voxel) in overrides) _voxelOverrides.AddOverride(axis, slice, voxel);
         }
 
         private void ValidateVoxels() {
+            if (_voxelOverrides == null || !_voxelOverrides.HasAnyOverrides) return;
+
             ref var config = ref _mcManager.McConfigBlob.Value;
             var voxelArray = GetVoxelDataArray();
-            var hasOverridenVoxels = false;
-            for (var i = 0; i < voxelArray.Length; i++) {
-                McStaticHelper.IndexToInt3(i, config.ChunkDataAreaSize, config.ChunkDataWidthSize, out var x,
-                    out var y, out var z);
-                VoxelData overrideVoxel;
-                if (_yOverrides.TryGetValue(y, out overrideVoxel)) {
-                    voxelArray[i] = overrideVoxel;
-                    hasOverridenVoxels = true;
-                }
-                else if (_xOverrides.TryGetValue(x, out overrideVoxel)) {
-                    voxelArray[i] = overrideVoxel;
-                    hasOverridenVoxels = true;
-                }
-                else if (_zOverrides.TryGetValue(z, out overrideVoxel)) {
-                    voxelArray[i] = overrideVoxel;
-                    hasOverridenVoxels = true;
-                }
-                
-            }
-            if (hasOverridenVoxels)
-                _mcManager.PackVoxelArray();
-                
+
+            _voxelOverrides.CopyToNativeHashMaps(
+                out var xOverrides,
+                out var yOverrides,
+                out var zOverrides,
+                Allocator.TempJob
+            );
+
+            var hasOverridesArray = new NativeArray<int>(1, Allocator.TempJob);
+            hasOverridesArray[0] = 0;
+
+            var job = new ApplyBoundaryOverridesJob {
+                voxelArray = voxelArray,
+                xOverrides = xOverrides,
+                yOverrides = yOverrides,
+                zOverrides = zOverrides,
+                chunkDataAreaSize = config.ChunkDataAreaSize,
+                chunkDataWidthSize = config.ChunkDataWidthSize,
+                hasOverrides = hasOverridesArray
+            };
+
+            var jobHandle = job.Schedule(voxelArray.Length, 64);
+            jobHandle.Complete();
+
+            var hasOverriddenVoxels = hasOverridesArray[0] == 1;
+
+            xOverrides.Dispose();
+            yOverrides.Dispose();
+            zOverrides.Dispose();
+            hasOverridesArray.Dispose();
+
+            if (hasOverriddenVoxels) _mcManager.PackVoxelArray();
+
             _mcManager.ReleaseVoxelArray();
         }
 
@@ -121,11 +121,12 @@ namespace Spellbound.MarchingCubes {
 
             foreach (var voxelEdit in voxelEdits) {
                 var index = voxelEdit.index;
+
                 McStaticHelper.IndexToInt3(index, config.ChunkDataAreaSize, config.ChunkDataWidthSize, out var x,
                     out var y, out var z);
-                if (_xOverrides.ContainsKey(x) || _yOverrides.ContainsKey(y) || _zOverrides.ContainsKey(z)) 
-                    continue;
-                
+
+                if (_voxelOverrides.HasOverride(x, y, z)) continue;
+
                 var voxelPos = new Vector3Int(x, y, z);
                 var existingVoxel = voxelArray[index];
 
@@ -148,7 +149,10 @@ namespace Spellbound.MarchingCubes {
                 DensityRange.Encapsulate(voxelEdit.density);
             }
 
-            if (hasEdits) _mcManager.PackVoxelArray();
+            if (hasEdits)
+                _mcManager.PackVoxelArray();
+
+            _mcManager.ReleaseVoxelArray();
 
             return hasEdits;
         }

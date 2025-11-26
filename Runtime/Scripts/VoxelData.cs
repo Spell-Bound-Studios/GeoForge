@@ -9,7 +9,7 @@ namespace Spellbound.MarchingCubes {
     /// a volume in the game world with a material and density.
     /// This doesn't get sent on the network or saved.
     /// </summary>
-    [System.Serializable]
+    [Serializable]
     public struct VoxelData : IEquatable<VoxelData> {
         public byte Density;
         public MaterialType MaterialType;

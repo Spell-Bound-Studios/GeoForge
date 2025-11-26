@@ -2,6 +2,7 @@
 
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Spellbound.Core;
 using Unity.Collections;
 using UnityEngine;
@@ -14,8 +15,8 @@ namespace Spellbound.MarchingCubes {
 
         private NativeList<SparseVoxelData> _data;
         private VoxVolume _voxVolume;
-        
-        [SerializeField] private List<BoundaryOverrides> _boundaryConditions;
+
+        [SerializeField] private BoundaryOverrides _boundaryOverrides;
 
         public VoxVolume VoxelVolume => _voxVolume;
 
@@ -39,6 +40,7 @@ namespace Spellbound.MarchingCubes {
 
                 return;
             }
+
             ref var config = ref mcManager.McConfigBlob.Value;
             GenerateSimpleData();
             StartCoroutine(Initialize(config.ChunkSize));
@@ -69,7 +71,6 @@ namespace Spellbound.MarchingCubes {
 
             _data = new NativeList<SparseVoxelData>(Allocator.Persistent);
             _data.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, MaterialType.Sand), 0));
-            //_data.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, MaterialType.Dirt), halfChunk * config.ChunkSize));
         }
 
         public IEnumerator Initialize(int chunkSize) {
@@ -85,46 +86,75 @@ namespace Spellbound.MarchingCubes {
                         var chunkCoord = new Vector3Int(x, y, z) - offset;
                         var chunk = VoxelVolume.RegisterChunk(chunkCoord);
 
-                        var chunkBoundaryOverrides = new Dictionary<(BoundaryOverrides.Axis, int), VoxelData>();
-                        foreach (var boundaryCondition in _boundaryConditions) {
-                            if (boundaryCondition.axis == BoundaryOverrides.Axis.X) {
-                                if (x == 0 && boundaryCondition.boundaryDirection ==
-                                    BoundaryOverrides.BoundaryDirection.Min) {
-                                    chunkBoundaryOverrides[(boundaryCondition.axis, 1)] = boundaryCondition.VoxelData;
-                                }
-                                else if (x == volumeSizeInChunks.x - 1 && boundaryCondition.boundaryDirection ==
-                                         BoundaryOverrides.BoundaryDirection.Max) {
-                                    chunkBoundaryOverrides[(boundaryCondition.axis, chunkSize + 1)] = boundaryCondition.VoxelData;
-                                }
-                            }
-                            if (boundaryCondition.axis == BoundaryOverrides.Axis.Y) {
-                                if (y == 0 && boundaryCondition.boundaryDirection ==
-                                    BoundaryOverrides.BoundaryDirection.Min) {
-                                    chunkBoundaryOverrides[(boundaryCondition.axis, 1)] = boundaryCondition.VoxelData;
-                                }
-                                else if (y == volumeSizeInChunks.y - 1 && boundaryCondition.boundaryDirection ==
-                                         BoundaryOverrides.BoundaryDirection.Max) {
-                                    chunkBoundaryOverrides[(boundaryCondition.axis, chunkSize + 1)] = boundaryCondition.VoxelData;
-                                }
-                            }
-                            if (boundaryCondition.axis == BoundaryOverrides.Axis.Z) {
-                                if (z == 0 && boundaryCondition.boundaryDirection ==
-                                    BoundaryOverrides.BoundaryDirection.Min) {
-                                    chunkBoundaryOverrides[(boundaryCondition.axis, 1)] = boundaryCondition.VoxelData;
-                                }
-                                else if (z == volumeSizeInChunks.z - 1 && boundaryCondition.boundaryDirection ==
-                                         BoundaryOverrides.BoundaryDirection.Max) {
-                                    chunkBoundaryOverrides[(boundaryCondition.axis, chunkSize + 1)] = boundaryCondition.VoxelData;
-                                }
-                            }
-                        }
-                        chunk.VoxelChunk.SetOverrides(chunkBoundaryOverrides);
+                        var chunkOverrides = BuildChunkOverrides(x, y, z, chunkSize);
+
+                        var tupleSeq = chunkOverrides.Select(kv => (kv.Key.Item1, kv.Key.Item2, kv.Value)
+                        );
+
+                        if (chunkOverrides.Count > 0) chunk.VoxelChunk.SetOverrides(tupleSeq);
+
                         chunk.InitializeChunk(_data);
 
                         yield return null;
                     }
                 }
             }
+        }
+
+        private Dictionary<(Axis, int), VoxelData> BuildChunkOverrides(
+            int x, int y, int z, int chunkSize) {
+            var overrides = new Dictionary<(Axis, int), VoxelData>();
+
+            var slices = new List<int>();
+
+            foreach (var boundary in _boundaryOverrides.GetBoundaryOverrides()) {
+                slices.Clear();
+
+                switch (boundary.Axis) {
+                    case Axis.X:
+                        if (x == 0 && boundary.Side == Side.Min) {
+                            slices.Add(0);
+                            slices.Add(1);
+                        }
+
+                        else if (x == volumeSizeInChunks.x - 1 && boundary.Side == Side.Max) {
+                            slices.Add(chunkSize + 1);
+                            slices.Add(chunkSize + 2);
+                        }
+
+                        break;
+
+                    case Axis.Y:
+                        if (y == 0 && boundary.Side == Side.Min) {
+                            slices.Add(0);
+                            slices.Add(1);
+                        }
+
+                        else if (y == volumeSizeInChunks.y - 1 && boundary.Side == Side.Max) {
+                            slices.Add(chunkSize + 1);
+                            slices.Add(chunkSize + 2);
+                        }
+
+                        break;
+
+                    case Axis.Z:
+                        if (z == 0 && boundary.Side == Side.Min) {
+                            slices.Add(0);
+                            slices.Add(1);
+                        }
+
+                        else if (z == volumeSizeInChunks.z - 1 && boundary.Side == Side.Max) {
+                            slices.Add(chunkSize + 1);
+                            slices.Add(chunkSize + 2);
+                        }
+
+                        break;
+                }
+
+                foreach (var slice in slices) overrides[(boundary.Axis, slice)] = boundary.VoxelData;
+            }
+
+            return overrides;
         }
     }
 }
