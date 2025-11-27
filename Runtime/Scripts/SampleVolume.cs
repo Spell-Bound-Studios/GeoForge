@@ -51,9 +51,6 @@ namespace Spellbound.MarchingCubes {
         private void OnDestroy() {
             if (_data.IsCreated)
                 _data.Dispose();
-
-            if (SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager))
-                mcManager.UnregisterVoxelVolume(this);
         }
 
         private void Update() => VoxelVolume.UpdateVolumeOrigin();

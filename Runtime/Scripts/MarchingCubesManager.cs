@@ -45,7 +45,6 @@ namespace Spellbound.MarchingCubes {
 
             McChunkInterpolationBlob =
                     McChunkInterpolationBlobCreator.CreateMcChunkInterpolationBlobAsset(_terrainConfig);
-            AllocateArrays(McConfigBlob.Value.ChunkDataVolumeSize);
             _objectPoolParent = new GameObject("OctreeLeafPool").transform;
             _objectPoolParent.SetParent(transform);
             InitializeSharedIndicesLookup();
@@ -66,13 +65,20 @@ namespace Spellbound.MarchingCubes {
                 McChunkInterpolationBlob.Dispose();
 
             ClearPool();
-            DisposeArrays();
+
+            foreach (var kvp in _denseVoxelDataDict) {
+                kvp.Value.Dispose();    
+            }
         }
 
-        public void RegisterVoxelVolume(IVolume volume, int dataSize) => _voxelVolumes.Add(volume);
+        public void RegisterVoxelVolume(IVolume volume, int dataSize) {
+            _voxelVolumes.Add(volume);
 
-        public void UnregisterVoxelVolume(IVolume volume) => _voxelVolumes.Remove(volume);
-
+            if (!_denseVoxelDataDict.ContainsKey(dataSize)) { 
+                _denseVoxelDataDict.Add(dataSize, new DenseVoxelData(dataSize));
+            }
+        } 
+        
         public GameObject GetPooledObject(Transform parent) {
             GameObject go;
 

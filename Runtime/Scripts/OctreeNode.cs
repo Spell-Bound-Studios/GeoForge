@@ -131,8 +131,10 @@ namespace Spellbound.MarchingCubes {
         public void ValidateOctreeLods(Vector3 playerPosition, NativeArray<VoxelData> voxelArray) {
             var targetLod = GetLodRange(Center, playerPosition);
 
-            if (_chunk.DensityRange.IsSkippable())
+            if (_chunk.DensityRange.IsSkippable()) {
                 return;
+            }
+                
 
             if (_lod <= targetLod) {
                 if (_leafGo == null)

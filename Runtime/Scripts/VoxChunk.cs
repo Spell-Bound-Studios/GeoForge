@@ -81,9 +81,9 @@ namespace Spellbound.MarchingCubes {
             zOverrides.Dispose();
             hasOverridesArray.Dispose();
 
-            if (hasOverriddenVoxels) _mcManager.PackVoxelArray();
+            if (hasOverriddenVoxels) _mcManager.PackVoxelArray(config.ChunkDataVolumeSize);
 
-            _mcManager.ReleaseVoxelArray();
+            _mcManager.ReleaseVoxelArray(config.ChunkDataVolumeSize);
         }
 
         public void InitializeVoxels(NativeList<SparseVoxelData> voxels) {
@@ -99,7 +99,7 @@ namespace Spellbound.MarchingCubes {
 
                 return;
             }
-
+            
             _sparseVoxels = new NativeList<SparseVoxelData>(voxels.Length, Allocator.Persistent);
             _sparseVoxels.AddRange(voxels.AsArray());
             ValidateVoxels();
@@ -150,9 +150,9 @@ namespace Spellbound.MarchingCubes {
             }
 
             if (hasEdits)
-                _mcManager.PackVoxelArray();
+                _mcManager.PackVoxelArray(config.ChunkDataVolumeSize);
 
-            _mcManager.ReleaseVoxelArray();
+            _mcManager.ReleaseVoxelArray(config.ChunkDataVolumeSize);
 
             return hasEdits;
         }
@@ -160,7 +160,7 @@ namespace Spellbound.MarchingCubes {
         public void OnVolumeMovement() => RootNode?.ValidateMaterial();
 
         public NativeArray<VoxelData> GetVoxelDataArray() =>
-                _mcManager.GetOrUnpackVoxelArray(_chunkCoord, this, _sparseVoxels);
+                _mcManager.GetOrUnpackVoxelArray(_mcManager.McConfigBlob.Value.ChunkDataVolumeSize, _chunkCoord, this, _sparseVoxels);
 
         public void UpdateVoxelData(NativeList<SparseVoxelData> voxels, DensityRange densityRange) {
             if (!_sparseVoxels.IsCreated)
@@ -222,17 +222,18 @@ namespace Spellbound.MarchingCubes {
 
             _rootNode?.ValidateOctreeEdits(bounds, GetVoxelDataArray());
             _mcManager.CompleteAndApplyMarchingCubesJobs();
-            _mcManager.ReleaseVoxelArray();
+            _mcManager.ReleaseVoxelArray(_mcManager.McConfigBlob.Value.ChunkDataVolumeSize);
         }
 
         public void ValidateOctreeLods(Vector3 playerPosition) {
             if (!_sparseVoxels.IsCreated)
                 return;
+            
 
             var playerPositionChunkSpace = playerPosition - _bounds.min;
             _rootNode.ValidateOctreeLods(playerPositionChunkSpace, GetVoxelDataArray());
             _mcManager.CompleteAndApplyMarchingCubesJobs();
-            _mcManager.ReleaseVoxelArray();
+            _mcManager.ReleaseVoxelArray(_mcManager.McConfigBlob.Value.ChunkDataVolumeSize);
         }
 
         public void Dispose() {
