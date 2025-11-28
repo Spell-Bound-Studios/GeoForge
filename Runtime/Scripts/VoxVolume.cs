@@ -13,9 +13,57 @@ namespace Spellbound.MarchingCubes {
         private Dictionary<Vector3Int, IChunk> _chunkDict = new();
         private GameObject _chunkPrefab;
         private Transform _lodTarget;
+        private bool _isPrimaryTerrain = false;
+        private BoundsInt _bounds;
 
         public Transform Transform => _owner.transform;
         public Dictionary<Vector3Int, IChunk> ChunkDict => _chunkDict;
+        
+        public bool IsPrimaryTerrain {
+            get => _isPrimaryTerrain;
+            set => _isPrimaryTerrain = value;
+        }
+        
+        public BoundsInt Bounds {
+            get => _bounds;
+            set => _bounds = value;
+        }
+
+        public bool IntersectsVolume(Bounds worldBounds) {
+            if (IsPrimaryTerrain)
+                return true;
+            
+            float resolution = _mcManager.McConfigBlob.Value.Resolution;
+    
+            // Convert the 8 corners of the world bounds into local voxel space
+            Vector3[] worldCorners = new Vector3[8];
+            worldCorners[0] = worldBounds.min;
+            worldCorners[1] = new Vector3(worldBounds.min.x, worldBounds.min.y, worldBounds.max.z);
+            worldCorners[2] = new Vector3(worldBounds.min.x, worldBounds.max.y, worldBounds.min.z);
+            worldCorners[3] = new Vector3(worldBounds.min.x, worldBounds.max.y, worldBounds.max.z);
+            worldCorners[4] = new Vector3(worldBounds.max.x, worldBounds.min.y, worldBounds.min.z);
+            worldCorners[5] = new Vector3(worldBounds.max.x, worldBounds.min.y, worldBounds.max.z);
+            worldCorners[6] = new Vector3(worldBounds.max.x, worldBounds.max.y, worldBounds.min.z);
+            worldCorners[7] = worldBounds.max;
+    
+            // Transform all corners to local voxel space
+            Vector3 localMin = Vector3.positiveInfinity;
+            Vector3 localMax = Vector3.negativeInfinity;
+    
+            for (int i = 0; i < 8; i++) {
+                Vector3 localCorner = Transform.InverseTransformPoint(worldCorners[i]) / resolution;
+                localMin = Vector3.Min(localMin, localCorner);
+                localMax = Vector3.Max(localMax, localCorner);
+            }
+    
+            // Create bounds in local voxel space
+            Bounds localWorldBounds = new Bounds();
+            localWorldBounds.SetMinMax(localMin, localMax);
+    
+            // Check intersection with volume bounds
+            Bounds volumeBounds = new Bounds(_bounds.center, _bounds.size);
+            return volumeBounds.Intersects(localWorldBounds);
+        }
 
         public VoxVolume(MonoBehaviour owner, GameObject chunkPrefab) {
             _owner = owner;

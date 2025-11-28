@@ -149,19 +149,22 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void ExecuteTerraform(
-            Func<IVolume, List<RawVoxelEdit>> terraformAction,
+            Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction,
             HashSet<byte> removableMatTypes = null,
             IVolume targetVolume = null) {
+    
             if (targetVolume != null) {
-                var edits = terraformAction(targetVolume);
-                DistributeVoxelEdits(targetVolume, edits, removableMatTypes);
-
+                var result = terraformAction(targetVolume);
+                DistributeVoxelEdits(targetVolume, result.edits, removableMatTypes);
                 return;
             }
 
             foreach (var voxelVolume in _voxelVolumes) {
-                var edits = terraformAction(voxelVolume);
-                DistributeVoxelEdits(voxelVolume, edits, removableMatTypes);
+                var result = terraformAction(voxelVolume);
+                if (!voxelVolume.VoxelVolume.IntersectsVolume(result.bounds)) 
+                    continue;
+                
+                DistributeVoxelEdits(voxelVolume, result.edits, removableMatTypes);
             }
         }
 
@@ -238,6 +241,8 @@ namespace Spellbound.MarchingCubes {
 
         public VoxelData QueryVoxel(Vector3 position) {
             foreach (var voxelVolume in _voxelVolumes) {
+                if (!voxelVolume.VoxelVolume.IsPrimaryTerrain)
+                    continue;
                 var chunk = voxelVolume.VoxelVolume.GetChunkByWorldPosition(position);
 
                 if (chunk == null)

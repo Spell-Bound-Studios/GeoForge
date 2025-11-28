@@ -13,7 +13,6 @@ namespace Spellbound.MarchingCubes {
 
         public NativeArray<VoxelData> GetOrUnpackVoxelArray(
             int dataSizeKey,
-            Vector3Int coord,
             VoxChunk chunk,
             NativeList<SparseVoxelData> sparseData) {
             if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var denseVoxelData)) {
@@ -23,20 +22,20 @@ namespace Spellbound.MarchingCubes {
                 return new DenseVoxelData().DenseVoxelArray;
             }
             if (denseVoxelData.IsArrayInUse) {
-                if (denseVoxelData.CurrentCoord.HasValue && denseVoxelData.CurrentCoord.Value != coord) {
+                if (chunk != denseVoxelData.CurrentChunk) {
                     Debug.LogError(
-                        $"GetOrUnpackVoxelArray - Trying to unpack voxel array for {coord} while another unpacked voxel array for {denseVoxelData.CurrentCoord.Value} is in use");
+                        $"GetOrUnpackVoxelArray - Trying to unpack voxel array while another unpacked voxel array  is in use");
 
                     return denseVoxelData.DenseVoxelArray;
                 }
 
                 Debug.LogError(
-                    $"GetOrUnpackVoxelArray - Trying to unpack voxel array for {coord} but array is in use for the same coord. This is unexpected and bad.");
+                    $"GetOrUnpackVoxelArray - Trying to unpack voxel array but array is in use for the same chunk. This is unexpected and bad.");
 
                 return denseVoxelData.DenseVoxelArray;
             }
 
-            if (denseVoxelData.CurrentCoord.HasValue && denseVoxelData.CurrentCoord.Value == coord && chunk == denseVoxelData.CurrentChunk) {
+            if (chunk == denseVoxelData.CurrentChunk) {
                 // ConsoleLogger.PrintToConsole($"GetOrUnpackVoxelArray - No need to unpack. Getting voxel array for {coord}, sparseVoxels length is {sparseData.Length}.");
                 denseVoxelData.IsArrayInUse = true;
 
@@ -45,7 +44,6 @@ namespace Spellbound.MarchingCubes {
 
             // ConsoleLogger.PrintToConsole($"GetOrUnpackVoxelArray - Unpacking voxel array for {coord}, sparseVoxels length is {sparseData.Length}");
             denseVoxelData.IsArrayInUse = true;
-            denseVoxelData.CurrentCoord = coord;
             denseVoxelData.CurrentChunk = chunk;
 
             denseVoxelData.DensityRange[0] = new DensityRange(byte.MaxValue, byte.MinValue, McConfigBlob.Value.DensityThreshold);
@@ -67,12 +65,7 @@ namespace Spellbound.MarchingCubes {
                 Debug.LogError(
                     $"MarchingCubes Manager does not have a denseVoxelData Array of this size");
             }
-            if (!denseVoxelData.CurrentCoord.HasValue) {
-                Debug.LogError(
-                    $"PackVoxelArray - Trying to pack but CurrentCoord is null");
 
-                return;
-            }
             if (denseVoxelData.CurrentChunk == null) {
                 Debug.LogError(
                     $"PackVoxelArray - Trying to pack but CurrentChunk is null");
@@ -114,14 +107,12 @@ namespace Spellbound.MarchingCubes {
         public class DenseVoxelData : IDisposable {
             public NativeArray<VoxelData> DenseVoxelArray;
             public NativeArray<DensityRange> DensityRange;
-            public Vector3Int? CurrentCoord;
             public bool IsArrayInUse;
             public VoxChunk CurrentChunk;
             
-            public DenseVoxelData(int voxelCount, Vector3Int? coord = null, VoxChunk currentChunk = null, Allocator allocator = Allocator.Persistent) {
+            public DenseVoxelData(int voxelCount, VoxChunk currentChunk = null, Allocator allocator = Allocator.Persistent) {
                 DenseVoxelArray = new NativeArray<VoxelData>(voxelCount, allocator);
                 DensityRange = new NativeArray<DensityRange>(1, allocator);
-                CurrentCoord = null;
                 IsArrayInUse = false;
                 CurrentChunk = null;
             }
@@ -129,7 +120,6 @@ namespace Spellbound.MarchingCubes {
             public DenseVoxelData() {
                 DenseVoxelArray = default;
                 DensityRange = default;
-                CurrentCoord = null;
                 IsArrayInUse = false;
                 CurrentChunk = null;
             }

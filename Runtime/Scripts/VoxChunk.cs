@@ -160,7 +160,7 @@ namespace Spellbound.MarchingCubes {
         public void OnVolumeMovement() => RootNode?.ValidateMaterial();
 
         public NativeArray<VoxelData> GetVoxelDataArray() =>
-                _mcManager.GetOrUnpackVoxelArray(_mcManager.McConfigBlob.Value.ChunkDataVolumeSize, _chunkCoord, this, _sparseVoxels);
+                _mcManager.GetOrUnpackVoxelArray(_mcManager.McConfigBlob.Value.ChunkDataVolumeSize, this, _sparseVoxels);
 
         public void UpdateVoxelData(NativeList<SparseVoxelData> voxels, DensityRange densityRange) {
             if (!_sparseVoxels.IsCreated)

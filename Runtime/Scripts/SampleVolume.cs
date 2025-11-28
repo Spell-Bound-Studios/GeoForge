@@ -31,6 +31,9 @@ namespace Spellbound.MarchingCubes {
                 return;
             }
 
+            var bounds = CalculateVolumeBounds();
+            Debug.Log($"volume bounds is {bounds}");
+            VoxelVolume.Bounds = bounds;
             ManageVolume();
         }
 
@@ -156,6 +159,45 @@ namespace Spellbound.MarchingCubes {
             }
 
             return overrides;
+        }
+        
+        private BoundsInt CalculateVolumeBounds() {
+            if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
+                Debug.LogError("MarchingCubesManager not found");
+                return new BoundsInt();
+            }
+
+            ref var config = ref mcManager.McConfigBlob.Value;
+    
+            // Calculate total size in voxels
+            Vector3Int sizeInVoxels = new Vector3Int(
+                volumeSizeInChunks.x * config.ChunkSize,
+                volumeSizeInChunks.y * config.ChunkSize,
+                volumeSizeInChunks.z * config.ChunkSize
+            );
+    
+            // Calculate center offset (since chunks are centered around origin)
+            Vector3Int offset = new Vector3Int(
+                volumeSizeInChunks.x / 2,
+                volumeSizeInChunks.y / 2,
+                volumeSizeInChunks.z / 2
+            );
+    
+            Vector3Int centerInVoxels = new Vector3Int(
+                -offset.x * config.ChunkSize + sizeInVoxels.x / 2,
+                -offset.y * config.ChunkSize + sizeInVoxels.y / 2,
+                -offset.z * config.ChunkSize + sizeInVoxels.z / 2
+            );
+    
+            // Create bounds centered at the calculated center
+            return new BoundsInt(
+                centerInVoxels.x - sizeInVoxels.x / 2,
+                centerInVoxels.y - sizeInVoxels.y / 2,
+                centerInVoxels.z - sizeInVoxels.z / 2,
+                sizeInVoxels.x,
+                sizeInVoxels.y,
+                sizeInVoxels.z
+            );
         }
     }
 }

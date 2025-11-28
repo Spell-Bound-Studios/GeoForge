@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
     public static class TerraformCommands {
-        public static Func<IVolume, List<RawVoxelEdit>> RemoveSphere(
+        public static Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> RemoveSphere(
             Vector3 worldPosition,
             float radius,
             int delta) =>
@@ -63,10 +63,13 @@ namespace Spellbound.MarchingCubes {
                         }
                     }
 
-                    return rawVoxelEdits;
+                    // Create bounds in world space centered on the world position
+                    var worldBounds = new Bounds(worldPosition, Vector3.one * radius * 2f);
+
+                    return (rawVoxelEdits, worldBounds);
                 };
 
-        public static Func<IVolume, List<RawVoxelEdit>> AddSphere(
+        public static Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> AddSphere(
             Vector3 worldPosition,
             byte addedMaterial,
             float radius,
@@ -121,7 +124,10 @@ namespace Spellbound.MarchingCubes {
                         }
                     }
 
-                    return rawVoxelEdits;
+                    // Create bounds in world space centered on the world position
+                    var worldBounds = new Bounds(worldPosition, Vector3.one * radius * 2f);
+
+                    return (rawVoxelEdits, worldBounds);
                 };
     }
 }
