@@ -89,17 +89,20 @@ namespace Spellbound.MarchingCubes {
                 _zOverrides?.Count ?? 0, allocator);
 
             // Copy data if dictionaries exist
-            if (_xOverrides != null)
+            if (_xOverrides != null) {
                 foreach (var kvp in _xOverrides)
                     xOverrides.Add(kvp.Key, kvp.Value);
+            }
 
-            if (_yOverrides != null)
+            if (_yOverrides != null) {
                 foreach (var kvp in _yOverrides)
                     yOverrides.Add(kvp.Key, kvp.Value);
+            }
 
-            if (_zOverrides != null)
+            if (_zOverrides != null) {
                 foreach (var kvp in _zOverrides)
                     zOverrides.Add(kvp.Key, kvp.Value);
+            }
         }
     }
 }

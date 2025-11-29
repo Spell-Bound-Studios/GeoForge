@@ -14,7 +14,7 @@ namespace Spellbound.MarchingCubes {
     [BurstCompile]
     internal struct MarchingCubeJob : IJob {
         [ReadOnly] public BlobAssetReference<McTablesBlobAsset> TablesBlob;
-        [ReadOnly] public BlobAssetReference<McConfigBlobAsset> ConfigBlob;
+        [ReadOnly] public BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob;
 
         [NativeDisableParallelForRestriction, ReadOnly]
         public NativeArray<VoxelData> VoxelArray;
@@ -276,7 +276,7 @@ namespace Spellbound.MarchingCubes {
                                 normal = math.normalize(normal);
 
                                 // More efficient version without unsafe code
-                                var uniqueMaterials = new NativeList<MaterialType>(14, Allocator.Temp);
+                                var uniqueMaterials = new NativeList<byte>(14, Allocator.Temp);
                                 var materialWeights = new NativeList<float>(14, Allocator.Temp);
 
                                 var weight0 = 1f - t;
@@ -306,7 +306,7 @@ namespace Spellbound.MarchingCubes {
                                     // Skip voxels with zero density (air)
                                     if (voxel.Density == 0) continue;
 
-                                    var matIndex = voxel.MaterialType;
+                                    var matIndex = voxel.MaterialIndex;
                                     var baseWeight = v < 7 ? weight0 : t;
 
                                     // Weight by density (normalized to 0-1 range, assuming density is 0-255)
@@ -334,8 +334,8 @@ namespace Spellbound.MarchingCubes {
                                 voxelsToProcess.Dispose();
 
                                 // Find top 2 materials
-                                MaterialType matA = 0;
-                                MaterialType matB = 0;
+                                byte matA = 0;
+                                byte matB = 0;
                                 float matAWeight = 0;
                                 float matBWeight = 0;
 

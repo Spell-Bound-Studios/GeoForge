@@ -10,8 +10,8 @@ using UnityEngine;
 namespace Spellbound.MarchingCubes {
     public class SampleVolume : MonoBehaviour, IVolume {
         [SerializeField] private GameObject _chunkPrefab;
-
-        [SerializeField] private Vector3Int volumeSizeInChunks = new(3, 1, 3);
+        [SerializeField] private VoxelVolumeConfig _config;
+        [SerializeField] private Vector2[] _viewDistanceLodRanges;
 
         private NativeList<SparseVoxelData> _data;
         private VoxVolume _voxVolume;
@@ -19,18 +19,37 @@ namespace Spellbound.MarchingCubes {
         [SerializeField] private BoundaryOverrides _boundaryOverrides;
 
         public VoxVolume VoxelVolume => _voxVolume;
+        public VoxelVolumeConfig Config => _config;
+        public Vector2[] ViewDistanceLodRanges => _viewDistanceLodRanges;
 
-        private void Awake() => _voxVolume = new VoxVolume(this, _chunkPrefab);
+        public Transform LodTarget =>
+                Camera.main == null ? FindAnyObjectByType<Camera>().transform : Camera.main.transform;
+
+#if UNITY_EDITOR
+        private void OnValidate() {
+            if (_config == null) {
+                _viewDistanceLodRanges = null;
+
+                return;
+            }
+
+            _viewDistanceLodRanges = VoxVolume.ValidateLodRanges(_viewDistanceLodRanges, _config);
+        }
+#endif
+
+        private void Awake() => _voxVolume = new VoxVolume(this, this, _chunkPrefab);
 
         private void Start() {
             if (SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager))
-                mcManager.RegisterVoxelVolume(this, mcManager.McConfigBlob.Value.ChunkDataVolumeSize);
+                mcManager.RegisterVoxelVolume(this, VoxelVolume.ConfigBlob.Value.ChunkSize);
             else {
                 Debug.LogError("MarchingCubesManager is null.");
 
                 return;
             }
 
+            var bounds = CalculateVolumeBounds();
+            VoxelVolume.Bounds = bounds;
             ManageVolume();
         }
 
@@ -41,19 +60,15 @@ namespace Spellbound.MarchingCubes {
                 return;
             }
 
-            ref var config = ref mcManager.McConfigBlob.Value;
+            ref var config = ref VoxelVolume.ConfigBlob.Value;
             GenerateSimpleData();
             StartCoroutine(Initialize(config.ChunkSize));
-            VoxelVolume.SetLodTarget(Camera.main.transform);
             StartCoroutine(VoxelVolume.ValidateChunkLods());
         }
 
         private void OnDestroy() {
             if (_data.IsCreated)
                 _data.Dispose();
-
-            if (SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager))
-                mcManager.UnregisterVoxelVolume(this);
         }
 
         private void Update() => VoxelVolume.UpdateVolumeOrigin();
@@ -65,24 +80,27 @@ namespace Spellbound.MarchingCubes {
                 return;
             }
 
-            ref var config = ref mcManager.McConfigBlob.Value;
+            ref var config = ref VoxelVolume.ConfigBlob.Value;
 
-            var halfChunk = config.ChunkSize / 2;
+            var sandIndex = mcManager.materialDatabase.GetMaterialIndex("Sand");
 
             _data = new NativeList<SparseVoxelData>(Allocator.Persistent);
-            _data.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, MaterialType.Sand), 0));
+            _data.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, sandIndex), 0));
         }
 
         public IEnumerator Initialize(int chunkSize) {
+            var size = VoxelVolume.ConfigBlob.Value.SizeInChunks;
+            Debug.Log($" size in chunks: {size}");
+
             var offset = new Vector3Int(
-                volumeSizeInChunks.x / 2,
-                volumeSizeInChunks.y / 2,
-                volumeSizeInChunks.z / 2
+                size.x / 2,
+                size.y / 2,
+                size.z / 2
             );
 
-            for (var x = 0; x < volumeSizeInChunks.x; x++) {
-                for (var y = 0; y < volumeSizeInChunks.y; y++) {
-                    for (var z = 0; z < volumeSizeInChunks.z; z++) {
+            for (var x = 0; x < size.x; x++) {
+                for (var y = 0; y < size.y; y++) {
+                    for (var z = 0; z < size.z; z++) {
                         var chunkCoord = new Vector3Int(x, y, z) - offset;
                         var chunk = VoxelVolume.RegisterChunk(chunkCoord);
 
@@ -117,7 +135,7 @@ namespace Spellbound.MarchingCubes {
                             slices.Add(1);
                         }
 
-                        else if (x == volumeSizeInChunks.x - 1 && boundary.Side == Side.Max) {
+                        else if (x == _config.sizeInChunks.x - 1 && boundary.Side == Side.Max) {
                             slices.Add(chunkSize + 1);
                             slices.Add(chunkSize + 2);
                         }
@@ -130,7 +148,7 @@ namespace Spellbound.MarchingCubes {
                             slices.Add(1);
                         }
 
-                        else if (y == volumeSizeInChunks.y - 1 && boundary.Side == Side.Max) {
+                        else if (y == _config.sizeInChunks.y - 1 && boundary.Side == Side.Max) {
                             slices.Add(chunkSize + 1);
                             slices.Add(chunkSize + 2);
                         }
@@ -143,7 +161,7 @@ namespace Spellbound.MarchingCubes {
                             slices.Add(1);
                         }
 
-                        else if (z == volumeSizeInChunks.z - 1 && boundary.Side == Side.Max) {
+                        else if (z == _config.sizeInChunks.z - 1 && boundary.Side == Side.Max) {
                             slices.Add(chunkSize + 1);
                             slices.Add(chunkSize + 2);
                         }
@@ -155,6 +173,46 @@ namespace Spellbound.MarchingCubes {
             }
 
             return overrides;
+        }
+
+        private BoundsInt CalculateVolumeBounds() {
+            if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
+                Debug.LogError("MarchingCubesManager not found");
+
+                return new BoundsInt();
+            }
+
+            ref var config = ref VoxelVolume.ConfigBlob.Value;
+
+            // Calculate total size in voxels
+            var sizeInVoxels = new Vector3Int(
+                _config.sizeInChunks.x * config.ChunkSize,
+                _config.sizeInChunks.y * config.ChunkSize,
+                _config.sizeInChunks.z * config.ChunkSize
+            );
+
+            // Calculate center offset (since chunks are centered around origin)
+            var offset = new Vector3Int(
+                _config.sizeInChunks.x / 2,
+                _config.sizeInChunks.y / 2,
+                _config.sizeInChunks.z / 2
+            );
+
+            var centerInVoxels = new Vector3Int(
+                -offset.x * config.ChunkSize + sizeInVoxels.x / 2,
+                -offset.y * config.ChunkSize + sizeInVoxels.y / 2,
+                -offset.z * config.ChunkSize + sizeInVoxels.z / 2
+            );
+
+            // Create bounds centered at the calculated center
+            return new BoundsInt(
+                centerInVoxels.x - sizeInVoxels.x / 2,
+                centerInVoxels.y - sizeInVoxels.y / 2,
+                centerInVoxels.z - sizeInVoxels.z / 2,
+                sizeInVoxels.x,
+                sizeInVoxels.y,
+                sizeInVoxels.z
+            );
         }
     }
 }

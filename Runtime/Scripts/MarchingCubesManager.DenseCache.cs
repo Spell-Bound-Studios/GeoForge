@@ -1,5 +1,7 @@
 // Copyright 2025 Spellbound Studio Inc.
 
+using System;
+using System.Collections.Generic;
 using Spellbound.Core.Console;
 using Unity.Collections;
 using Unity.Jobs;
@@ -7,78 +9,82 @@ using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
     public partial class MarchingCubesManager : MonoBehaviour {
-        private NativeArray<VoxelData> _denseVoxelArray;
-        private NativeArray<DensityRange> _densityRange;
-        private Vector3Int? _currentCoord;
-        private bool _isArrayInUse;
-        private VoxChunk _currentChunk;
-
-        private void AllocateArrays(int arraySize) {
-            _denseVoxelArray = new NativeArray<VoxelData>(arraySize, Allocator.Persistent);
-            _densityRange = new NativeArray<DensityRange>(1, Allocator.Persistent);
-        }
+        private Dictionary<int, DenseVoxelData> _denseVoxelDataDict = new();
 
         public NativeArray<VoxelData> GetOrUnpackVoxelArray(
-            Vector3Int coord,
+            int dataSizeKey,
             VoxChunk chunk,
             NativeList<SparseVoxelData> sparseData) {
-            if (_isArrayInUse) {
-                if (_currentCoord.HasValue && _currentCoord.Value != coord) {
-                    ConsoleLogger.PrintError(
-                        $"GetOrUnpackVoxelArray - Trying to unpack voxel array for {coord} while another unpacked voxel array for {_currentCoord.Value} is in use");
+            if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var denseVoxelData)) {
+                Debug.LogError(
+                    $"MarchingCubes Manager does not have a denseVoxelData Array of this size");
 
-                    return _denseVoxelArray;
-                }
-
-                ConsoleLogger.PrintError(
-                    $"GetOrUnpackVoxelArray - Trying to unpack voxel array for {coord} but array is in use for the same coord. This is unexpected and bad.");
-
-                return _denseVoxelArray;
+                return new DenseVoxelData().DenseVoxelArray;
             }
 
-            if (_currentCoord.HasValue && _currentCoord.Value == coord && chunk == _currentChunk) {
-                // ConsoleLogger.PrintToConsole($"GetOrUnpackVoxelArray - No need to unpack. Getting voxel array for {coord}, sparseVoxels length is {sparseData.Length}.");
-                _isArrayInUse = true;
+            ref var config = ref chunk.ParentVolume.VoxelVolume.ConfigBlob.Value;
 
-                return _denseVoxelArray;
+            if (denseVoxelData.IsArrayInUse) {
+                if (chunk != denseVoxelData.CurrentChunk) {
+                    Debug.LogError(
+                        $"GetOrUnpackVoxelArray - Trying to unpack voxel array while another unpacked voxel array  is in use");
+
+                    return denseVoxelData.DenseVoxelArray;
+                }
+
+                Debug.LogError(
+                    $"GetOrUnpackVoxelArray - Trying to unpack voxel array but array is in use for the same chunk. This is unexpected and bad.");
+
+                return denseVoxelData.DenseVoxelArray;
+            }
+
+            if (chunk == denseVoxelData.CurrentChunk) {
+                // ConsoleLogger.PrintToConsole($"GetOrUnpackVoxelArray - No need to unpack. Getting voxel array for {coord}, sparseVoxels length is {sparseData.Length}.");
+                denseVoxelData.IsArrayInUse = true;
+
+                return denseVoxelData.DenseVoxelArray;
             }
 
             // ConsoleLogger.PrintToConsole($"GetOrUnpackVoxelArray - Unpacking voxel array for {coord}, sparseVoxels length is {sparseData.Length}");
-            _isArrayInUse = true;
-            _currentCoord = coord;
-            _currentChunk = chunk;
+            denseVoxelData.IsArrayInUse = true;
+            denseVoxelData.CurrentChunk = chunk;
 
-            _densityRange[0] = new DensityRange(byte.MaxValue, byte.MinValue, McConfigBlob.Value.DensityThreshold);
+            denseVoxelData.DensityRange[0] = new DensityRange(byte.MaxValue, byte.MinValue, config.DensityThreshold);
 
             var unpackJob = new SparseToDenseVoxelDataJob {
-                ConfigBlob = McConfigBlob,
-                Voxels = _denseVoxelArray,
+                ConfigBlob = chunk.ParentVolume.VoxelVolume.ConfigBlob,
+                Voxels = denseVoxelData.DenseVoxelArray,
                 SparseVoxels = sparseData,
-                DensityRange = _densityRange
+                DensityRange = denseVoxelData.DensityRange
             };
-            var jobHandle = unpackJob.Schedule(McConfigBlob.Value.ChunkDataWidthSize, 1);
+            var jobHandle = unpackJob.Schedule(config.ChunkDataWidthSize, 1);
             jobHandle.Complete();
 
-            return _denseVoxelArray;
+            return denseVoxelData.DenseVoxelArray;
         }
 
-        public void PackVoxelArray() {
-            if (!_currentCoord.HasValue || _currentChunk == null) {
-                ConsoleLogger.PrintError(
-                    $"PackVoxelArray - Trying to pack but chunk or coord is null");
+        public void PackVoxelArray(int dataSizeKey) {
+            if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var denseVoxelData)) {
+                Debug.LogError(
+                    $"MarchingCubes Manager does not have a denseVoxelData Array of this size");
+            }
+
+            if (denseVoxelData.CurrentChunk == null) {
+                Debug.LogError(
+                    $"PackVoxelArray - Trying to pack but CurrentChunk is null");
 
                 return;
             }
 
-            if (!_isArrayInUse) {
-                ConsoleLogger.PrintError(
+            if (!denseVoxelData.IsArrayInUse) {
+                Debug.LogError(
                     $"PackVoxelArray - Trying to pack but _isArrayInUse is false which is unexpected and bad");
             }
 
             var sparseData = new NativeList<SparseVoxelData>(Allocator.TempJob);
 
             var packJob = new DenseToSparseVoxelDataJob {
-                Voxels = _denseVoxelArray,
+                Voxels = denseVoxelData.DenseVoxelArray,
                 SparseVoxels = sparseData
             };
             var jobHandle = packJob.Schedule();
@@ -86,18 +92,102 @@ namespace Spellbound.MarchingCubes {
 
             // ConsoleLogger.PrintToConsole($"PackVoxelArray - Packing voxel array for {_currentCoord}, sparseVoxels length is {sparseData.Length}");
 
-            _currentChunk.UpdateVoxelData(sparseData, _densityRange[0]);
+            denseVoxelData.CurrentChunk.UpdateVoxelData(sparseData, denseVoxelData.DensityRange[0]);
             sparseData.Dispose();
         }
 
-        public void ReleaseVoxelArray() => _isArrayInUse = false;
+        public void ReleaseVoxelArray(int dataSizeKey) {
+            if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var denseVoxelData)) {
+                ConsoleLogger.PrintError(
+                    $"MarchingCubes Manager does not have a denseVoxelData Array of this size");
 
-        private void DisposeArrays() {
-            if (_denseVoxelArray.IsCreated)
-                _denseVoxelArray.Dispose();
+                return;
+            }
 
-            if (_densityRange.IsCreated)
-                _densityRange.Dispose();
+            denseVoxelData.IsArrayInUse = false;
+        }
+
+        public class DenseVoxelData : IDisposable {
+            public NativeArray<VoxelData> DenseVoxelArray;
+            public NativeArray<DensityRange> DensityRange;
+            public Dictionary<int, List<Vector3Int>> SharedIndicesAcrossChunks;
+            public bool IsArrayInUse;
+            public VoxChunk CurrentChunk;
+
+            public DenseVoxelData(
+                int chunkSize, VoxChunk currentChunk = null, Allocator allocator = Allocator.Persistent) {
+                var cs = chunkSize + 3;
+                DenseVoxelArray = new NativeArray<VoxelData>(cs * cs * cs, allocator);
+                DensityRange = new NativeArray<DensityRange>(1, allocator);
+                SharedIndicesAcrossChunks = InitializeSharedIndicesLookup(chunkSize);
+                IsArrayInUse = false;
+                CurrentChunk = null;
+            }
+
+            public DenseVoxelData() {
+                DenseVoxelArray = default;
+                DensityRange = default;
+                IsArrayInUse = false;
+                CurrentChunk = null;
+            }
+
+            private Dictionary<int, List<Vector3Int>> InitializeSharedIndicesLookup(int chunkSize) {
+                var sharedIndices = new Dictionary<int, List<Vector3Int>>();
+                var cs = chunkSize + 3;
+                List<Vector3Int> neighborCoords = new();
+
+                for (var dx = -1; dx <= 1; dx++) {
+                    for (var dy = -1; dy <= 1; dy++) {
+                        for (var dz = -1; dz <= 1; dz++) {
+                            var coordDelta = new Vector3Int(dx, dy, dz);
+
+                            if (coordDelta == Vector3Int.zero)
+                                continue;
+
+                            neighborCoords.Add(new Vector3Int(dx, dy, dz));
+                        }
+                    }
+                }
+
+                var chunkBounds = new BoundsInt(
+                    0,
+                    0,
+                    0,
+                    chunkSize + 3,
+                    chunkSize + 3,
+                    chunkSize + 3
+                );
+
+                for (var i = 0; i < cs * cs * cs; i++) {
+                    McStaticHelper.IndexToInt3(i, cs * cs, cs, out var x, out var y,
+                        out var z);
+                    var localPos = new Vector3Int(x, y, z);
+
+                    foreach (var coord in neighborCoords) {
+                        var localPosNeighbor = localPos - coord * chunkSize;
+
+                        if (!chunkBounds.Contains(localPosNeighbor))
+                            continue;
+
+                        if (!sharedIndices.TryGetValue(i, out var coordsSharingIndex)) {
+                            coordsSharingIndex = new List<Vector3Int>();
+                            sharedIndices[i] = coordsSharingIndex;
+                        }
+
+                        coordsSharingIndex.Add(coord);
+                    }
+                }
+
+                return sharedIndices;
+            }
+
+            public void Dispose() {
+                if (DenseVoxelArray.IsCreated)
+                    DenseVoxelArray.Dispose();
+
+                if (DensityRange.IsCreated)
+                    DensityRange.Dispose();
+            }
         }
     }
 }
