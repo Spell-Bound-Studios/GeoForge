@@ -36,18 +36,12 @@ namespace Spellbound.MarchingCubes {
         public event Action OctreeBatchTransitionUpdate;
 
         private void Awake() {
-            if (_terrainConfig == null) {
-                Debug.LogError("Marching Cubes TerrainConfig is null");
-
-                return;
-            }
-
             SingletonManager.RegisterSingleton(this);
             McTablesBlob = McTablesBlobCreator.CreateMcTablesBlobAsset();
             McConfigBlob = McConfigBlobCreator.CreateMcConfigBlobAsset(_terrainConfig);
 
             McChunkInterpolationBlob =
-                    McChunkInterpolationBlobCreator.CreateMcChunkInterpolationBlobAsset(_terrainConfig);
+                    McChunkInterpolationBlobCreator.CreateMcChunkInterpolationBlobAsset(128);
             _objectPoolParent = new GameObject("OctreeLeafPool").transform;
             _objectPoolParent.SetParent(transform);
             InitializeSharedIndicesLookup();
