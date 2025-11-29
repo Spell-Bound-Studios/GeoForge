@@ -182,7 +182,7 @@ namespace Spellbound.MarchingCubes {
             for (int i = 0; i < lodRanges.Length; i++) {
                 lodRanges[i].x = dist;
                 lodRanges[i].y = Mathf.Max(lodRanges[i].y, 
-                    lodRanges[i].x + 3 * (config.cubesPerMarch << i));
+                    lodRanges[i].x + 3 * config.resolution * (config.cubesPerMarch << i));
                 dist = lodRanges[i].y;
             }
     

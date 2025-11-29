@@ -129,7 +129,8 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void ValidateOctreeLods(Vector3 playerPosition, NativeArray<VoxelData> voxelArray) {
-            var targetLod = GetLodRange(Center, playerPosition);
+            
+            var targetLod = GetLodRange(Center, playerPosition, _parentVolume.VoxelVolume.ConfigBlob.Value.Resolution);
 
             if (_chunk.DensityRange.IsSkippable()) {
                 return;
@@ -200,8 +201,8 @@ namespace Spellbound.MarchingCubes {
             neighbor.UpdateTransitionMask(faceMask, true);
         }
 
-        private int GetLodRange(Vector3 octreePos, Vector3 playerPos) {
-            var distance = Vector3.Distance(octreePos, playerPos);
+        private int GetLodRange(Vector3 octreePos, Vector3 playerPos, float resolution) {
+            var distance = Vector3.Distance(octreePos, playerPos) * resolution;
             for (var i = 0; i < _parentVolume.ViewDistanceLodRanges.Length; i++) {
                 if (distance <= _parentVolume.ViewDistanceLodRanges[i].y)
                     return i;
