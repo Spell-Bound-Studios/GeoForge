@@ -12,22 +12,22 @@ namespace Spellbound.MarchingCubes {
     [Serializable]
     public struct VoxelData : IEquatable<VoxelData> {
         public byte Density;
-        public MaterialType MaterialType;
+        public byte MaterialIndex;
 
-        public VoxelData(byte density, MaterialType matIndex) {
+        public VoxelData(byte density, byte matIndex) {
             Density = density;
-            MaterialType = matIndex;
+            MaterialIndex = matIndex;
         }
 
         // Implement IEquatable<VoxelData>. This enables checking if structA == structB, etc.
-        public bool Equals(VoxelData other) => Density == other.Density && MaterialType == other.MaterialType;
+        public bool Equals(VoxelData other) => Density == other.Density && MaterialIndex == other.MaterialIndex;
 
         [BurstDiscard]
         public override bool Equals(object obj) => obj is VoxelData other && Equals(other);
 
         public override int GetHashCode() =>
                 // Combine hashes of fields; since these are bytes, simple mixing is enough
-                (Density.GetHashCode() * 397) ^ MaterialType.GetHashCode();
+                (Density.GetHashCode() * 397) ^ MaterialIndex.GetHashCode();
 
         public static bool operator ==(VoxelData left, VoxelData right) => left.Equals(right);
 

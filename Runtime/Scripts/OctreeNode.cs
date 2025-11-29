@@ -30,21 +30,20 @@ namespace Spellbound.MarchingCubes {
         private BoundsInt _boundsVoxel; // Chunk-local voxel space bounds
         private readonly VoxChunk _chunk;
         private readonly MarchingCubesManager _mcManager;
-        private readonly Transform _volumeOriginTransform;
+        private readonly IVolume _parentVolume;
 
         private Vector3 Center => (_boundsVoxel.min + _boundsVoxel.max - Vector3.one) * 0.5f;
 
         private bool IsLeaf => _children == null;
 
-        public OctreeNode(Vector3Int localPosition, int lod, VoxChunk chunk, Transform volumeOriginTransform) {
-            _volumeOriginTransform = volumeOriginTransform;
+        public OctreeNode(Vector3Int localPosition, int lod, VoxChunk chunk, IVolume parentVolume) {
+            _parentVolume = parentVolume;
             _localPosition = localPosition;
             _lod = lod;
             _chunk = chunk;
 
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
-            ref var config = ref _mcManager.McConfigBlob.Value;
-            var octreeSizeVoxels = 3 + (config.CubesMarchedPerOctreeLeaf << _lod);
+            var octreeSizeVoxels = 3 + (_parentVolume.VoxelVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod);
             _boundsVoxel = new BoundsInt(_localPosition, Vector3Int.one * octreeSizeVoxels);
         }
 
@@ -91,7 +90,7 @@ namespace Spellbound.MarchingCubes {
 
             _children = new OctreeNode[8];
             var childLod = _lod - 1;
-            var childSize = _mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf << childLod;
+            var childSize = _parentVolume.VoxelVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << childLod;
 
             for (var i = 0; i < 8; i++) {
                 var offset = new Vector3Int(
@@ -100,7 +99,7 @@ namespace Spellbound.MarchingCubes {
                     (i & 4) == 0 ? 0 : childSize
                 );
 
-                _children[i] = new OctreeNode(_localPosition + offset, childLod, _chunk, _volumeOriginTransform);
+                _children[i] = new OctreeNode(_localPosition + offset, childLod, _chunk, _parentVolume);
             }
         }
 
@@ -119,7 +118,7 @@ namespace Spellbound.MarchingCubes {
         private void SetMaterialOrigin() {
             var meshRenderer = _leafGo.GetComponent<MeshRenderer>();
             var materialPropertyBlock = new MaterialPropertyBlock();
-            materialPropertyBlock.SetMatrix("_WorldToLocal", _volumeOriginTransform.worldToLocalMatrix);
+            materialPropertyBlock.SetMatrix("_WorldToLocal", _parentVolume.VoxelVolume.Transform.worldToLocalMatrix);
             meshRenderer.SetPropertyBlock(materialPropertyBlock);
 
             if (_transitionGo != null) {
@@ -129,10 +128,9 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void ValidateOctreeLods(Vector3 playerPosition, NativeArray<VoxelData> voxelArray) {
-            var targetLod = GetLodRange(Center, playerPosition);
+            var targetLod = GetLodRange(Center, playerPosition, _parentVolume.VoxelVolume.ConfigBlob.Value.Resolution);
 
-            if (_chunk.DensityRange.IsSkippable())
-                return;
+            if (_chunk.DensityRange.IsSkippable()) return;
 
             if (_lod <= targetLod) {
                 if (_leafGo == null)
@@ -198,17 +196,23 @@ namespace Spellbound.MarchingCubes {
             neighbor.UpdateTransitionMask(faceMask, true);
         }
 
-        private int GetLodRange(Vector3 octreePos, Vector3 playerPos) {
-            var distance = Vector3.Distance(octreePos, playerPos);
-            var targetLod = McStaticHelper.GetLod(distance, _mcManager.McConfigBlob.Value.LodRanges.ToArray());
+        private int GetLodRange(Vector3 octreePos, Vector3 playerPos, float resolution) {
+            var distance = Vector3.Distance(octreePos, playerPos) * resolution;
 
-            return targetLod;
+            for (var i = 0; i < _parentVolume.ViewDistanceLodRanges.Length; i++) {
+                if (distance <= _parentVolume.ViewDistanceLodRanges[i].y)
+                    return i;
+            }
+
+            // If distance is beyond all ranges, return -1
+            // return - 1;
+            return _parentVolume.ViewDistanceLodRanges.Length - 1;
         }
 
         private void MarchAndMesh(NativeArray<VoxelData> voxelArray) {
             var marchingCubeJob = new MarchingCubeJob {
                 TablesBlob = _mcManager.McTablesBlob,
-                ConfigBlob = _mcManager.McConfigBlob,
+                ConfigBlob = _parentVolume.VoxelVolume.ConfigBlob,
                 VoxelArray = voxelArray,
 
                 Vertices = new NativeList<MeshingVertexData>(Allocator.Persistent),
@@ -224,7 +228,7 @@ namespace Spellbound.MarchingCubes {
             if (_lod != 0) {
                 var transitionMarchingCubeJob = new TransitionMarchingCubeJob {
                     TablesBlob = _mcManager.McTablesBlob,
-                    ConfigBlob = _mcManager.McConfigBlob,
+                    ConfigBlob = _parentVolume.VoxelVolume.ConfigBlob,
                     VoxelArray = voxelArray,
 
                     TransitionMeshingVertexData = new NativeList<MeshingVertexData>(Allocator.Persistent),
@@ -267,7 +271,7 @@ namespace Spellbound.MarchingCubes {
             _mesh = new Mesh();
             _leafGo.GetComponent<MeshFilter>().mesh = _mesh;
 
-            _leafGo.name = $"LeafSize {_mcManager.McConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod} " +
+            _leafGo.name = $"LeafSize {_parentVolume.VoxelVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod} " +
                            $"at {_localPosition.x}, {_localPosition.y}, {_localPosition.z}";
         }
 
