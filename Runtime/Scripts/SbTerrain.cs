@@ -21,8 +21,7 @@ namespace Spellbound.MarchingCubes {
         public static bool IsInsideTerrain(Vector3 position) {
             var mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
 
-            //TODO
-            return mcManager.QueryVoxel(position).Density >= 128;
+            return mcManager.QueryVoxel(position).Density >= mcManager.McConfigBlob.Value.DensityThreshold;
         }
 
         public static void RemoveSphere(Vector3 position) {
@@ -37,13 +36,13 @@ namespace Spellbound.MarchingCubes {
                 byte.MaxValue
             );
 
-            var diggableMaterials = new List<byte> { 0, 1, 2 };
+            var diggableMaterials = new List<MaterialType> { MaterialType.Dirt, MaterialType.Swamp, MaterialType.Ice };
             mcManager.ExecuteTerraform(terraformAction, diggableMaterials.ToHashSet());
         }
 
         public static void RemoveSphere(
             Vector3 position,
-            List<byte> diggableMaterialTypes,
+            List<MaterialType> diggableMaterialTypes,
             float radius,
             int delta) {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
@@ -72,7 +71,7 @@ namespace Spellbound.MarchingCubes {
                 delta
             );
 
-            var diggableMaterials = new List<byte> { 0, 1, 2, 3 };
+            var diggableMaterials = McStaticHelper.GetAllMaterialTypes().ToList();
             mcManager.ExecuteTerraform(terraformAction, diggableMaterials.ToHashSet());
         }
 
@@ -90,7 +89,7 @@ namespace Spellbound.MarchingCubes {
             }
 
             var terraformAction = TerraformCommands.AddSphere(position,
-                3,
+                MaterialType.Ice,
                 radius,
                 delta);
 

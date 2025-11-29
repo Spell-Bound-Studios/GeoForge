@@ -14,19 +14,19 @@ namespace Spellbound.MarchingCubes {
 
     public static class McChunkInterpolationBlobCreator {
         public static BlobAssetReference<McChunkInterpolationBlobAsset>
-                CreateMcChunkInterpolationBlobAsset(int chunkSize) {
+                CreateMcChunkInterpolationBlobAsset(TerrainConfig terrainConfig) {
             var builder = new BlobBuilder(Allocator.Temp);
             ref var chunkInterpolations = ref builder.ConstructRoot<McChunkInterpolationBlobAsset>();
 
             var weightArray = builder.Allocate(ref chunkInterpolations.ChunkCornerWeights,
-                (chunkSize + 3) * (chunkSize + 3));
+                (terrainConfig.chunkSize + 3) * (terrainConfig.chunkSize + 3));
 
             var innerMin = 1;
-            var innerMax = chunkSize + 1;
+            var innerMax = terrainConfig.chunkSize + 1;
             var innerSize = innerMax - innerMin;
 
             for (var i = 0; i < weightArray.Length; i++) {
-                McStaticHelper.IndexToInt2(i, chunkSize + 3, out var x, out var z);
+                McStaticHelper.IndexToInt2(i, terrainConfig.chunkSize + 3, out var x, out var z);
                 var weights = float4.zero;
 
                 // 🟩 CASE 1: Corners (exact match to CornerPositions)

@@ -14,7 +14,7 @@ namespace Spellbound.MarchingCubes {
             foreach (var bo in BoundaryOverridesList) {
                 var voxelData = new VoxelData {
                     Density = bo.boundaryType == BoundaryType.Closed ? byte.MaxValue : byte.MinValue,
-                    MaterialIndex = bo.materialType
+                    MaterialType = bo.materialType
                 };
 
                 runtimeList.Add(new BoundaryOverrideRuntime {
@@ -49,7 +49,7 @@ namespace Spellbound.MarchingCubes {
         public Axis axis;
         public Side side;
         public BoundaryType boundaryType;
-        public byte materialType;
+        public MaterialType materialType;
     }
 
     public struct BoundaryOverrideRuntime {

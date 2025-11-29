@@ -13,7 +13,7 @@ namespace Spellbound.MarchingCubes {
     /// </summary>
     [BurstCompile]
     public struct SparseToDenseVoxelDataJob : IJobParallelFor {
-        [ReadOnly] public BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob;
+        [ReadOnly] public BlobAssetReference<McConfigBlobAsset> ConfigBlob;
         [NativeDisableParallelForRestriction] public NativeArray<VoxelData> Voxels;
 
         [ReadOnly] public NativeList<SparseVoxelData> SparseVoxels;

@@ -9,9 +9,9 @@ namespace Spellbound.MarchingCubes {
     public readonly struct RawVoxelEdit {
         public Vector3Int WorldPosition { get; }
         public int DensityChange { get; }
-        public byte NewMatIndex { get; }
+        public MaterialType NewMatIndex { get; }
 
-        public RawVoxelEdit(Vector3Int worldPosition, int densityChange, byte newMatIndex) {
+        public RawVoxelEdit(Vector3Int worldPosition, int densityChange, MaterialType newMatIndex) {
             WorldPosition = worldPosition;
             DensityChange = densityChange;
             NewMatIndex = newMatIndex;

@@ -11,9 +11,9 @@ namespace Spellbound.MarchingCubes {
     public struct VoxelEdit : IPacker {
         public int index;
         public byte density;
-        public byte MaterialType;
+        public MaterialType MaterialType;
 
-        public VoxelEdit(int index, byte density, byte matIndex) {
+        public VoxelEdit(int index, byte density, MaterialType matIndex) {
             this.index = index;
             this.density = density;
             MaterialType = matIndex;
@@ -28,7 +28,7 @@ namespace Spellbound.MarchingCubes {
         public void Unpack(ref ReadOnlySpan<byte> buffer) {
             index = Packer.ReadInt(ref buffer);
             density = Packer.ReadByte(ref buffer);
-            MaterialType = Packer.ReadByte(ref buffer);
+            MaterialType = (MaterialType)Packer.ReadByte(ref buffer);
         }
     }
 }
