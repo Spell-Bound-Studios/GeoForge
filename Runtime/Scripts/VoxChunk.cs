@@ -101,7 +101,7 @@ namespace Spellbound.MarchingCubes {
 
                 return;
             }
-            
+
             _sparseVoxels = new NativeList<SparseVoxelData>(voxels.Length, Allocator.Persistent);
             _sparseVoxels.AddRange(voxels.AsArray());
             ValidateVoxels();
@@ -162,7 +162,8 @@ namespace Spellbound.MarchingCubes {
         public void OnVolumeMovement() => RootNode?.ValidateMaterial();
 
         public NativeArray<VoxelData> GetVoxelDataArray() =>
-                _mcManager.GetOrUnpackVoxelArray(ParentVolume.VoxelVolume.ConfigBlob.Value.ChunkSize, this, _sparseVoxels);
+                _mcManager.GetOrUnpackVoxelArray(ParentVolume.VoxelVolume.ConfigBlob.Value.ChunkSize, this,
+                    _sparseVoxels);
 
         public void UpdateVoxelData(NativeList<SparseVoxelData> voxels, DensityRange densityRange) {
             if (!_sparseVoxels.IsCreated)
@@ -230,7 +231,6 @@ namespace Spellbound.MarchingCubes {
         public void ValidateOctreeLods(Vector3 playerPosition) {
             if (!_sparseVoxels.IsCreated)
                 return;
-            
 
             var playerPositionChunkSpace = playerPosition - _bounds.min;
             _rootNode.ValidateOctreeLods(playerPositionChunkSpace, GetVoxelDataArray());

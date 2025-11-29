@@ -10,30 +10,26 @@ namespace Spellbound.MarchingCubes {
         [System.Serializable]
         public class MaterialEntry {
             public string materialName;
-            [Tooltip("Albedo/Color texture")]
-            public Texture2D albedoTexture;
+            [Tooltip("Albedo/Color texture")] public Texture2D albedoTexture;
+
             [Tooltip("Metallic (R), AO (G), Smoothness (B) packed texture")]
             public Texture2D masTexture;
-            
+
             public MaterialEntry(string name = "New Material") {
                 materialName = name;
             }
         }
 
-        [Header("Material Definitions")]
-        public List<MaterialEntry> materials = new List<MaterialEntry>();
+        [Header("Material Definitions")] public List<MaterialEntry> materials = new();
 
-        [Header("Generated Assets")]
-        public Texture2DArray albedoTextureArray;
+        [Header("Generated Assets")] public Texture2DArray albedoTextureArray;
         public Texture2DArray masTextureArray;
 
-        [Header("Texture Array Settings")]
-        public bool generateMipmaps = true;
+        [Header("Texture Array Settings")] public bool generateMipmaps = true;
         public FilterMode filterMode = FilterMode.Trilinear;
         public int anisoLevel = 8;
-        
-        [Header("Texture Type Settings")]
-        public bool albedoIsLinear = false;
+
+        [Header("Texture Type Settings")] public bool albedoIsLinear = false;
         public bool masIsLinear = true; // MAS should typically be linear
 
         // Runtime lookup cache
@@ -46,18 +42,17 @@ namespace Spellbound.MarchingCubes {
             // Build cache on first access
             if (_nameToIndex == null) {
                 _nameToIndex = new Dictionary<string, byte>();
-                for (int i = 0; i < materials.Count; i++) {
-                    if (!string.IsNullOrEmpty(materials[i].materialName)) {
+
+                for (var i = 0; i < materials.Count; i++)
+                    if (!string.IsNullOrEmpty(materials[i].materialName))
                         _nameToIndex[materials[i].materialName] = (byte)i;
-                    }
-                }
             }
 
-            if (_nameToIndex.TryGetValue(materialName, out var index)) {
-                return index;
-            }
+            if (_nameToIndex.TryGetValue(materialName, out var index)) return index;
 
-            Debug.LogWarning($"Material '{materialName}' not found in {name}. Available materials: {string.Join(", ", _nameToIndex.Keys)}");
+            Debug.LogWarning(
+                $"Material '{materialName}' not found in {name}. Available materials: {string.Join(", ", _nameToIndex.Keys)}");
+
             return 255;
         }
 
@@ -65,28 +60,23 @@ namespace Spellbound.MarchingCubes {
         /// Get material name by index.
         /// </summary>
         public string GetMaterialName(int index) {
-            if (index >= 0 && index < materials.Count) {
-                return materials[index].materialName;
-            }
+            if (index >= 0 && index < materials.Count) return materials[index].materialName;
+
             return null;
         }
 
         /// <summary>
         /// Check if a material exists in the database.
         /// </summary>
-        public bool HasMaterial(string materialName) {
-            return GetMaterialIndex(materialName) >= 0;
-        }
+        public bool HasMaterial(string materialName) => GetMaterialIndex(materialName) >= 0;
 
         /// <summary>
         /// Get all material names.
         /// </summary>
         public IEnumerable<string> GetAllMaterialNames() {
-            foreach (var mat in materials) {
-                if (!string.IsNullOrEmpty(mat.materialName)) {
+            foreach (var mat in materials)
+                if (!string.IsNullOrEmpty(mat.materialName))
                     yield return mat.materialName;
-                }
-            }
         }
 
         /// <summary>
@@ -95,45 +85,44 @@ namespace Spellbound.MarchingCubes {
         public int MaterialCount => materials.Count;
 
         // Clear cache when modified in editor
-        private void OnValidate() {
-            _nameToIndex = null;
-        }
+        private void OnValidate() => _nameToIndex = null;
 
 #if UNITY_EDITOR
         [ContextMenu("Build Texture Arrays")]
         public void BuildTextureArrays() {
             if (materials == null || materials.Count == 0) {
                 Debug.LogError("No materials defined!");
+
                 return;
             }
 
             // Validate and collect textures
-            List<Texture2D> validAlbedoTextures = new List<Texture2D>();
-            List<Texture2D> validMasTextures = new List<Texture2D>();
-            List<string> missingAlbedoNames = new List<string>();
-            List<string> missingMasNames = new List<string>();
+            var validAlbedoTextures = new List<Texture2D>();
+            var validMasTextures = new List<Texture2D>();
+            var missingAlbedoNames = new List<string>();
+            var missingMasNames = new List<string>();
 
-            for (int i = 0; i < materials.Count; i++) {
-                if (materials[i].albedoTexture == null) {
+            for (var i = 0; i < materials.Count; i++) {
+                if (materials[i].albedoTexture == null)
                     missingAlbedoNames.Add(materials[i].materialName);
-                } else {
+                else
                     validAlbedoTextures.Add(materials[i].albedoTexture);
-                }
 
-                if (materials[i].masTexture == null) {
+                if (materials[i].masTexture == null)
                     missingMasNames.Add(materials[i].materialName);
-                } else {
+                else
                     validMasTextures.Add(materials[i].masTexture);
-                }
             }
 
             if (missingAlbedoNames.Count > 0) {
                 Debug.LogError($"Missing albedo textures for materials: {string.Join(", ", missingAlbedoNames)}");
+
                 return;
             }
 
             if (missingMasNames.Count > 0) {
                 Debug.LogError($"Missing MAS textures for materials: {string.Join(", ", missingMasNames)}");
+
                 return;
             }
 
@@ -160,9 +149,11 @@ namespace Spellbound.MarchingCubes {
             Debug.Log($"Material order: {string.Join(", ", GetAllMaterialNames())}");
         }
 
-        private void BuildTextureArray(ref Texture2DArray textureArray, List<Texture2D> sourceTextures, string arrayName, bool isLinear) {
+        private void BuildTextureArray(
+            ref Texture2DArray textureArray, List<Texture2D> sourceTextures, string arrayName, bool isLinear) {
             if (sourceTextures.Count == 0) {
                 Debug.LogError($"No valid textures found for {arrayName}!");
+
                 return;
             }
 
@@ -174,19 +165,21 @@ namespace Spellbound.MarchingCubes {
             }
 
             // Validate all textures have same dimensions
-            int width = sourceTextures[0].width;
-            int height = sourceTextures[0].height;
-            TextureFormat format = sourceTextures[0].format;
+            var width = sourceTextures[0].width;
+            var height = sourceTextures[0].height;
+            var format = sourceTextures[0].format;
 
-            for (int i = 0; i < sourceTextures.Count; i++) {
+            for (var i = 0; i < sourceTextures.Count; i++) {
                 if (sourceTextures[i].width != width || sourceTextures[i].height != height) {
-                    Debug.LogError($"Material '{materials[i].materialName}' texture has different dimensions! All textures must be {width}x{height}");
+                    Debug.LogError(
+                        $"Material '{materials[i].materialName}' texture has different dimensions! All textures must be {width}x{height}");
+
                     return;
                 }
 
                 // Ensure source textures are readable
-                string path = AssetDatabase.GetAssetPath(sourceTextures[i]);
-                TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+                var path = AssetDatabase.GetAssetPath(sourceTextures[i]);
+                var importer = AssetImporter.GetAtPath(path) as TextureImporter;
 
                 if (importer != null && !importer.isReadable) {
                     Debug.LogWarning($"Making texture for '{materials[i].materialName}' readable...");
@@ -211,51 +204,43 @@ namespace Spellbound.MarchingCubes {
             textureArray.wrapMode = TextureWrapMode.Repeat;
 
             // Copy textures with all mip levels
-            for (int i = 0; i < sourceTextures.Count; i++) {
-                int mipCount = generateMipmaps ? sourceTextures[i].mipmapCount : 1;
+            for (var i = 0; i < sourceTextures.Count; i++) {
+                var mipCount = generateMipmaps ? sourceTextures[i].mipmapCount : 1;
 
-                for (int mip = 0; mip < mipCount; mip++) {
+                for (var mip = 0; mip < mipCount; mip++)
                     Graphics.CopyTexture(sourceTextures[i], 0, mip, textureArray, i, mip);
-                }
             }
 
             textureArray.Apply(true, false);
 
             // Save as a sub-asset
-            if (!AssetDatabase.Contains(textureArray)) {
-                AssetDatabase.AddObjectToAsset(textureArray, this);
-            }
+            if (!AssetDatabase.Contains(textureArray)) AssetDatabase.AddObjectToAsset(textureArray, this);
 
-            Debug.Log($"{arrayName} created with {sourceTextures.Count} textures, {textureArray.mipmapCount} mip levels!");
+            Debug.Log(
+                $"{arrayName} created with {sourceTextures.Count} textures, {textureArray.mipmapCount} mip levels!");
         }
 
         [ContextMenu("Validate Material Names")]
         public void ValidateMaterialNames() {
-            HashSet<string> uniqueNames = new HashSet<string>();
-            List<string> duplicates = new List<string>();
-            List<int> emptyIndices = new List<int>();
+            var uniqueNames = new HashSet<string>();
+            var duplicates = new List<string>();
+            var emptyIndices = new List<int>();
 
-            for (int i = 0; i < materials.Count; i++) {
-                string matName = materials[i].materialName;
-                
-                if (string.IsNullOrWhiteSpace(matName)) {
+            for (var i = 0; i < materials.Count; i++) {
+                var matName = materials[i].materialName;
+
+                if (string.IsNullOrWhiteSpace(matName))
                     emptyIndices.Add(i);
-                } else if (!uniqueNames.Add(matName)) {
-                    duplicates.Add(matName);
-                }
+                else if (!uniqueNames.Add(matName)) duplicates.Add(matName);
             }
 
-            if (emptyIndices.Count > 0) {
+            if (emptyIndices.Count > 0)
                 Debug.LogWarning($"Materials at indices {string.Join(", ", emptyIndices)} have no name!");
-            }
 
-            if (duplicates.Count > 0) {
+            if (duplicates.Count > 0)
                 Debug.LogError($"Duplicate material names found: {string.Join(", ", duplicates)}");
-            }
 
-            if (emptyIndices.Count == 0 && duplicates.Count == 0) {
-                Debug.Log("All material names are valid and unique!");
-            }
+            if (emptyIndices.Count == 0 && duplicates.Count == 0) Debug.Log("All material names are valid and unique!");
         }
 #endif
     }

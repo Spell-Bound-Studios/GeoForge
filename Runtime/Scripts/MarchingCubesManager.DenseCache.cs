@@ -23,7 +23,7 @@ namespace Spellbound.MarchingCubes {
             }
 
             ref var config = ref chunk.ParentVolume.VoxelVolume.ConfigBlob.Value;
-            
+
             if (denseVoxelData.IsArrayInUse) {
                 if (chunk != denseVoxelData.CurrentChunk) {
                     Debug.LogError(
@@ -103,18 +103,19 @@ namespace Spellbound.MarchingCubes {
 
                 return;
             }
+
             denseVoxelData.IsArrayInUse = false;
         }
-        
-        
+
         public class DenseVoxelData : IDisposable {
             public NativeArray<VoxelData> DenseVoxelArray;
             public NativeArray<DensityRange> DensityRange;
             public Dictionary<int, List<Vector3Int>> SharedIndicesAcrossChunks;
             public bool IsArrayInUse;
             public VoxChunk CurrentChunk;
-            
-            public DenseVoxelData(int chunkSize, VoxChunk currentChunk = null, Allocator allocator = Allocator.Persistent) {
+
+            public DenseVoxelData(
+                int chunkSize, VoxChunk currentChunk = null, Allocator allocator = Allocator.Persistent) {
                 var cs = chunkSize + 3;
                 DenseVoxelArray = new NativeArray<VoxelData>(cs * cs * cs, allocator);
                 DensityRange = new NativeArray<DensityRange>(1, allocator);
@@ -122,14 +123,14 @@ namespace Spellbound.MarchingCubes {
                 IsArrayInUse = false;
                 CurrentChunk = null;
             }
-            
+
             public DenseVoxelData() {
                 DenseVoxelArray = default;
                 DensityRange = default;
                 IsArrayInUse = false;
                 CurrentChunk = null;
             }
-            
+
             private Dictionary<int, List<Vector3Int>> InitializeSharedIndicesLookup(int chunkSize) {
                 var sharedIndices = new Dictionary<int, List<Vector3Int>>();
                 var cs = chunkSize + 3;
@@ -147,7 +148,6 @@ namespace Spellbound.MarchingCubes {
                         }
                     }
                 }
-            
 
                 var chunkBounds = new BoundsInt(
                     0,
@@ -177,9 +177,10 @@ namespace Spellbound.MarchingCubes {
                         coordsSharingIndex.Add(coord);
                     }
                 }
+
                 return sharedIndices;
             }
-            
+
             public void Dispose() {
                 if (DenseVoxelArray.IsCreated)
                     DenseVoxelArray.Dispose();

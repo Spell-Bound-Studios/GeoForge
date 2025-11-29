@@ -14,11 +14,11 @@ namespace Spellbound.MarchingCubes {
     [DefaultExecutionOrder(-1000)]
     public partial class MarchingCubesManager : MonoBehaviour {
         public BlobAssetReference<McTablesBlobAsset> McTablesBlob { get; private set; }
-        public BlobAssetReference<McChunkInterpolationBlobAsset> McChunkInterpolationBlob { get; private set; }
+
         [SerializeField] public GameObject octreePrefab;
         [SerializeField] public VoxelMaterialDatabase materialDatabase;
         private Material _runtimeVoxelMaterial;
-        
+
         private readonly Stack<GameObject> _objectPool = new();
         private bool _isActive;
         private HashSet<IVolume> _voxelVolumes = new();
@@ -35,41 +35,40 @@ namespace Spellbound.MarchingCubes {
         private void Awake() {
             SingletonManager.RegisterSingleton(this);
             McTablesBlob = McTablesBlobCreator.CreateMcTablesBlobAsset();
-
-            // TODO: magic number
-            McChunkInterpolationBlob =
-                    McChunkInterpolationBlobCreator.CreateMcChunkInterpolationBlobAsset(128);
             _objectPoolParent = new GameObject("OctreeLeafPool").transform;
             _objectPoolParent.SetParent(transform);
             InitializeVoxelMaterial();
         }
-        
+
         private void InitializeVoxelMaterial() {
             if (octreePrefab == null) {
                 Debug.LogError("Octree prefab not assigned!");
+
                 return;
             }
-    
+
             var renderer = octreePrefab.GetComponent<MeshRenderer>();
+
             if (renderer == null || renderer.sharedMaterial == null) {
                 Debug.LogError("Octree prefab has no MeshRenderer or Material!");
+
                 return;
             }
-    
+
             // Create runtime instance from prefab's material
             _runtimeVoxelMaterial = new Material(renderer.sharedMaterial);
-    
+
             // Apply texture arrays from database
             if (materialDatabase != null) {
                 if (materialDatabase.albedoTextureArray != null && materialDatabase.masTextureArray != null) {
                     _runtimeVoxelMaterial.SetTexture("_TerrainAlbedoArray", materialDatabase.albedoTextureArray);
                     _runtimeVoxelMaterial.SetTexture("_TerrainMetalSmoothArray", materialDatabase.masTextureArray);
-                } else {
-                    Debug.LogError("Texture arrays not built! Use 'Build Texture Arrays' on VoxelMaterialDatabase.");
                 }
-            } else {
-                Debug.LogError("No VoxelMaterialDatabase assigned!");
+                else
+                    Debug.LogError("Texture arrays not built! Use 'Build Texture Arrays' on VoxelMaterialDatabase.");
             }
+            else
+                Debug.LogError("No VoxelMaterialDatabase assigned!");
         }
 
         private void LateUpdate() => OctreeBatchTransitionUpdate?.Invoke();
@@ -79,28 +78,24 @@ namespace Spellbound.MarchingCubes {
 
             if (McTablesBlob.IsCreated)
                 McTablesBlob.Dispose();
-            
-            if (McChunkInterpolationBlob.IsCreated)
-                McChunkInterpolationBlob.Dispose();
 
             ClearPool();
 
-            foreach (var kvp in _denseVoxelDataDict) {
-                kvp.Value.Dispose();    
-            }
+            foreach (var kvp in _denseVoxelDataDict) kvp.Value.Dispose();
         }
 
         public void RegisterVoxelVolume(IVolume volume, int chunkSize) {
-            Debug.Log($"Registering volume with chunkSize={chunkSize}, expected data size={(chunkSize+3)*(chunkSize+3)*(chunkSize+3)}");
+            Debug.Log(
+                $"Registering volume with chunkSize={chunkSize}, expected data size={(chunkSize + 3) * (chunkSize + 3) * (chunkSize + 3)}");
             _voxelVolumes.Add(volume);
 
-            if (!_denseVoxelDataDict.ContainsKey(chunkSize)) { 
+            if (!_denseVoxelDataDict.ContainsKey(chunkSize)) {
                 var denseData = new DenseVoxelData(chunkSize);
                 Debug.Log($"Created DenseVoxelData with array length={denseData.DenseVoxelArray.Length}");
                 _denseVoxelDataDict.Add(chunkSize, denseData);
             }
         }
-        
+
         public GameObject GetPooledObject(Transform parent) {
             GameObject go;
 
@@ -110,15 +105,14 @@ namespace Spellbound.MarchingCubes {
             }
             else {
                 go = Instantiate(octreePrefab);
-        
+
                 // Apply the runtime material to new instances
                 var renderer = go.GetComponent<MeshRenderer>();
-                if (renderer != null) {
-                    renderer.sharedMaterial = _runtimeVoxelMaterial;
-                }
+                if (renderer != null) renderer.sharedMaterial = _runtimeVoxelMaterial;
             }
 
             go.transform.SetParent(parent, false);
+
             return go;
         }
 
@@ -142,18 +136,19 @@ namespace Spellbound.MarchingCubes {
             Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction,
             HashSet<byte> removableMatTypes = null,
             IVolume targetVolume = null) {
-    
             if (targetVolume != null) {
                 var result = terraformAction(targetVolume);
                 DistributeVoxelEdits(targetVolume, result.edits, removableMatTypes);
+
                 return;
             }
 
             foreach (var voxelVolume in _voxelVolumes) {
                 var result = terraformAction(voxelVolume);
-                if (!voxelVolume.VoxelVolume.IntersectsVolume(result.bounds)) 
+
+                if (!voxelVolume.VoxelVolume.IntersectsVolume(result.bounds))
                     continue;
-                
+
                 DistributeVoxelEdits(voxelVolume, result.edits, removableMatTypes);
             }
         }
@@ -203,8 +198,6 @@ namespace Spellbound.MarchingCubes {
 
                 var localEdit = new VoxelEdit(index, newDensity, mat);
                 localEdits.Add(localEdit);
-                
-                
 
                 if (denseVoxelData.SharedIndicesAcrossChunks.TryGetValue(index, out var neighborCoords)) {
                     foreach (var neighborCoord in neighborCoords) {
@@ -239,6 +232,7 @@ namespace Spellbound.MarchingCubes {
             foreach (var voxelVolume in _voxelVolumes) {
                 if (!voxelVolume.VoxelVolume.IsPrimaryTerrain)
                     continue;
+
                 var chunk = voxelVolume.VoxelVolume.GetChunkByWorldPosition(position);
 
                 if (chunk == null)

@@ -45,7 +45,6 @@ namespace Spellbound.MarchingCubes {
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
             var octreeSizeVoxels = 3 + (_parentVolume.VoxelVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod);
             _boundsVoxel = new BoundsInt(_localPosition, Vector3Int.one * octreeSizeVoxels);
-            
         }
 
         public void Dispose() {
@@ -129,13 +128,9 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void ValidateOctreeLods(Vector3 playerPosition, NativeArray<VoxelData> voxelArray) {
-            
             var targetLod = GetLodRange(Center, playerPosition, _parentVolume.VoxelVolume.ConfigBlob.Value.Resolution);
 
-            if (_chunk.DensityRange.IsSkippable()) {
-                return;
-            }
-                
+            if (_chunk.DensityRange.IsSkippable()) return;
 
             if (_lod <= targetLod) {
                 if (_leafGo == null)
@@ -203,6 +198,7 @@ namespace Spellbound.MarchingCubes {
 
         private int GetLodRange(Vector3 octreePos, Vector3 playerPos, float resolution) {
             var distance = Vector3.Distance(octreePos, playerPos) * resolution;
+
             for (var i = 0; i < _parentVolume.ViewDistanceLodRanges.Length; i++) {
                 if (distance <= _parentVolume.ViewDistanceLodRanges[i].y)
                     return i;

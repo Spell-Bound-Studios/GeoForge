@@ -1,3 +1,5 @@
+// Copyright 2025 Spellbound Studio Inc.
+
 using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
@@ -14,7 +16,7 @@ namespace Spellbound.MarchingCubes {
         public float Resolution;
         public Vector3Int SizeInChunks;
     }
-    
+
     public static class VolumeConfigBlobCreator {
         public static BlobAssetReference<VolumeConfigBlobAsset>
                 CreateVolumeConfigBlobAsset(VoxelVolumeConfig voxelVolumeConfig) {
@@ -31,9 +33,8 @@ namespace Spellbound.MarchingCubes {
             config.SizeInChunks = voxelVolumeConfig.sizeInChunks;
             var result = builder.CreateBlobAssetReference<VolumeConfigBlobAsset>(Allocator.Persistent);
             builder.Dispose();
+
             return result;
         }
     }
 }
-
-

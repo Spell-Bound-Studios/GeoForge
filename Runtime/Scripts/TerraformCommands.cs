@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using Spellbound.Core;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {

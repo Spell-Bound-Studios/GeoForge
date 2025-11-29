@@ -1,7 +1,6 @@
 // Copyright 2025 Spellbound Studio Inc.
 
 using System.Collections.Generic;
-using Spellbound.Core;
 using Unity.Collections;
 using UnityEngine;
 
@@ -24,7 +23,8 @@ namespace Spellbound.MarchingCubes {
         private void OnDestroy() => _voxChunk.Dispose();
 
         private void OnDrawGizmos() {
-            var worldSize = (Vector3)VoxelChunk.Bounds.size * VoxelChunk.ParentVolume.VoxelVolume.ConfigBlob.Value.Resolution;
+            var worldSize = (Vector3)VoxelChunk.Bounds.size *
+                            VoxelChunk.ParentVolume.VoxelVolume.ConfigBlob.Value.Resolution;
             var localOffset = worldSize * 0.5f;
             var worldCenter = transform.position + transform.TransformDirection(localOffset);
             Gizmos.DrawWireCube(worldCenter, worldSize);

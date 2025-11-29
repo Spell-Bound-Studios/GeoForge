@@ -21,13 +21,18 @@ namespace Spellbound.MarchingCubes {
         public VoxVolume VoxelVolume => _voxVolume;
         public VoxelVolumeConfig Config => _config;
         public Vector2[] ViewDistanceLodRanges => _viewDistanceLodRanges;
-        
+
+        public Transform LodTarget =>
+                Camera.main == null ? FindAnyObjectByType<Camera>().transform : Camera.main.transform;
+
 #if UNITY_EDITOR
         private void OnValidate() {
             if (_config == null) {
                 _viewDistanceLodRanges = null;
+
                 return;
             }
+
             _viewDistanceLodRanges = VoxVolume.ValidateLodRanges(_viewDistanceLodRanges, _config);
         }
 #endif
@@ -58,7 +63,6 @@ namespace Spellbound.MarchingCubes {
             ref var config = ref VoxelVolume.ConfigBlob.Value;
             GenerateSimpleData();
             StartCoroutine(Initialize(config.ChunkSize));
-            VoxelVolume.SetLodTarget(Camera.main.transform);
             StartCoroutine(VoxelVolume.ValidateChunkLods());
         }
 
@@ -78,19 +82,16 @@ namespace Spellbound.MarchingCubes {
 
             ref var config = ref VoxelVolume.ConfigBlob.Value;
 
-            var halfChunk = config.ChunkSize / 2;
-            
-            var grassIndex = mcManager.materialDatabase.GetMaterialIndex("Grass");
-            var swampIndex = mcManager.materialDatabase.GetMaterialIndex("Swamp");
+            var sandIndex = mcManager.materialDatabase.GetMaterialIndex("Sand");
 
             _data = new NativeList<SparseVoxelData>(Allocator.Persistent);
-            _data.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, swampIndex), 0));
-            _data.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, grassIndex), halfChunk * config.ChunkDataAreaSize));
+            _data.Add(new SparseVoxelData(new VoxelData(byte.MaxValue, sandIndex), 0));
         }
 
         public IEnumerator Initialize(int chunkSize) {
             var size = VoxelVolume.ConfigBlob.Value.SizeInChunks;
             Debug.Log($" size in chunks: {size}");
+
             var offset = new Vector3Int(
                 size.x / 2,
                 size.y / 2,
@@ -173,35 +174,36 @@ namespace Spellbound.MarchingCubes {
 
             return overrides;
         }
-        
+
         private BoundsInt CalculateVolumeBounds() {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
                 Debug.LogError("MarchingCubesManager not found");
+
                 return new BoundsInt();
             }
 
             ref var config = ref VoxelVolume.ConfigBlob.Value;
-    
+
             // Calculate total size in voxels
-            Vector3Int sizeInVoxels = new Vector3Int(
+            var sizeInVoxels = new Vector3Int(
                 _config.sizeInChunks.x * config.ChunkSize,
                 _config.sizeInChunks.y * config.ChunkSize,
                 _config.sizeInChunks.z * config.ChunkSize
             );
-    
+
             // Calculate center offset (since chunks are centered around origin)
-            Vector3Int offset = new Vector3Int(
+            var offset = new Vector3Int(
                 _config.sizeInChunks.x / 2,
                 _config.sizeInChunks.y / 2,
                 _config.sizeInChunks.z / 2
             );
-    
-            Vector3Int centerInVoxels = new Vector3Int(
+
+            var centerInVoxels = new Vector3Int(
                 -offset.x * config.ChunkSize + sizeInVoxels.x / 2,
                 -offset.y * config.ChunkSize + sizeInVoxels.y / 2,
                 -offset.z * config.ChunkSize + sizeInVoxels.z / 2
             );
-    
+
             // Create bounds centered at the calculated center
             return new BoundsInt(
                 centerInVoxels.x - sizeInVoxels.x / 2,

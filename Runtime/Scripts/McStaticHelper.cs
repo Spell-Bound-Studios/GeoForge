@@ -1,8 +1,6 @@
 // Copyright 2025 Spellbound Studio Inc.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using System.Runtime.CompilerServices;
 using Unity.Burst;
 using Unity.Collections;
@@ -59,7 +57,6 @@ namespace Spellbound.MarchingCubes {
                     // 5 => chunkCoord + Vector3Int.forward, handled by the default case
                     _ => chunkCoord + Vector3Int.forward
                 };
-        
 
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void IndexToInt3(
@@ -82,7 +79,7 @@ namespace Spellbound.MarchingCubes {
 
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Coord2DToIndex(int x, int z, int chunkDataWidthSize) => x + z * chunkDataWidthSize;
-        
+
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int BinarySearchVoxelData(
             int targetIndex, int chunkDataVolumeSize, in NativeList<SparseVoxelData> sparseVoxels) {

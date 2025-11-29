@@ -8,6 +8,8 @@ namespace Spellbound.MarchingCubes {
         VoxelVolumeConfig Config { get; }
         Vector2[] ViewDistanceLodRanges { get; }
 
+        Transform LodTarget { get; }
+
         void ManageVolume();
     }
 }
