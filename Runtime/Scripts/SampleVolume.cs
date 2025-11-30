@@ -90,7 +90,6 @@ namespace Spellbound.MarchingCubes {
 
         public IEnumerator Initialize(int chunkSize) {
             var size = VoxelVolume.ConfigBlob.Value.SizeInChunks;
-            Debug.Log($" size in chunks: {size}");
 
             var offset = new Vector3Int(
                 size.x / 2,

@@ -224,7 +224,7 @@ namespace Spellbound.MarchingCubes {
                                         vertexIndex;
                             }
 
-                            var centeredVertex = vertex * config.Resolution;
+                            var centeredVertex = (vertex + config.OffsetBurst) * config.Resolution;
 
                             TransitionMeshingVertexData.Add(new MeshingVertexData(centeredVertex, normal,
                                 color, colorInterp));

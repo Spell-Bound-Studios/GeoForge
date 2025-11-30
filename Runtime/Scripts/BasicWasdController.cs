@@ -68,7 +68,7 @@ namespace Spellbound.MarchingCubes {
                     out var hit,
                     float.MaxValue,
                     LayerMask.GetMask("Terrain")))
-                SbTerrain.RemoveSphere(hit.point, 6f, byte.MaxValue);
+                SbTerrain.RemoveSphere(hit.point, 3f, byte.MaxValue);
         }
     }
 }

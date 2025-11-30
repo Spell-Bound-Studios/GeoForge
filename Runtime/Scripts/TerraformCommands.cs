@@ -12,14 +12,7 @@ namespace Spellbound.MarchingCubes {
             int delta) =>
                 (iVoxelVolume) => {
                     // Convert world position to volume-local space
-                    var localPos = iVoxelVolume.VoxelVolume.Transform.InverseTransformPoint(worldPosition);
-
-                    // Convert to voxel coordinates
-                    var voxelCenter = new Vector3(
-                        localPos.x / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution,
-                        localPos.y / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution,
-                        localPos.z / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution
-                    );
+                    var voxelCenter = iVoxelVolume.VoxelVolume.WorldToVoxelSpace(worldPosition);
 
                     var rawVoxelEdits = new List<RawVoxelEdit>();
                     var radiusVoxels = radius / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution;
@@ -72,14 +65,7 @@ namespace Spellbound.MarchingCubes {
             int delta) =>
                 (iVoxelVolume) => {
                     // Convert world position to volume-local space
-                    var localPos = iVoxelVolume.VoxelVolume.Transform.InverseTransformPoint(worldPosition);
-
-                    // Convert to voxel coordinates
-                    var voxelCenter = new Vector3(
-                        localPos.x / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution,
-                        localPos.y / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution,
-                        localPos.z / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution
-                    );
+                    var voxelCenter = iVoxelVolume.VoxelVolume.WorldToVoxelSpace(worldPosition);
 
                     var rawVoxelEdits = new List<RawVoxelEdit>();
                     var radiusVoxels = radius / iVoxelVolume.VoxelVolume.ConfigBlob.Value.Resolution;
