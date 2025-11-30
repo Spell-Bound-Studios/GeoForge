@@ -79,12 +79,13 @@ namespace Spellbound.MarchingCubes {
         }
 
         public Vector3Int WorldToVoxelSpace(Vector3 worldPosition) {
+            ref var config = ref ConfigBlob.Value;
             var localPos = Transform.InverseTransformPoint(worldPosition);
 
             return new Vector3Int(
-                Mathf.FloorToInt(localPos.x / _ownerAsIVolume.Config.resolution),
-                Mathf.FloorToInt(localPos.y / _ownerAsIVolume.Config.resolution),
-                Mathf.FloorToInt(localPos.z / _ownerAsIVolume.Config.resolution)
+                Mathf.FloorToInt(localPos.x / config.Resolution) - config.Offset.x,
+                Mathf.FloorToInt(localPos.y / config.Resolution) - config.Offset.y,
+                Mathf.FloorToInt(localPos.z / config.Resolution) - config.Offset.z
             );
         }
 
@@ -126,12 +127,7 @@ namespace Spellbound.MarchingCubes {
                     if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out _))
                         continue;
 
-                    var lodDistanceTargetTransformed =
-                            Transform.InverseTransformPoint(_ownerAsIVolume.LodTarget.position);
-
-                    // ✅ Convert from world scale to voxel space
-                    var lodDistanceTargetVoxelSpace = lodDistanceTargetTransformed / _ownerAsIVolume.Config.resolution;
-
+                    var lodDistanceTargetVoxelSpace = WorldToVoxelSpace(_ownerAsIVolume.LodTarget.position);
                     chunk.VoxelChunk.ValidateOctreeLods(lodDistanceTargetVoxelSpace);
 
                     yield return null;

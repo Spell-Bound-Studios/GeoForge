@@ -358,7 +358,7 @@ namespace Spellbound.MarchingCubes {
                                 var colorInterp = new float2((float)matA / byte.MaxValue, 0);
 
                                 var color = new Color32((byte)matA, (byte)matB, 0, 0);
-                                var centeredVertex = vertex * config.Resolution;
+                                var centeredVertex = (vertex + config.OffsetBurst) * config.Resolution;
 
                                 Vertices.Add(new MeshingVertexData(centeredVertex, normal, color,
                                     colorInterp));

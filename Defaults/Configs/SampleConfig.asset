@@ -19,5 +19,5 @@ MonoBehaviour:
   chunkSize: 128
   resolution: 1
   isFiniteSize: 1
-  sizeInChunks: {x: 1, y: 1, z: 1}
-  volumeSize: {x: 128, y: 128, z: 128}
+  sizeInChunks: {x: 2, y: 2, z: 2}
+  volumeSize: {x: 256, y: 256, z: 256}
