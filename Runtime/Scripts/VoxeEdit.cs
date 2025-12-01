@@ -1,7 +1,7 @@
 // Copyright 2025 Spellbound Studio Inc.
 
 using System;
-using Spellbound.Core;
+using Spellbound.Core.Packing;
 
 namespace Spellbound.MarchingCubes {
     /// <summary>
