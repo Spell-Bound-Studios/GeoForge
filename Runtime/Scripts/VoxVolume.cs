@@ -5,6 +5,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Spellbound.Core;
+using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 using Object = UnityEngine.Object;
@@ -21,8 +22,6 @@ namespace Spellbound.MarchingCubes {
         private BoundsInt _bounds;
         public BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob { get; private set; }
         
-        public bool IsReadyToValidate { get; set; }
-
         public Transform Transform => _owner.transform;
         public Dictionary<Vector3Int, IChunk> ChunkDict => _chunkDict;
 
@@ -50,6 +49,7 @@ namespace Spellbound.MarchingCubes {
             _chunkPrefab = chunkPrefab;
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
             ConfigBlob = VolumeConfigBlobCreator.CreateVolumeConfigBlobAsset(_ownerAsIVolume.Config);
+            _bounds = CalculateVolumeBounds();
         }
 
         public Vector3Int WorldToVoxelSpace(Vector3 worldPosition) {
@@ -154,6 +154,73 @@ namespace Spellbound.MarchingCubes {
             }
 
             return lodRanges;
+        }
+        
+        private BoundsInt CalculateVolumeBounds() {
+            if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
+                Debug.LogError("MarchingCubesManager not found");
+
+                return new BoundsInt();
+            }
+
+            ref var config = ref ConfigBlob.Value;
+
+            // Calculate total size in voxels
+            var sizeInVoxels = new Vector3Int(
+                config.SizeInChunks.x * config.ChunkSize,
+                config.SizeInChunks.y * config.ChunkSize,
+                config.SizeInChunks.z * config.ChunkSize
+            );
+
+            // Calculate center offset (since chunks are centered around origin)
+            var offset = new Vector3Int(
+                config.SizeInChunks.x / 2,
+                config.SizeInChunks.y / 2,
+                config.SizeInChunks.z / 2
+            );
+
+            var centerInVoxels = new Vector3Int(
+                -offset.x * config.ChunkSize + sizeInVoxels.x / 2,
+                -offset.y * config.ChunkSize + sizeInVoxels.y / 2,
+                -offset.z * config.ChunkSize + sizeInVoxels.z / 2
+            );
+
+            // Create bounds centered at the calculated center
+            return new BoundsInt(
+                centerInVoxels.x - sizeInVoxels.x / 2,
+                centerInVoxels.y - sizeInVoxels.y / 2,
+                centerInVoxels.z - sizeInVoxels.z / 2,
+                sizeInVoxels.x,
+                sizeInVoxels.y,
+                sizeInVoxels.z
+            );
+        }
+        
+        public IEnumerator InitializeChunks(
+            Action<Vector3Int, NativeArray<VoxelData>> generateDenseData,
+            Func<Vector3Int, VoxelOverrides> buildOverridesFunc = null)
+        {
+            var size = ConfigBlob.Value.SizeInChunks;
+            var offset = new Vector3Int(size.x / 2, size.y / 2, size.z / 2);
+            var denseVoxels = new NativeArray<VoxelData>(ConfigBlob.Value.ChunkDataVolumeSize, Allocator.Persistent);
+
+            for (var x = 0; x < size.x; x++) {
+                for (var y = 0; y < size.y; y++) {
+                    for (var z = 0; z < size.z; z++) {
+                        var chunkCoord = new Vector3Int(x, y, z) - offset;
+                        var chunk = RegisterChunk(chunkCoord);
+                        generateDenseData(chunkCoord, denseVoxels);
+                        
+                        if (buildOverridesFunc != null) {
+                            chunk.VoxelChunk.SetOverrides(buildOverridesFunc(chunkCoord));
+                        }
+                        
+                        chunk.InitializeChunk(denseVoxels);
+                        yield return null;
+                    }
+                }
+            }
+            denseVoxels.Dispose();
         }
 
         public void Dispose() {

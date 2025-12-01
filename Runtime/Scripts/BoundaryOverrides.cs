@@ -26,7 +26,62 @@ namespace Spellbound.MarchingCubes {
 
             return runtimeList;
         }
+        
+        public VoxelOverrides BuildChunkOverrides(Vector3Int chunkCoord, Vector3Int sizeInChunks, int chunkSize) {
+            var overrides = new VoxelOverrides();
+    
+            // Convert back to x,y,z indices for boundary logic
+            var offset = new Vector3Int(sizeInChunks.x / 2, sizeInChunks.y / 2, sizeInChunks.z / 2);
+            var indices = chunkCoord + offset;
+    
+            foreach (var boundary in GetBoundaryOverrides()) {
+                var slices = new List<int>();
+        
+                switch (boundary.Axis) {
+                    case Axis.X:
+                        if (indices.x == 0 && boundary.Side == Side.Min) {
+                            slices.Add(0);
+                            slices.Add(1);
+                        }
+                        else if (indices.x == sizeInChunks.x - 1 && boundary.Side == Side.Max) {
+                            slices.Add(chunkSize + 1);
+                            slices.Add(chunkSize + 2);
+                        }
+                        break;
+                
+                    case Axis.Y:
+                        if (indices.y == 0 && boundary.Side == Side.Min) {
+                            slices.Add(0);
+                            slices.Add(1);
+                        }
+                        else if (indices.y == sizeInChunks.y - 1 && boundary.Side == Side.Max) {
+                            slices.Add(chunkSize + 1);
+                            slices.Add(chunkSize + 2);
+                        }
+                        break;
+                
+                    case Axis.Z:
+                        if (indices.z == 0 && boundary.Side == Side.Min) {
+                            slices.Add(0);
+                            slices.Add(1);
+                        }
+                        else if (indices.z == sizeInChunks.z - 1 && boundary.Side == Side.Max) {
+                            slices.Add(chunkSize + 1);
+                            slices.Add(chunkSize + 2);
+                        }
+                        break;
+                }
+        
+                foreach (var slice in slices) {
+                    overrides.AddPlaneOverride(boundary.Axis, slice, boundary.VoxelData);
+                }
+            }
+    
+            return overrides;
+        }
     }
+    
+    
 
     public enum Axis {
         X,

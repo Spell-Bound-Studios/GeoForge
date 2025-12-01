@@ -43,69 +43,129 @@ namespace Spellbound.MarchingCubes {
             _owner.gameObject.name = coord.ToString();
         }
 
-        public void SetOverrides(IEnumerable<(Axis axis, int slice, VoxelData voxel)> overrides) {
-            foreach (var (axis, slice, voxel) in overrides) _voxelOverrides.AddOverride(axis, slice, voxel);
+        public void SetOverrides(VoxelOverrides overrides) {
+            _voxelOverrides =  overrides;
+        }
+        
+        public bool HasOverrides() {
+            if (_voxelOverrides == null || !_voxelOverrides.HasAnyOverrides)
+                return false;
+
+            return true;
         }
 
-        private void ValidateVoxels() {
-            if (_voxelOverrides == null || !_voxelOverrides.HasAnyOverrides) return;
-
+        private bool ApplyOverrides(NativeArray<VoxelData> voxels) {
             ref var config = ref ParentVolume.VoxelVolume.ConfigBlob.Value;
-            var voxelArray = GetVoxelDataArray();
-
             _voxelOverrides.CopyToNativeHashMaps(
                 out var xOverrides,
                 out var yOverrides,
                 out var zOverrides,
-                Allocator.TempJob
+                out var pointOverrides
             );
 
-            var hasOverridesArray = new NativeArray<int>(1, Allocator.TempJob);
-            hasOverridesArray[0] = 0;
+            var hasOverridesArray = new NativeArray<bool>(1, Allocator.TempJob);
+            hasOverridesArray[0] = false;
 
             var job = new ApplyBoundaryOverridesJob {
-                voxelArray = voxelArray,
+                voxelArray = voxels,
                 xOverrides = xOverrides,
                 yOverrides = yOverrides,
                 zOverrides = zOverrides,
+                pointOverrides = pointOverrides,
                 chunkDataAreaSize = config.ChunkDataAreaSize,
                 chunkDataWidthSize = config.ChunkDataWidthSize,
                 hasOverrides = hasOverridesArray
             };
 
-            var jobHandle = job.Schedule(voxelArray.Length, 64);
+            var jobHandle = job.Schedule(voxels.Length, 64);
             jobHandle.Complete();
 
-            var hasOverriddenVoxels = hasOverridesArray[0] == 1;
+            var hasOverriddenVoxels = hasOverridesArray[0];
 
             xOverrides.Dispose();
             yOverrides.Dispose();
             zOverrides.Dispose();
+            pointOverrides.Dispose();
             hasOverridesArray.Dispose();
-
-            if (hasOverriddenVoxels) _mcManager.PackVoxelArray(config.ChunkSize);
-
-            _mcManager.ReleaseVoxelArray(config.ChunkSize);
+            
+            return hasOverriddenVoxels;
         }
 
-        public void InitializeVoxels(NativeList<SparseVoxelData> voxels) {
+        private bool ValidateVoxels(NativeArray<VoxelData> voxels = default) {
+            if (_voxelOverrides == null || !_voxelOverrides.HasAnyOverrides)
+                return false;
+
+            ref var config = ref ParentVolume.VoxelVolume.ConfigBlob.Value;
+
+            var hasCheckedOutDenseArray = false;
+
+            if (voxels == default) {
+                voxels = GetVoxelDataArray();
+                hasCheckedOutDenseArray = true;
+            }
+                
+
+            _voxelOverrides.CopyToNativeHashMaps(
+                out var xOverrides,
+                out var yOverrides,
+                out var zOverrides,
+                out var pointOverrides
+            );
+
+            var hasOverridesArray = new NativeArray<bool>(1, Allocator.TempJob);
+            hasOverridesArray[0] = false;
+
+            var job = new ApplyBoundaryOverridesJob {
+                voxelArray = voxels,
+                xOverrides = xOverrides,
+                yOverrides = yOverrides,
+                zOverrides = zOverrides,
+                pointOverrides = pointOverrides,
+                chunkDataAreaSize = config.ChunkDataAreaSize,
+                chunkDataWidthSize = config.ChunkDataWidthSize,
+                hasOverrides = hasOverridesArray
+            };
+
+            var jobHandle = job.Schedule(voxels.Length, 64);
+            jobHandle.Complete();
+
+            var hasOverriddenVoxels = hasOverridesArray[0];
+
+            xOverrides.Dispose();
+            yOverrides.Dispose();
+            zOverrides.Dispose();
+            pointOverrides.Dispose();
+            hasOverridesArray.Dispose();
+            
+            if (hasCheckedOutDenseArray)
+                _mcManager.ReleaseVoxelArray(config.ChunkSize);
+
+            return hasOverriddenVoxels;
+        }
+
+        public void InitializeVoxels(NativeArray<VoxelData> voxels) {
             if (_sparseVoxels.IsCreated) {
                 Debug.LogError($"_sparseVoxels is already created for this chunkCoord {_chunkCoord}.");
-
                 return;
             }
 
             if (!voxels.IsCreated) {
                 Debug.LogError(
-                    $"_sparseVoxels being initialized with a List is already created for this chunkCoord {_chunkCoord}.");
+                    $"_sparseVoxels being initialized with native array that has not been created for chunkCoord {_chunkCoord}.");
 
                 return;
             }
 
-            _sparseVoxels = new NativeList<SparseVoxelData>(voxels.Length, Allocator.Persistent);
-            _sparseVoxels.AddRange(voxels.AsArray());
-            ValidateVoxels();
+            if (HasOverrides())
+                ApplyOverrides(voxels);
+            
+            _sparseVoxels = new NativeList<SparseVoxelData>(Allocator.Persistent);
 
+           new DenseToSparseVoxelDataJob {
+               Voxels = voxels,
+                SparseVoxels = _sparseVoxels,
+            }.Schedule().Complete();
+           
             _densityRange = new DensityRange(byte.MinValue, byte.MaxValue,
                 _parentVolume.VoxelVolume.ConfigBlob.Value.DensityThreshold);
 
@@ -126,10 +186,12 @@ namespace Spellbound.MarchingCubes {
 
                 McStaticHelper.IndexToInt3(index, config.ChunkDataAreaSize, config.ChunkDataWidthSize, out var x,
                     out var y, out var z);
-
-                if (_voxelOverrides.HasOverride(x, y, z)) continue;
-
                 var voxelPos = new Vector3Int(x, y, z);
+                
+                if (_voxelOverrides.HasOverride(voxelPos)) 
+                    continue;
+
+                
                 var existingVoxel = voxelArray[index];
 
                 if (voxelEdit.density == existingVoxel.Density &&
@@ -236,6 +298,24 @@ namespace Spellbound.MarchingCubes {
             _rootNode.ValidateOctreeLods(playerPositionChunkSpace, GetVoxelDataArray());
             _mcManager.CompleteAndApplyMarchingCubesJobs();
             _mcManager.ReleaseVoxelArray(ParentVolume.VoxelVolume.ConfigBlob.Value.ChunkSize);
+        }
+        
+        // Add/update an override at runtime
+        public void AddPointOverride(Vector3Int position, VoxelData voxelData) {
+            _voxelOverrides.AddPointOverride(position, voxelData);
+            // Trigger re-validation/meshing as needed
+        }
+
+            // Add a plane override at runtime
+        public void AddPlaneOverride(Axis axis, int slice, VoxelData voxelData) {
+            _voxelOverrides.AddPlaneOverride(axis, slice, voxelData);
+            // Trigger re-validation/meshing
+        }
+
+            // Clear all overrides
+        public void ClearOverrides() {
+            _voxelOverrides.Clear();
+            // Potentially re-mesh without overrides
         }
 
         public void Dispose() {

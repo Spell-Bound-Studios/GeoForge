@@ -47,8 +47,6 @@ namespace Spellbound.MarchingCubes {
                     foreach (var volume in _voxelVolumes) {
                         if (volume?.VoxelVolume == null)
                             continue;
-                        if (!volume.VoxelVolume.IsReadyToValidate)
-                            continue;
                     
                         await volume.VoxelVolume.ValidateChunkLodsAsync();
                     }

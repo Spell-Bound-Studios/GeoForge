@@ -11,7 +11,7 @@ namespace Spellbound.MarchingCubes {
 
         private void Awake() => _voxChunk = new VoxChunk(this);
 
-        public void InitializeChunk(NativeList<SparseVoxelData> voxels) => VoxelChunk.InitializeVoxels(voxels);
+        public void InitializeChunk(NativeArray<VoxelData> voxels) => VoxelChunk.InitializeVoxels(voxels);
 
         public void PassVoxelEdits(List<VoxelEdit> newVoxelEdits) {
             if (VoxelChunk.ApplyVoxelEdits(newVoxelEdits, out var editBounds)) {

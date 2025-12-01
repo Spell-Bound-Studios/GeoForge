@@ -10,7 +10,7 @@ namespace Spellbound.MarchingCubes {
     public interface IChunk {
         VoxChunk VoxelChunk { get; }
 
-        public void InitializeChunk(NativeList<SparseVoxelData> voxels); //polymorphic
+        public void InitializeChunk(NativeArray<VoxelData> voxels); //polymorphic
 
         public void PassVoxelEdits(List<VoxelEdit> newVoxelEdits); //polymorphic
     }

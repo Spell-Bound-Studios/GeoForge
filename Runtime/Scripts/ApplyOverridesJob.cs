@@ -3,6 +3,7 @@
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
+using Unity.Mathematics;
 
 namespace Spellbound.MarchingCubes {
     [BurstCompile]
@@ -12,12 +13,13 @@ namespace Spellbound.MarchingCubes {
         [ReadOnly] public NativeHashMap<int, VoxelData> xOverrides;
         [ReadOnly] public NativeHashMap<int, VoxelData> yOverrides;
         [ReadOnly] public NativeHashMap<int, VoxelData> zOverrides;
+        [ReadOnly] public NativeHashMap<int3, VoxelData> pointOverrides;
 
         [ReadOnly] public int chunkDataAreaSize;
         [ReadOnly] public int chunkDataWidthSize;
 
         [NativeDisableParallelForRestriction, WriteOnly]
-        public NativeArray<int> hasOverrides;
+        public NativeArray<bool> hasOverrides;
 
         public void Execute(int i) {
             McStaticHelper.IndexToInt3(i, chunkDataAreaSize, chunkDataWidthSize,
@@ -26,7 +28,9 @@ namespace Spellbound.MarchingCubes {
             VoxelData overrideVoxel;
             var hasOverride = false;
 
-            if (yOverrides.TryGetValue(y, out overrideVoxel))
+            if (pointOverrides.TryGetValue(new int3(x, y, z), out overrideVoxel))
+                hasOverride = true;
+            else if (yOverrides.TryGetValue(y, out overrideVoxel))
                 hasOverride = true;
             else if (xOverrides.TryGetValue(x, out overrideVoxel))
                 hasOverride = true;
@@ -34,7 +38,7 @@ namespace Spellbound.MarchingCubes {
 
             if (hasOverride) {
                 voxelArray[i] = overrideVoxel;
-                hasOverrides[0] = 1;
+                hasOverrides[0] = true;
             }
         }
     }
