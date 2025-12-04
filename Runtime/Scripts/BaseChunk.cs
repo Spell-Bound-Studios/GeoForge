@@ -175,6 +175,13 @@ namespace Spellbound.MarchingCubes {
 
         public bool ApplyVoxelEdits(
             List<VoxelEdit> voxelEdits, out BoundsInt editBounds, BoundsInt existingEditBounds = default) {
+
+            if (!_sparseVoxels.IsCreated) {
+                editBounds = existingEditBounds;
+                return false;
+            }
+                
+            
             ref var config = ref ParentVolume.ConfigBlob.Value;
             var voxelArray = GetVoxelDataArray();
 
