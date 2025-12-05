@@ -9,7 +9,7 @@ namespace Spellbound.MarchingCubes {
         private BaseChunk _baseChunk;
         public BaseChunk BaseChunk => _baseChunk;
 
-        private void Awake() => _baseChunk = new BaseChunk(this);
+        private void Awake() => _baseChunk = new BaseChunk(this, this);
 
         public void InitializeChunk(NativeArray<VoxelData> voxels) => _baseChunk.InitializeVoxels(voxels);
 

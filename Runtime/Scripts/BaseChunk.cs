@@ -18,6 +18,7 @@ namespace Spellbound.MarchingCubes {
         private readonly MarchingCubesManager _mcManager;
         private IVolume _parentVolume;
         private readonly MonoBehaviour _owner;
+        private readonly IChunk _ownerAsIChunk;
         private VoxelOverrides _voxelOverrides;
 
         public Vector3Int ChunkCoord => _chunkCoord;
@@ -28,8 +29,9 @@ namespace Spellbound.MarchingCubes {
 
         public IVolume ParentVolume => _parentVolume;
 
-        public BaseChunk(MonoBehaviour owner) {
+        public BaseChunk(MonoBehaviour owner, IChunk ownerAsIChunk) {
             _owner = owner;
+            _ownerAsIChunk = ownerAsIChunk;
             _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
             _voxelOverrides = new VoxelOverrides();
         }
@@ -169,7 +171,7 @@ namespace Spellbound.MarchingCubes {
             _densityRange = new DensityRange(byte.MinValue, byte.MaxValue,
                 _parentVolume.ConfigBlob.Value.DensityThreshold);
 
-            _rootNode = new OctreeNode(Vector3Int.zero, _parentVolume.ConfigBlob.Value.LevelsOfDetail, this,
+            _rootNode = new OctreeNode(Vector3Int.zero, _parentVolume.ConfigBlob.Value.LevelsOfDetail, _ownerAsIChunk,
                 _parentVolume);
         }
 

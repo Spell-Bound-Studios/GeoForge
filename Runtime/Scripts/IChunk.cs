@@ -11,6 +11,12 @@ namespace Spellbound.MarchingCubes {
     public interface IChunk {
         BaseChunk BaseChunk { get; }
 
+        DensityRange DensityRange => BaseChunk.DensityRange;
+
+        Vector3Int ChunkCoord => BaseChunk.ChunkCoord;
+
+        Transform Transform => BaseChunk.Transform;
+
         void InitializeChunk(NativeArray<VoxelData> voxels); //polymorphic
 
         void PassVoxelEdits(List<VoxelEdit> newVoxelEdits); //polymorphic

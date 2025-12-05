@@ -25,18 +25,20 @@ namespace Spellbound.MarchingCubes {
         private NativeList<int> _allTransitionTriangles;
         private NativeList<int> _filteredTransitionTriangles;
         private NativeArray<int2> _transitionRanges;
-        private Vector3Int _localPosition; // Chunk-local voxel position
+        private Vector3Int _localPosition;
         private readonly int _lod;
-        private BoundsInt _boundsVoxel; // Chunk-local voxel space bounds
-        private readonly BaseChunk _chunk;
+        private BoundsInt _boundsVoxel; 
+        private readonly IChunk _chunk;
         private readonly MarchingCubesManager _mcManager;
         private readonly IVolume _parentVolume;
+        private Vector3Int[] _cachedNeighborPositions;
+        private MaterialPropertyBlock _materialPropertyBlock;
 
         private Vector3 Center => (_boundsVoxel.min + _boundsVoxel.max - Vector3.one) * 0.5f;
 
         private bool IsLeaf => _children == null;
 
-        public OctreeNode(Vector3Int localPosition, int lod, BaseChunk chunk, IVolume parentVolume) {
+        public OctreeNode(Vector3Int localPosition, int lod, IChunk chunk, IVolume parentVolume) {
             _parentVolume = parentVolume;
             _localPosition = localPosition;
             _lod = lod;
@@ -161,10 +163,12 @@ namespace Spellbound.MarchingCubes {
                 child.ValidateOctreeEdits(boundsVoxel, voxelArray);
         }
 
-        private bool BoundsIntersect(BoundsInt a, BoundsInt b) =>
-                a.min.x <= b.max.x && a.max.x >= b.min.x &&
-                a.min.y <= b.max.y && a.max.y >= b.min.y &&
-                a.min.z <= b.max.z && a.max.z >= b.min.z;
+        private bool BoundsIntersect(BoundsInt a, BoundsInt b) {
+            if (a.max.x < b.min.x || a.min.x > b.max.x) return false;
+            if (a.max.y < b.min.y || a.min.y > b.max.y) return false;
+            if (a.max.z < b.min.z || a.min.z > b.max.z) return false;
+            return true;
+        }
 
         public void ValidateTransition(
             OctreeNode neighbor, Vector3Int voxelPos, McStaticHelper.TransitionFaceMask faceMask) {
@@ -269,6 +273,7 @@ namespace Spellbound.MarchingCubes {
             _leafGo.transform.localRotation = Quaternion.identity;
 
             _mesh = new Mesh();
+            _mesh.MarkDynamic();
             _leafGo.GetComponent<MeshFilter>().mesh = _mesh;
 
             _leafGo.name = $"LeafSize {_parentVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod} " +
@@ -322,6 +327,7 @@ namespace Spellbound.MarchingCubes {
             _transitionGo.transform.localRotation = Quaternion.identity;
 
             _transitionMesh = new Mesh();
+            _mesh.MarkDynamic();
             _transitionGo.GetComponent<MeshFilter>().mesh = _transitionMesh;
 
             _transitionGo.name = $"Transition " +
@@ -420,22 +426,29 @@ namespace Spellbound.MarchingCubes {
         }
 
         private void BroadcastNewLeaf() {
-            var neighborVoxelPositions = GetFaceCentersVoxel();
+            var neighborVoxelPositions = GetNeighborPositions();
 
             for (var i = 0; i < 6; i++)
                 _chunk.BroadcastNewLeafAcrossChunks(this, neighborVoxelPositions[i], i);
         }
 
-        private Vector3Int[] GetFaceCentersVoxel() {
-            var center = (_boundsVoxel.min + _boundsVoxel.max) / 2;
+        private Vector3Int[] GetNeighborPositions() {
+            if (_cachedNeighborPositions == null) {
+                _cachedNeighborPositions = SetNeighborPositions(_boundsVoxel);
+            }
+            return _cachedNeighborPositions;
+        }
+        
+        private Vector3Int[] SetNeighborPositions(BoundsInt boundsVoxel) {
+            var center = (boundsVoxel.min + boundsVoxel.max) / 2;
 
             return new[] {
-                new Vector3Int(_boundsVoxel.min.x - 1, center.y, center.z), // XMin face (outside left)
-                new Vector3Int(center.x, _boundsVoxel.min.y - 1, center.z), // YMin face (outside bottom)
-                new Vector3Int(center.x, center.y, _boundsVoxel.min.z - 1), // ZMin face (outside back)
-                new Vector3Int(_boundsVoxel.max.x + 1, center.y, center.z), // XMax face (at boundary right)
-                new Vector3Int(center.x, _boundsVoxel.max.y + 1, center.z), // YMax face (at boundary top)
-                new Vector3Int(center.x, center.y, _boundsVoxel.max.z + 1)  // ZMax face (at boundary front)
+                new Vector3Int(boundsVoxel.min.x - 1, center.y, center.z), // XMin face (outside left)
+                new Vector3Int(center.x, boundsVoxel.min.y - 1, center.z), // YMin face (outside bottom)
+                new Vector3Int(center.x, center.y, boundsVoxel.min.z - 1), // ZMin face (outside back)
+                new Vector3Int(boundsVoxel.max.x + 1, center.y, center.z), // XMax face (at boundary right)
+                new Vector3Int(center.x, boundsVoxel.max.y + 1, center.z), // YMax face (at boundary top)
+                new Vector3Int(center.x, center.y, boundsVoxel.max.z + 1)  // ZMax face (at boundary front)
             };
         }
 

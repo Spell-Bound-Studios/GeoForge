@@ -13,8 +13,8 @@ MonoBehaviour:
   m_Name: SampleConfig
   m_EditorClassIdentifier: 
   threshold: 128
-  cubesPerMarch: 32
-  levelsOfDetail: 3
+  cubesPerMarch: 16
+  levelsOfDetail: 4
   maxChunkSize: 128
   chunkSize: 128
   resolution: 0.25
