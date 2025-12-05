@@ -57,8 +57,12 @@ namespace Spellbound.MarchingCubes {
                     transform.forward,
                     out var hit,
                     float.MaxValue,
-                    LayerMask.GetMask("Terrain")))
-                SbTerrain.AddSphere(hit.point);
+                    LayerMask.GetMask("Terrain"))) {
+                var ivolume = hit.collider.GetComponentInParent<IVolume>();
+                if (ivolume != null)
+                    SbTerrain.AddSphere(hit.point, hit.collider.GetComponentInParent<IVolume>());
+            }
+                
         }
 
         private void RaycastTerraformRemoveAll() {

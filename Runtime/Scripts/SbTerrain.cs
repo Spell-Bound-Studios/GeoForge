@@ -82,7 +82,7 @@ namespace Spellbound.MarchingCubes {
         /// </summary>
         /// Console Usage: AddSphere 2 255
         [ConsoleUtilityCommand("AddSphere", "Positive terraform with 2 radius")]
-        public static void AddSphere(Vector3 position, float radius = 2f, int delta = 255) {
+        public static void AddSphere(Vector3 position, IVolume hitVolume, float radius = 2f, int delta = 255) {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
                 Debug.LogError("MarchingCubesManager not found");
 
@@ -94,7 +94,7 @@ namespace Spellbound.MarchingCubes {
                 radius,
                 delta);
 
-            mcManager.ExecuteTerraform(terraformAction);
+            mcManager.ExecuteTerraform(terraformAction, null, hitVolume);
         }
     }
 }
