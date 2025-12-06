@@ -1,5 +1,6 @@
 // Copyright 2025 Spellbound Studio Inc.
 
+using System;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
@@ -13,10 +14,14 @@ namespace Spellbound.MarchingCubes {
 
         private float pitch = 0f;
 
+        private void Start() {
+            Cursor.lockState = CursorLockMode.Locked;
+        }
+
         private void Update() {
             HandleMovement();
 
-            if (Input.GetKey(KeyCode.Alpha1))
+            if (Input.GetKey(KeyCode.Alpha1)) 
                 RaycastTerraformRemove();
             else if (Input.GetKeyDown(KeyCode.Alpha2))
                 RaycastTerraformAdd();
@@ -47,8 +52,9 @@ namespace Spellbound.MarchingCubes {
                     transform.forward,
                     out var hit,
                     float.MaxValue,
-                    LayerMask.GetMask("Terrain")))
+                    ~0)) {
                 SbTerrain.RemoveSphere(hit.point);
+            }
         }
 
         private void RaycastTerraformAdd() {
@@ -57,7 +63,7 @@ namespace Spellbound.MarchingCubes {
                     transform.forward,
                     out var hit,
                     float.MaxValue,
-                    LayerMask.GetMask("Terrain"))) {
+                    LayerMask.GetMask())) {
                 var ivolume = hit.collider.GetComponentInParent<IVolume>();
                 if (ivolume != null)
                     SbTerrain.AddSphere(hit.point, hit.collider.GetComponentInParent<IVolume>());
@@ -71,7 +77,7 @@ namespace Spellbound.MarchingCubes {
                     transform.forward,
                     out var hit,
                     float.MaxValue,
-                    LayerMask.GetMask("Terrain")))
+                    LayerMask.GetMask()))
                 SbTerrain.RemoveSphere(hit.point, 3f, byte.MaxValue);
         }
     }
