@@ -63,7 +63,7 @@ namespace Spellbound.MarchingCubes {
                     transform.forward,
                     out var hit,
                     float.MaxValue,
-                    LayerMask.GetMask())) {
+                    ~0)) {
                 var ivolume = hit.collider.GetComponentInParent<IVolume>();
                 if (ivolume != null)
                     SbTerrain.AddSphere(hit.point, hit.collider.GetComponentInParent<IVolume>());
@@ -77,7 +77,7 @@ namespace Spellbound.MarchingCubes {
                     transform.forward,
                     out var hit,
                     float.MaxValue,
-                    LayerMask.GetMask()))
+                    ~0))
                 SbTerrain.RemoveSphere(hit.point, 3f, byte.MaxValue);
         }
     }
