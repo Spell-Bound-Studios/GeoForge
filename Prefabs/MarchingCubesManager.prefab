@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &3762426764964721819
+--- !u!1 &2143009024312342097
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,22 +8,22 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 264447736065509064}
-  - component: {fileID: 19282421627647620}
+  - component: {fileID: 6002279756793364359}
+  - component: {fileID: 6673862094514295435}
   m_Layer: 0
-  m_Name: Terrain
+  m_Name: MarchingCubesManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &264447736065509064
+--- !u!4 &6002279756793364359
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3762426764964721819}
+  m_GameObject: {fileID: 2143009024312342097}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: 0}
@@ -32,17 +32,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &19282421627647620
+--- !u!114 &6673862094514295435
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3762426764964721819}
+  m_GameObject: {fileID: 2143009024312342097}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a267c7dee4fba2b4cb57ec15aace9111, type: 3}
+  m_Script: {fileID: 11500000, guid: 0e236c09a8a93ae419d10d8c20914a0f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _chunkPrefab: {fileID: 4065535263056542906, guid: 4af8e799ce530654588b63eb3c2a9d0d, type: 3}
-  cubeSizeInChunks: {x: 3, y: 1, z: 3}
+  octreePrefab: {fileID: 2677637181052615796, guid: 9a7674aaa7f6410458e017bb736f98a4, type: 3}
+  materialDatabase: {fileID: 11400000, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
+  useColliders: 1

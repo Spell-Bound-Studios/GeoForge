@@ -7,7 +7,9 @@ using UnityEngine;
 namespace Spellbound.MarchingCubes {
     [CreateAssetMenu(menuName = "Spellbound/MarchingCubes/BoundaryOverrides")]
     public class BoundaryOverrides : ScriptableObject {
-        [SerializeField] private List<BoundaryOverride> BoundaryOverridesList = new();
+        [Tooltip("Full list of boundaries. Note 6 of them one on each face will fully constrain the volume boundaries"),
+         SerializeField]
+        private List<BoundaryOverride> BoundaryOverridesList = new();
 
         public List<BoundaryOverrideRuntime> GetBoundaryOverrides() {
             var runtimeList = new List<BoundaryOverrideRuntime>();
@@ -103,9 +105,17 @@ namespace Spellbound.MarchingCubes {
 
     [System.Serializable]
     public struct BoundaryOverride {
+        [Tooltip("Boundary is in the direction of which axis")]
         public Axis axis;
+
+        [Tooltip("Boundary is in the min or the max direction of the axis")]
         public Side side;
+
+        [Tooltip("Open for empty/air this will be outside of the mesh. Closed for inside the mesh")]
         public BoundaryType boundaryType;
+
+        [Tooltip("Material for the boundaries. " +
+                 "Refer to MarchingCubeManager for what index corresponds to what material.")]
         public byte materialType;
     }
 

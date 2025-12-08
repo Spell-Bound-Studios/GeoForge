@@ -1,5 +1,5 @@
-## \[0.0.3] - 10/20/2025
+## \[0.0.4] - 12/08/2025
 
 ### 
 
-* Memory Optimization via sparse voxel data storage.
+* Support for multiple and moving marching cubes volumes

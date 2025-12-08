@@ -5,22 +5,42 @@ using UnityEngine;
 namespace Spellbound.MarchingCubes {
     [CreateAssetMenu(menuName = "Spellbound/MarchingCubes/VoxelVolumeConfig")]
     public class VoxelVolumeConfig : ScriptableObject {
-        [Tooltip("Voxel Fill threshold separating full and empty. 128 is default."), 
-         Range(1, 255)] 
+        [Tooltip("Voxel Fill threshold separating full and empty. 128 is default."),
+         Range(1, 255)]
         public byte threshold = 128;
-        [Tooltip("Determines how many voxels are marched at a time, per side. Higher number may affect performance"), 
-         Range(8, 32)] 
+
+        [Tooltip("Determines how many voxels are marched at a time, per side. Higher number may affect performance"),
+         Range(8, 32)]
         public int cubesPerMarch = 16;
-        [Tooltip("Max number of L"), 
-         Range(1, 5)] 
+
+        [Tooltip("Max number of Levels of Details"),
+         Range(1, 5)]
         public int levelsOfDetail = 3;
-        [Range(8, 128)] public int maxChunkSize = 128;
-        [SerializeField] private int chunkSize;
+
+        [Tooltip("Size in voxels of one chunk of data. Higher number may affect performance."),
+         Range(8, 128)]
+        public int maxChunkSize = 128;
+
+        [Tooltip("Actual chunksize, generated from maxChunkSize and Levels of Detail"),
+         SerializeField]
+        private int chunkSize;
+
         public int ChunkSize => chunkSize;
-        [Range(0.1f, 10f)] public float resolution = 1;
+
+        [Tooltip("Number of Voxels per one unit/meter. Lower number may affect performance."),
+         Range(0.1f, 10f)]
+        public float resolution = 1;
+
+        [Tooltip("Indicates if the volume is finite, rather than like an endless terrain")]
         public bool isFiniteSize = true;
+
+        [Tooltip("For a finite volume, how many chunks it is in each axis")]
         public Vector3Int sizeInChunks;
-        [SerializeField] private Vector3 volumeSize;
+
+        [Tooltip("This dimension is derived from your other settings. Indicates actual size of volume, if its finite."),
+         SerializeField]
+        private Vector3 volumeSize;
+
         public Vector3 VolumeSize => volumeSize;
 
         private void OnValidate() {

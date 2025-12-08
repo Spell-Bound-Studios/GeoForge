@@ -18,11 +18,23 @@ namespace Spellbound.MarchingCubes {
 
         [SerializeField] private ShapeType shape = ShapeType.Sphere;
         [SerializeField] private float size = 16f;
-        [SerializeField] private bool normalizedSize = false;
+
+        [Tooltip("false means the size is in Worldspace, true means the size is in Voxelspace"), SerializeField]
+        private bool normalizedSize = false;
+
         [SerializeField] private Vector3 offset = Vector3.zero;
-        [SerializeField] private float sdfGradientSteepness = 32f;
-        [SerializeField] private byte materialIndex = 0;
-        [SerializeField] private bool invertShape = false;
+
+        [Tooltip("Controls smoothness of generation. Low number will be blocky"), SerializeField]
+        private float sdfGradientSteepness = 32f;
+
+        [Tooltip("Material for the shape to be generated as. " +
+                 "Refer to MarchingCubeManager for what index corresponds to what material"),
+         SerializeField]
+        private byte materialIndex = 0;
+
+        [Tooltip("Flip what part of the shape is full of material, and what part of the shape is air/empty"),
+         SerializeField]
+        private bool invertShape = false;
 
         public override void FillDataArray(
             Vector3Int chunkCoord,
