@@ -2,6 +2,9 @@
 
 using System.Collections.Generic;
 using UnityEngine;
+#if ENABLE_INPUT_SYSTEM
+using UnityEngine.InputSystem;
+#endif
 
 namespace Spellbound.MarchingCubes {
     /// <summary>
@@ -22,24 +25,62 @@ namespace Spellbound.MarchingCubes {
         private void Update() {
             HandleMovement();
 
+#if ENABLE_INPUT_SYSTEM
+            var keyboard = Keyboard.current;
+            if (keyboard != null) {
+                if (keyboard.digit1Key.isPressed)
+                    RaycastTerraformRemove();
+                else if (keyboard.digit2Key.wasPressedThisFrame)
+                    RaycastTerraformAdd();
+                else if (keyboard.digit3Key.wasPressedThisFrame)
+                    RaycastTerraformRemoveAll();
+            }
+#else
             if (Input.GetKey(KeyCode.Alpha1))
                 RaycastTerraformRemove();
             else if (Input.GetKeyDown(KeyCode.Alpha2))
                 RaycastTerraformAdd();
             else if (Input.GetKeyDown(KeyCode.Alpha3))
                 RaycastTerraformRemoveAll();
+#endif
         }
 
         private void HandleMovement() {
             // --- Movement (WASD) ---
-            var x = Input.GetAxis("Horizontal"); // A/D
-            var z = Input.GetAxis("Vertical");   // W/S
-            var move = transform.right * x + transform.forward * z;
+#if ENABLE_INPUT_SYSTEM
+            
+            float horizontal = 0f;
+            float vertical = 0f;
+    
+            var keyboard = Keyboard.current;
+            if (keyboard != null) {
+                if (keyboard.dKey.isPressed) horizontal += 1f;
+                if (keyboard.aKey.isPressed) horizontal -= 1f;
+                if (keyboard.wKey.isPressed) vertical += 1f;
+                if (keyboard.sKey.isPressed) vertical -= 1f;
+            }
+#else
+            float horizontal = Input.GetAxis("Horizontal"); // A/D
+            float vertical = Input.GetAxis("Vertical");     // W/S
+#endif
+            
+            var move = transform.right * horizontal + transform.forward * vertical;
             transform.position += move * (moveSpeed * Time.deltaTime);
 
             // --- Mouse look ---
+#if ENABLE_INPUT_SYSTEM
+            float mouseX = 0f;
+            float mouseY = 0f;
+            
+            var mouse = Mouse.current;
+            if (mouse != null) {
+                mouseX = mouse.delta.x.ReadValue() * lookSpeed * 0.1f; // Scale down delta
+                mouseY = mouse.delta.y.ReadValue() * lookSpeed * 0.1f;
+            }
+#else
             var mouseX = Input.GetAxis("Mouse X") * lookSpeed;
             var mouseY = Input.GetAxis("Mouse Y") * lookSpeed;
+#endif
 
             pitch -= mouseY;
             pitch = Mathf.Clamp(pitch, -80f, 80f);
