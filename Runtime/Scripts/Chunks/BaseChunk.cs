@@ -12,7 +12,6 @@ namespace Spellbound.MarchingCubes {
         private Vector3Int _chunkCoord;
         private BoundsInt _bounds;
         private NativeList<SparseVoxelData> _sparseVoxels;
-        private Dictionary<int, VoxelEdit> _voxelEdits;
         private OctreeNode _rootNode;
         private DensityRange _densityRange;
         private readonly MarchingCubesManager _mcManager;

@@ -69,17 +69,15 @@ namespace Spellbound.MarchingCubes {
         /// Null checks for the Marching Cubes Manager, registers with it, and Initializes it's chunks. 
         /// </summary>
         protected virtual void Start() {
-            if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
-                Debug.LogError("MarchingCubesManager is null.");
-
-                return;
-            }
-
-            mcManager.RegisterVoxelVolume(this);
             InitializeVolume();
         }
 
-        protected virtual void InitializeVolume() => StartCoroutine(InitializeChunks());
+        public virtual void InitializeVolume() {
+           BaseVolume.RegisterVolume();
+            StartCoroutine(InitializeChunks());
+        }
+        
+        
 
         /// <summary>
         /// Initializes Chunks one per frame, centered on the Volume's transform

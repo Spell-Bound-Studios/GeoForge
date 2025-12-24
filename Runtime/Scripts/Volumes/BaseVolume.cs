@@ -37,6 +37,15 @@ namespace Spellbound.MarchingCubes {
             );
         }
 
+        public void RegisterVolume() {
+            if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
+                Debug.LogError("MarchingCubesManager is null." +  this);
+
+                return;
+            }
+            mcManager.RegisterVoxelVolume(_ownerAsIVolume);
+        }
+
         public IChunk GetChunkByCoord(Vector3Int coord) => _chunkDict.GetValueOrDefault(coord);
 
         public IChunk GetChunkByWorldPosition(Vector3 worldPos) {
