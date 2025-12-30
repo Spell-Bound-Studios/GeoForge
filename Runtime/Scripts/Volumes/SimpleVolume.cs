@@ -1,8 +1,6 @@
 // Copyright 2025 Spellbound Studio Inc.
 
 using System.Collections;
-using Spellbound.Core;
-using Unity.Collections;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
@@ -17,7 +15,7 @@ namespace Spellbound.MarchingCubes {
     public class SimpleVolume : MonoBehaviour, IVolume {
         [Header("Volume Settings"), Tooltip("Config for ChunkSize, VolumeSize, etc"), SerializeField]
         protected VoxelVolumeConfig config;
-        
+
         [Tooltip("Initial State for if the volume is moving. " +
                  "If true it updates the origin of the triplanar material shader"), SerializeField]
         protected bool isMoving = false;
@@ -65,19 +63,15 @@ namespace Spellbound.MarchingCubes {
             _baseVolume = new BaseVolume(this, this, config);
         }
 
-        /// <summary>
-        /// Null checks for the Marching Cubes Manager, registers with it, and Initializes it's chunks. 
-        /// </summary>
-        protected virtual void Start() {
-            InitializeVolume();
-        }
+        protected virtual void Start() => InitializeVolume();
 
+        /// <summary>
+        /// Coroutine to spread out over multiple frames.
+        /// </summary>
         public virtual void InitializeVolume() {
-           BaseVolume.RegisterVolume();
+            BaseVolume.RegisterVolume();
             StartCoroutine(InitializeChunks());
         }
-        
-        
 
         /// <summary>
         /// Initializes Chunks one per frame, centered on the Volume's transform
@@ -86,11 +80,13 @@ namespace Spellbound.MarchingCubes {
         protected virtual IEnumerator InitializeChunks() {
             var size = _baseVolume.ConfigBlob.Value.SizeInChunks;
             var offset = new Vector3Int(size.x / 2, size.y / 2, size.z / 2);
+
             for (var x = 0; x < size.x; x++) {
                 for (var y = 0; y < size.y; y++) {
                     for (var z = 0; z < size.z; z++) {
                         var chunkCoord = new Vector3Int(x, y, z) - offset;
                         _baseVolume.CreateChunk<IChunk>(chunkCoord, chunkPrefab);
+
                         yield return null;
                     }
                 }
@@ -110,7 +106,7 @@ namespace Spellbound.MarchingCubes {
         }
 
         /// <summary>
-        /// BaseVolume implements IDisposable to dispose it's BlobAssets. 
+        /// This must be done on ALL IVolume implementers to prevent memory leaks.
         /// </summary>
         protected virtual void OnDestroy() => _baseVolume?.Dispose();
 

@@ -5,19 +5,42 @@ using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
     public interface IVolume {
+        #region Abstract Methods and Properties
+
+        /// <summary>
+        /// Getter Property for Base Volume, which holds the core functionality of a Volume.
+        /// </summary>
         BaseVolume BaseVolume { get; }
+
+        /// <summary>
+        /// Ranges for each Level of Detail and the view distance range where you see it.
+        /// </summary>
         Vector2[] ViewDistanceLodRanges { get; }
 
+        /// <summary>
+        /// Target that the view distances are calculated from. Camera.Main is a good candidate for this.
+        /// </summary>
         Transform LodTarget { get; }
 
+        /// <summary>
+        /// Indication of if the Volume is moving or is capable of moving, or if not. 
+        /// </summary>
         bool IsMoving { get; set; }
 
+        /// <summary>
+        /// Indication of if the Volume is the primary Terrain, making it the default Volume to Query.
+        /// </summary>
         bool IsPrimaryTerrain { get; set; }
 
-        // Default Implementations
-
+        /// <summary>
+        /// Method to kick-off the Volume being an actively managed Marching Cubes Volume.
+        /// </summary>
         void InitializeVolume();
-        
+
+        #endregion
+
+        #region Default Implmentations
+
         Transform VolumeTransform => BaseVolume.Transform;
 
         BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob => BaseVolume.ConfigBlob;
@@ -35,5 +58,7 @@ namespace Spellbound.MarchingCubes {
         IChunk GetChunkByVoxelPosition(Vector3Int voxelPos) => BaseVolume.GetChunkByVoxelPosition(voxelPos);
 
         Vector3Int GetCoordByVoxelPosition(Vector3Int voxelPos) => BaseVolume.GetCoordByVoxelPosition(voxelPos);
+
+        #endregion
     }
 }

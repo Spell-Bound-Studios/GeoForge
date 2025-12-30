@@ -27,9 +27,6 @@ namespace Spellbound.MarchingCubes {
         private bool _isShuttingDown;
         private Transform _objectPoolParent;
 
-        [SerializeField] private bool useColliders = true;
-        public bool UseColliders => useColliders;
-
         private HashSet<byte> _allMaterials;
 
         public HashSet<byte> GetAllMaterials() {
@@ -155,6 +152,12 @@ namespace Spellbound.MarchingCubes {
             while (_objectPool.Count > 0) Destroy(_objectPool.Pop());
         }
 
+        /// <summary>
+        /// Access point for digging/terraforming Marching Cubes Volume(s)
+        /// </summary>
+        /// <param name="terraformAction"></param> Func to return a List of Edits and a Bounds, from an IVolume Param.
+        /// <param name="removableMatTypes"></param> Affected Materials if the Terraform does not affect them all.
+        /// <param name="targetVolume"></param> IVolume if the Terraform affects only one. 
         public void ExecuteTerraform(
             Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction,
             HashSet<byte> removableMatTypes = null,

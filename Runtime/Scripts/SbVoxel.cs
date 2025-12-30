@@ -28,7 +28,7 @@ namespace Spellbound.MarchingCubes {
         public static void RemoveSphere(
             Vector3 position, float radius = 3, int delta = byte.MaxValue, List<byte> materialTypes = null) {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
-                Debug.LogError("MarchingCubesManager not found");
+                Debug.LogError("MarchingCubesManager not found. Ensure it's in the current scene.");
 
                 return;
             }
@@ -42,7 +42,7 @@ namespace Spellbound.MarchingCubes {
         public static void RemoveSphere(
             RaycastHit hit, float radius = 3, int delta = byte.MaxValue, List<byte> materialTypes = null) {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
-                Debug.LogError("MarchingCubesManager not found");
+                Debug.LogError("MarchingCubesManager not found. Ensure it's in the current scene.");
 
                 return;
             }
@@ -57,7 +57,7 @@ namespace Spellbound.MarchingCubes {
         public static void RemoveSphere(
             Collision collision, float radius = 3, int delta = byte.MaxValue, List<byte> materialTypes = null) {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
-                Debug.LogError("MarchingCubesManager not found");
+                Debug.LogError("MarchingCubesManager not found. Ensure it's in the current scene.");
 
                 return;
             }
@@ -73,7 +73,7 @@ namespace Spellbound.MarchingCubes {
         public static void AddSphere(
             Vector3 position, float radius = 3, int delta = byte.MaxValue, byte materialType = byte.MinValue) {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
-                Debug.LogError("MarchingCubesManager not found");
+                Debug.LogError("MarchingCubesManager not found. Ensure it's in the current scene.");
 
                 return;
             }
@@ -86,7 +86,7 @@ namespace Spellbound.MarchingCubes {
         public static void AddSphere(
             RaycastHit hit, float radius = 3, int delta = byte.MaxValue, byte materialType = byte.MinValue) {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
-                Debug.LogError("MarchingCubesManager not found");
+                Debug.LogError("MarchingCubesManager not found. Ensure it's in the current scene.");
 
                 return;
             }
@@ -100,7 +100,7 @@ namespace Spellbound.MarchingCubes {
         public static void AddSphere(
             Collision collision, float radius = 3, int delta = byte.MaxValue, byte materialType = byte.MinValue) {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
-                Debug.LogError("MarchingCubesManager not found");
+                Debug.LogError("MarchingCubesManager not found. Ensure it's in the current scene.");
 
                 return;
             }

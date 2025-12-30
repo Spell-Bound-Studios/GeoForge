@@ -5,7 +5,7 @@ using UnityEditor;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
-    [CreateAssetMenu(fileName = "VoxelMaterialDatabase", menuName = "Voxel/Material Database")]
+    [CreateAssetMenu(menuName = "Spellbound/MarchingCubes/VoxelMaterialDatabase")]
     public class VoxelMaterialDatabase : ScriptableObject {
         [System.Serializable]
         public class MaterialEntry {

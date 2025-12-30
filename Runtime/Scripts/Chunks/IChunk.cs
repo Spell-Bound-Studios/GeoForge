@@ -9,19 +9,38 @@ namespace Spellbound.MarchingCubes {
     /// Defines the contract that a chunk must fulfill to integrate with the Marching Cubes Voxel System.
     /// </summary>
     public interface IChunk {
+        #region Abstract Methods and Properties
+
+        /// <summary>
+        /// Getter Property for Base Chunk, which holds the core functionality of a Chunk.
+        /// </summary>
         BaseChunk BaseChunk { get; }
 
+        /// <summary>
+        /// Contains the smallest and largest Density. Used as a shortcut to read whether a chunk has any mesh at all.
+        /// </summary>
         DensityRange DensityRange => BaseChunk.DensityRange;
+
+        /// <summary>
+        /// Method to kick-off the Chunk being an actively managed Marching Cubes Chunk.
+        /// </summary>
+        /// <param name="voxels"></param> Can be called with voxels, or can generate voxels in the implementation.
+        void InitializeChunk(NativeArray<VoxelData> voxels = default);
+
+        /// <summary>
+        /// Method for Chunk to receive voxel edits.
+        /// </summary>
+        /// <param name="newVoxelEdits"></param>
+        void PassVoxelEdits(List<VoxelEdit> newVoxelEdits);
+
+        #endregion
+
+        #region Default Implementations
 
         Vector3Int ChunkCoord => BaseChunk.ChunkCoord;
 
         Transform Transform => BaseChunk.Transform;
 
-        void InitializeChunk(NativeArray<VoxelData> voxels = default); //polymorphic
-
-        void PassVoxelEdits(List<VoxelEdit> newVoxelEdits); //polymorphic
-
-        // Default Implementations
         VoxelData GetVoxelData(int index) => BaseChunk.GetVoxelData(index);
 
         VoxelData GetVoxelDataFromVoxelPosition(Vector3Int position) =>
@@ -39,5 +58,7 @@ namespace Spellbound.MarchingCubes {
         void OnVolumeMovement() => BaseChunk.OnVolumeMovement();
 
         void SetOverrides(VoxelOverrides overrides) => BaseChunk.SetOverrides(overrides);
+
+        #endregion
     }
 }

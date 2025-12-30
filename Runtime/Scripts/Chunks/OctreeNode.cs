@@ -318,7 +318,7 @@ namespace Spellbound.MarchingCubes {
             if (triangles.Length < 3 || vertices.Length < 3)
                 return;
 
-            if (_mcManager.UseColliders && _leafGo.TryGetComponent<MeshCollider>(out var meshCollider))
+            if (_leafGo.TryGetComponent<MeshCollider>(out var meshCollider))
                 meshCollider.sharedMesh = _mesh;
         }
 

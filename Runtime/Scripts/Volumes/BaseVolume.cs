@@ -39,10 +39,11 @@ namespace Spellbound.MarchingCubes {
 
         public void RegisterVolume() {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
-                Debug.LogError("MarchingCubesManager is null." +  this);
+                Debug.LogError("MarchingCubesManager is null." + this);
 
                 return;
             }
+
             mcManager.RegisterVoxelVolume(_ownerAsIVolume);
         }
 

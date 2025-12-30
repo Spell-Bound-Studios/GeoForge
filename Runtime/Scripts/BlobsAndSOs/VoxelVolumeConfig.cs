@@ -1,5 +1,6 @@
 // Copyright 2025 Spellbound Studio Inc.
 
+using Spellbound.Core;
 using UnityEngine;
 
 namespace Spellbound.MarchingCubes {
@@ -21,8 +22,8 @@ namespace Spellbound.MarchingCubes {
          Range(8, 128)]
         public int maxChunkSize = 128;
 
-        [Tooltip("Actual chunksize, generated from maxChunkSize and Levels of Detail"),
-         SerializeField]
+        [Tooltip("Actual chunk size, generated from maxChunkSize and Levels of Detail"),
+         SerializeField, Immutable]
         private int chunkSize;
 
         public int ChunkSize => chunkSize;
@@ -38,7 +39,7 @@ namespace Spellbound.MarchingCubes {
         public Vector3Int sizeInChunks;
 
         [Tooltip("This dimension is derived from your other settings. Indicates actual size of volume, if its finite."),
-         SerializeField]
+         SerializeField, Immutable]
         private Vector3 volumeSize;
 
         public Vector3 VolumeSize => volumeSize;

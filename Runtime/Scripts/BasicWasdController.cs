@@ -27,6 +27,7 @@ namespace Spellbound.MarchingCubes {
 
 #if ENABLE_INPUT_SYSTEM
             var keyboard = Keyboard.current;
+
             if (keyboard != null) {
                 if (keyboard.digit1Key.isPressed)
                     RaycastTerraformRemove();
@@ -48,11 +49,12 @@ namespace Spellbound.MarchingCubes {
         private void HandleMovement() {
             // --- Movement (WASD) ---
 #if ENABLE_INPUT_SYSTEM
-            
-            float horizontal = 0f;
-            float vertical = 0f;
-    
+
+            var horizontal = 0f;
+            var vertical = 0f;
+
             var keyboard = Keyboard.current;
+
             if (keyboard != null) {
                 if (keyboard.dKey.isPressed) horizontal += 1f;
                 if (keyboard.aKey.isPressed) horizontal -= 1f;
@@ -63,16 +65,17 @@ namespace Spellbound.MarchingCubes {
             float horizontal = Input.GetAxis("Horizontal"); // A/D
             float vertical = Input.GetAxis("Vertical");     // W/S
 #endif
-            
+
             var move = transform.right * horizontal + transform.forward * vertical;
             transform.position += move * (moveSpeed * Time.deltaTime);
 
             // --- Mouse look ---
 #if ENABLE_INPUT_SYSTEM
-            float mouseX = 0f;
-            float mouseY = 0f;
-            
+            var mouseX = 0f;
+            var mouseY = 0f;
+
             var mouse = Mouse.current;
+
             if (mouse != null) {
                 mouseX = mouse.delta.x.ReadValue() * lookSpeed * 0.1f; // Scale down delta
                 mouseY = mouse.delta.y.ReadValue() * lookSpeed * 0.1f;
