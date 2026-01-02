@@ -6,6 +6,8 @@ Shader "Spellbound/SpellboundTerrain"
         _Tiling("Tiling", Float) = 0.05
         [NoScaleOffset]_TerrainAlbedoArray("TerrainAlbedoArray", 2DArray) = "" {}
         [NoScaleOffset]_TerrainMetalSmoothArray("TerrainMetalSmoothArray", 2DArray) = "" {}
+        [NoScaleOffset]_TerrainNormalArray("TerrainNormalArray", 2DArray) = "" {}
+        _Normal_Power("Normal Power", Float) = 0
         [HideInInspector]_QueueOffset("_QueueOffset", Float) = 0
         [HideInInspector]_QueueControl("_QueueControl", Float) = -1
         [HideInInspector][NoScaleOffset]unity_Lightmaps("unity_Lightmaps", 2DArray) = "" {}
@@ -136,7 +138,7 @@ Shader "Spellbound/SpellboundTerrain"
              float4 uv0 : TEXCOORD0;
              float4 uv1 : TEXCOORD1;
              float4 uv2 : TEXCOORD2;
-             nointerpolation float4 color : COLOR;
+             float4 color : COLOR;
             #if UNITY_ANY_INSTANCING_ENABLED || defined(ATTRIBUTES_NEED_INSTANCEID)
              uint instanceID : INSTANCEID_SEMANTIC;
             #endif
@@ -148,7 +150,7 @@ Shader "Spellbound/SpellboundTerrain"
              float3 normalWS;
              float4 tangentWS;
              float4 texCoord0;
-             float4 color;
+             nointerpolation float4 color;
             #if defined(LIGHTMAP_ON)
              float2 staticLightmapUV;
             #endif
@@ -320,6 +322,7 @@ Shader "Spellbound/SpellboundTerrain"
         float _Blend;
         float _Tiling;
         float4x4 _WorldToLocal;
+        float _Normal_Power;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -328,6 +331,8 @@ Shader "Spellbound/SpellboundTerrain"
         SAMPLER(SamplerState_Linear_Repeat);
         TEXTURE2D_ARRAY(_TerrainMetalSmoothArray);
         SAMPLER(sampler_TerrainMetalSmoothArray);
+        TEXTURE2D_ARRAY(_TerrainNormalArray);
+        SAMPLER(sampler_TerrainNormalArray);
         TEXTURE2D_ARRAY(_TerrainAlbedoArray);
         SAMPLER(sampler_TerrainAlbedoArray);
         
@@ -418,6 +423,21 @@ Shader "Spellbound/SpellboundTerrain"
         void Unity_Lerp_float4(float4 A, float4 B, float4 T, out float4 Out)
         {
             Out = lerp(A, B, T);
+        }
+        
+        void Unity_Subtract_float4(float4 A, float4 B, out float4 Out)
+        {
+            Out = A - B;
+        }
+        
+        void Unity_Multiply_float4_float4(float4 A, float4 B, out float4 Out)
+        {
+            Out = A * B;
+        }
+        
+        void Unity_Add_float4(float4 A, float4 B, out float4 Out)
+        {
+            Out = A + B;
         }
         
         // Custom interpolators pre vertex
@@ -536,6 +556,33 @@ Shader "Spellbound/SpellboundTerrain"
             float _SampleTexture2DArray_b02235227cd34d979a73900a505eddf9_A_7_Float = _SampleTexture2DArray_b02235227cd34d979a73900a505eddf9_RGBA_0_Vector4.a;
             float4 _Lerp_6d5efb7386c24058b77436625a1eae4d_Out_3_Vector4;
             Unity_Lerp_float4(_Lerp_290c1d9c4cb64b02b474dd6224995ae1_Out_3_Vector4, _SampleTexture2DArray_b02235227cd34d979a73900a505eddf9_RGBA_0_Vector4, (_Split_3690e7172951494d811295287d62f6a9_B_3_Float.xxxx), _Lerp_6d5efb7386c24058b77436625a1eae4d_Out_3_Vector4);
+            UnityTexture2DArray _Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray = UnityBuildTexture2DArrayStruct(_TerrainNormalArray);
+            float4 _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_RGBA_0_Vector4 = PLATFORM_SAMPLE_TEXTURE2D_ARRAY(_Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray.tex, _Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray.samplerstate, _Swizzle_d64cbb936d3746ca99a954b6a7d1d565_Out_1_Vector2, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float );
+            float _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_R_4_Float = _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_RGBA_0_Vector4.r;
+            float _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_G_5_Float = _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_RGBA_0_Vector4.g;
+            float _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_B_6_Float = _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_RGBA_0_Vector4.b;
+            float _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_A_7_Float = _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_RGBA_0_Vector4.a;
+            float4 _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_RGBA_0_Vector4 = PLATFORM_SAMPLE_TEXTURE2D_ARRAY(_Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray.tex, _Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray.samplerstate, _Swizzle_dd007626d1d740eeaa2a29d9fda70a8c_Out_1_Vector2, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float );
+            float _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_R_4_Float = _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_RGBA_0_Vector4.r;
+            float _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_G_5_Float = _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_RGBA_0_Vector4.g;
+            float _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_B_6_Float = _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_RGBA_0_Vector4.b;
+            float _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_A_7_Float = _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_RGBA_0_Vector4.a;
+            float4 _Lerp_2f0293325fd2459ab54488be09edd1b1_Out_3_Vector4;
+            Unity_Lerp_float4(_SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_RGBA_0_Vector4, _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_RGBA_0_Vector4, (_Split_3690e7172951494d811295287d62f6a9_R_1_Float.xxxx), _Lerp_2f0293325fd2459ab54488be09edd1b1_Out_3_Vector4);
+            float4 _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_RGBA_0_Vector4 = PLATFORM_SAMPLE_TEXTURE2D_ARRAY(_Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray.tex, _Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray.samplerstate, _Swizzle_ee38ded8142641ec85a87b825241a2a1_Out_1_Vector2, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float );
+            float _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_R_4_Float = _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_RGBA_0_Vector4.r;
+            float _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_G_5_Float = _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_RGBA_0_Vector4.g;
+            float _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_B_6_Float = _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_RGBA_0_Vector4.b;
+            float _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_A_7_Float = _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_RGBA_0_Vector4.a;
+            float4 _Lerp_6a7cbbf9d3de4a1fbb98d582330d8efa_Out_3_Vector4;
+            Unity_Lerp_float4(_Lerp_2f0293325fd2459ab54488be09edd1b1_Out_3_Vector4, _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_RGBA_0_Vector4, (_Split_3690e7172951494d811295287d62f6a9_B_3_Float.xxxx), _Lerp_6a7cbbf9d3de4a1fbb98d582330d8efa_Out_3_Vector4);
+            float4 _Subtract_4fd39b463ead4d7fac0468b13e81ddd8_Out_2_Vector4;
+            Unity_Subtract_float4(_Lerp_6a7cbbf9d3de4a1fbb98d582330d8efa_Out_3_Vector4, float4(0.5, 0.5, 0.5, 0.5), _Subtract_4fd39b463ead4d7fac0468b13e81ddd8_Out_2_Vector4);
+            float _Property_b17539c59ddd4a87afbe6c608633be29_Out_0_Float = _Normal_Power;
+            float4 _Multiply_1515bdb9bc774abfb0456db98a0243d2_Out_2_Vector4;
+            Unity_Multiply_float4_float4(_Subtract_4fd39b463ead4d7fac0468b13e81ddd8_Out_2_Vector4, (_Property_b17539c59ddd4a87afbe6c608633be29_Out_0_Float.xxxx), _Multiply_1515bdb9bc774abfb0456db98a0243d2_Out_2_Vector4);
+            float4 _Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4;
+            Unity_Add_float4(_Multiply_1515bdb9bc774abfb0456db98a0243d2_Out_2_Vector4, float4(0.5, 0.5, 0.5, 0.5), _Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4);
             UnityTexture2DArray _Property_8d97dfe317724bcaa11d2f1e85ae95dc_Out_0_Texture2DArray = UnityBuildTexture2DArrayStruct(_TerrainMetalSmoothArray);
             float4 _SampleTexture2DArray_c0ccb36506234fbb9e3d602f86282808_RGBA_0_Vector4 = PLATFORM_SAMPLE_TEXTURE2D_ARRAY(_Property_8d97dfe317724bcaa11d2f1e85ae95dc_Out_0_Texture2DArray.tex, _Property_8d97dfe317724bcaa11d2f1e85ae95dc_Out_0_Texture2DArray.samplerstate, _Swizzle_d64cbb936d3746ca99a954b6a7d1d565_Out_1_Vector2, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float );
             float _SampleTexture2DArray_c0ccb36506234fbb9e3d602f86282808_R_4_Float = _SampleTexture2DArray_c0ccb36506234fbb9e3d602f86282808_RGBA_0_Vector4.r;
@@ -561,10 +608,10 @@ Shader "Spellbound/SpellboundTerrain"
             float _Split_3264dfc20eb84c93971370a089767e2c_B_3_Float = _Lerp_4c419025b66a4f3eac25f921069a9fac_Out_3_Vector4[2];
             float _Split_3264dfc20eb84c93971370a089767e2c_A_4_Float = _Lerp_4c419025b66a4f3eac25f921069a9fac_Out_3_Vector4[3];
             surface.BaseColor = (_Lerp_6d5efb7386c24058b77436625a1eae4d_Out_3_Vector4.xyz);
-            surface.NormalTS = IN.TangentSpaceNormal;
+            surface.NormalTS = (_Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4.xyz);
             surface.Emission = float3(0, 0, 0);
             surface.Metallic = _Split_3264dfc20eb84c93971370a089767e2c_R_1_Float;
-            surface.Smoothness = _Split_3264dfc20eb84c93971370a089767e2c_A_4_Float;
+            surface.Smoothness = _Split_3264dfc20eb84c93971370a089767e2c_B_3_Float;
             surface.Occlusion = _Split_3264dfc20eb84c93971370a089767e2c_G_2_Float;
             return surface;
         }
@@ -944,6 +991,7 @@ Shader "Spellbound/SpellboundTerrain"
         float _Blend;
         float _Tiling;
         float4x4 _WorldToLocal;
+        float _Normal_Power;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -952,6 +1000,8 @@ Shader "Spellbound/SpellboundTerrain"
         SAMPLER(SamplerState_Linear_Repeat);
         TEXTURE2D_ARRAY(_TerrainMetalSmoothArray);
         SAMPLER(sampler_TerrainMetalSmoothArray);
+        TEXTURE2D_ARRAY(_TerrainNormalArray);
+        SAMPLER(sampler_TerrainNormalArray);
         TEXTURE2D_ARRAY(_TerrainAlbedoArray);
         SAMPLER(sampler_TerrainAlbedoArray);
         
@@ -1042,6 +1092,21 @@ Shader "Spellbound/SpellboundTerrain"
         void Unity_Lerp_float4(float4 A, float4 B, float4 T, out float4 Out)
         {
             Out = lerp(A, B, T);
+        }
+        
+        void Unity_Subtract_float4(float4 A, float4 B, out float4 Out)
+        {
+            Out = A - B;
+        }
+        
+        void Unity_Multiply_float4_float4(float4 A, float4 B, out float4 Out)
+        {
+            Out = A * B;
+        }
+        
+        void Unity_Add_float4(float4 A, float4 B, out float4 Out)
+        {
+            Out = A + B;
         }
         
         // Custom interpolators pre vertex
@@ -1160,6 +1225,33 @@ Shader "Spellbound/SpellboundTerrain"
             float _SampleTexture2DArray_b02235227cd34d979a73900a505eddf9_A_7_Float = _SampleTexture2DArray_b02235227cd34d979a73900a505eddf9_RGBA_0_Vector4.a;
             float4 _Lerp_6d5efb7386c24058b77436625a1eae4d_Out_3_Vector4;
             Unity_Lerp_float4(_Lerp_290c1d9c4cb64b02b474dd6224995ae1_Out_3_Vector4, _SampleTexture2DArray_b02235227cd34d979a73900a505eddf9_RGBA_0_Vector4, (_Split_3690e7172951494d811295287d62f6a9_B_3_Float.xxxx), _Lerp_6d5efb7386c24058b77436625a1eae4d_Out_3_Vector4);
+            UnityTexture2DArray _Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray = UnityBuildTexture2DArrayStruct(_TerrainNormalArray);
+            float4 _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_RGBA_0_Vector4 = PLATFORM_SAMPLE_TEXTURE2D_ARRAY(_Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray.tex, _Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray.samplerstate, _Swizzle_d64cbb936d3746ca99a954b6a7d1d565_Out_1_Vector2, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float );
+            float _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_R_4_Float = _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_RGBA_0_Vector4.r;
+            float _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_G_5_Float = _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_RGBA_0_Vector4.g;
+            float _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_B_6_Float = _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_RGBA_0_Vector4.b;
+            float _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_A_7_Float = _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_RGBA_0_Vector4.a;
+            float4 _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_RGBA_0_Vector4 = PLATFORM_SAMPLE_TEXTURE2D_ARRAY(_Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray.tex, _Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray.samplerstate, _Swizzle_dd007626d1d740eeaa2a29d9fda70a8c_Out_1_Vector2, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float );
+            float _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_R_4_Float = _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_RGBA_0_Vector4.r;
+            float _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_G_5_Float = _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_RGBA_0_Vector4.g;
+            float _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_B_6_Float = _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_RGBA_0_Vector4.b;
+            float _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_A_7_Float = _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_RGBA_0_Vector4.a;
+            float4 _Lerp_2f0293325fd2459ab54488be09edd1b1_Out_3_Vector4;
+            Unity_Lerp_float4(_SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_RGBA_0_Vector4, _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_RGBA_0_Vector4, (_Split_3690e7172951494d811295287d62f6a9_R_1_Float.xxxx), _Lerp_2f0293325fd2459ab54488be09edd1b1_Out_3_Vector4);
+            float4 _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_RGBA_0_Vector4 = PLATFORM_SAMPLE_TEXTURE2D_ARRAY(_Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray.tex, _Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray.samplerstate, _Swizzle_ee38ded8142641ec85a87b825241a2a1_Out_1_Vector2, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float );
+            float _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_R_4_Float = _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_RGBA_0_Vector4.r;
+            float _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_G_5_Float = _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_RGBA_0_Vector4.g;
+            float _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_B_6_Float = _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_RGBA_0_Vector4.b;
+            float _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_A_7_Float = _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_RGBA_0_Vector4.a;
+            float4 _Lerp_6a7cbbf9d3de4a1fbb98d582330d8efa_Out_3_Vector4;
+            Unity_Lerp_float4(_Lerp_2f0293325fd2459ab54488be09edd1b1_Out_3_Vector4, _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_RGBA_0_Vector4, (_Split_3690e7172951494d811295287d62f6a9_B_3_Float.xxxx), _Lerp_6a7cbbf9d3de4a1fbb98d582330d8efa_Out_3_Vector4);
+            float4 _Subtract_4fd39b463ead4d7fac0468b13e81ddd8_Out_2_Vector4;
+            Unity_Subtract_float4(_Lerp_6a7cbbf9d3de4a1fbb98d582330d8efa_Out_3_Vector4, float4(0.5, 0.5, 0.5, 0.5), _Subtract_4fd39b463ead4d7fac0468b13e81ddd8_Out_2_Vector4);
+            float _Property_b17539c59ddd4a87afbe6c608633be29_Out_0_Float = _Normal_Power;
+            float4 _Multiply_1515bdb9bc774abfb0456db98a0243d2_Out_2_Vector4;
+            Unity_Multiply_float4_float4(_Subtract_4fd39b463ead4d7fac0468b13e81ddd8_Out_2_Vector4, (_Property_b17539c59ddd4a87afbe6c608633be29_Out_0_Float.xxxx), _Multiply_1515bdb9bc774abfb0456db98a0243d2_Out_2_Vector4);
+            float4 _Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4;
+            Unity_Add_float4(_Multiply_1515bdb9bc774abfb0456db98a0243d2_Out_2_Vector4, float4(0.5, 0.5, 0.5, 0.5), _Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4);
             UnityTexture2DArray _Property_8d97dfe317724bcaa11d2f1e85ae95dc_Out_0_Texture2DArray = UnityBuildTexture2DArrayStruct(_TerrainMetalSmoothArray);
             float4 _SampleTexture2DArray_c0ccb36506234fbb9e3d602f86282808_RGBA_0_Vector4 = PLATFORM_SAMPLE_TEXTURE2D_ARRAY(_Property_8d97dfe317724bcaa11d2f1e85ae95dc_Out_0_Texture2DArray.tex, _Property_8d97dfe317724bcaa11d2f1e85ae95dc_Out_0_Texture2DArray.samplerstate, _Swizzle_d64cbb936d3746ca99a954b6a7d1d565_Out_1_Vector2, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float );
             float _SampleTexture2DArray_c0ccb36506234fbb9e3d602f86282808_R_4_Float = _SampleTexture2DArray_c0ccb36506234fbb9e3d602f86282808_RGBA_0_Vector4.r;
@@ -1185,10 +1277,10 @@ Shader "Spellbound/SpellboundTerrain"
             float _Split_3264dfc20eb84c93971370a089767e2c_B_3_Float = _Lerp_4c419025b66a4f3eac25f921069a9fac_Out_3_Vector4[2];
             float _Split_3264dfc20eb84c93971370a089767e2c_A_4_Float = _Lerp_4c419025b66a4f3eac25f921069a9fac_Out_3_Vector4[3];
             surface.BaseColor = (_Lerp_6d5efb7386c24058b77436625a1eae4d_Out_3_Vector4.xyz);
-            surface.NormalTS = IN.TangentSpaceNormal;
+            surface.NormalTS = (_Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4.xyz);
             surface.Emission = float3(0, 0, 0);
             surface.Metallic = _Split_3264dfc20eb84c93971370a089767e2c_R_1_Float;
-            surface.Smoothness = _Split_3264dfc20eb84c93971370a089767e2c_A_4_Float;
+            surface.Smoothness = _Split_3264dfc20eb84c93971370a089767e2c_B_3_Float;
             surface.Occlusion = _Split_3264dfc20eb84c93971370a089767e2c_G_2_Float;
             return surface;
         }
@@ -1448,6 +1540,7 @@ Shader "Spellbound/SpellboundTerrain"
         float _Blend;
         float _Tiling;
         float4x4 _WorldToLocal;
+        float _Normal_Power;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -1456,6 +1549,8 @@ Shader "Spellbound/SpellboundTerrain"
         SAMPLER(SamplerState_Linear_Repeat);
         TEXTURE2D_ARRAY(_TerrainMetalSmoothArray);
         SAMPLER(sampler_TerrainMetalSmoothArray);
+        TEXTURE2D_ARRAY(_TerrainNormalArray);
+        SAMPLER(sampler_TerrainNormalArray);
         TEXTURE2D_ARRAY(_TerrainAlbedoArray);
         SAMPLER(sampler_TerrainAlbedoArray);
         
@@ -1750,6 +1845,7 @@ Shader "Spellbound/SpellboundTerrain"
         float _Blend;
         float _Tiling;
         float4x4 _WorldToLocal;
+        float _Normal_Power;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -1758,6 +1854,8 @@ Shader "Spellbound/SpellboundTerrain"
         SAMPLER(SamplerState_Linear_Repeat);
         TEXTURE2D_ARRAY(_TerrainMetalSmoothArray);
         SAMPLER(sampler_TerrainMetalSmoothArray);
+        TEXTURE2D_ARRAY(_TerrainNormalArray);
+        SAMPLER(sampler_TerrainNormalArray);
         TEXTURE2D_ARRAY(_TerrainAlbedoArray);
         SAMPLER(sampler_TerrainAlbedoArray);
         
@@ -2053,6 +2151,7 @@ Shader "Spellbound/SpellboundTerrain"
         float _Blend;
         float _Tiling;
         float4x4 _WorldToLocal;
+        float _Normal_Power;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -2061,6 +2160,8 @@ Shader "Spellbound/SpellboundTerrain"
         SAMPLER(SamplerState_Linear_Repeat);
         TEXTURE2D_ARRAY(_TerrainMetalSmoothArray);
         SAMPLER(sampler_TerrainMetalSmoothArray);
+        TEXTURE2D_ARRAY(_TerrainNormalArray);
+        SAMPLER(sampler_TerrainNormalArray);
         TEXTURE2D_ARRAY(_TerrainAlbedoArray);
         SAMPLER(sampler_TerrainAlbedoArray);
         
@@ -2232,11 +2333,16 @@ Shader "Spellbound/SpellboundTerrain"
         #define _NORMAL_DROPOFF_TS 1
         #define ATTRIBUTES_NEED_NORMAL
         #define ATTRIBUTES_NEED_TANGENT
+        #define ATTRIBUTES_NEED_TEXCOORD0
         #define ATTRIBUTES_NEED_TEXCOORD1
+        #define ATTRIBUTES_NEED_COLOR
         #define FEATURES_GRAPH_VERTEX_NORMAL_OUTPUT
         #define FEATURES_GRAPH_VERTEX_TANGENT_OUTPUT
+        #define VARYINGS_NEED_POSITION_WS
         #define VARYINGS_NEED_NORMAL_WS
         #define VARYINGS_NEED_TANGENT_WS
+        #define VARYINGS_NEED_TEXCOORD0
+        #define VARYINGS_NEED_COLOR
         #define FEATURES_GRAPH_VERTEX
         /* WARNING: $splice Could not find named fragment 'PassInstancing' */
         #define SHADERPASS SHADERPASS_DEPTHNORMALS
@@ -2271,7 +2377,9 @@ Shader "Spellbound/SpellboundTerrain"
              float3 positionOS : POSITION;
              float3 normalOS : NORMAL;
              float4 tangentOS : TANGENT;
+             float4 uv0 : TEXCOORD0;
              float4 uv1 : TEXCOORD1;
+             float4 color : COLOR;
             #if UNITY_ANY_INSTANCING_ENABLED || defined(ATTRIBUTES_NEED_INSTANCEID)
              uint instanceID : INSTANCEID_SEMANTIC;
             #endif
@@ -2279,8 +2387,11 @@ Shader "Spellbound/SpellboundTerrain"
         struct Varyings
         {
              float4 positionCS : SV_POSITION;
+             float3 positionWS;
              float3 normalWS;
              float4 tangentWS;
+             float4 texCoord0;
+             float4 color;
             #if UNITY_ANY_INSTANCING_ENABLED || defined(VARYINGS_NEED_INSTANCEID)
              uint instanceID : CUSTOM_INSTANCE_ID;
             #endif
@@ -2296,7 +2407,11 @@ Shader "Spellbound/SpellboundTerrain"
         };
         struct SurfaceDescriptionInputs
         {
+             float3 WorldSpaceNormal;
              float3 TangentSpaceNormal;
+             float3 WorldSpacePosition;
+             float4 uv0;
+             float4 VertexColor;
         };
         struct VertexDescriptionInputs
         {
@@ -2308,7 +2423,10 @@ Shader "Spellbound/SpellboundTerrain"
         {
              float4 positionCS : SV_POSITION;
              float4 tangentWS : INTERP0;
-             float3 normalWS : INTERP1;
+             float4 texCoord0 : INTERP1;
+             float4 color : INTERP2;
+             float3 positionWS : INTERP3;
+             float3 normalWS : INTERP4;
             #if UNITY_ANY_INSTANCING_ENABLED || defined(VARYINGS_NEED_INSTANCEID)
              uint instanceID : CUSTOM_INSTANCE_ID;
             #endif
@@ -2329,6 +2447,9 @@ Shader "Spellbound/SpellboundTerrain"
             ZERO_INITIALIZE(PackedVaryings, output);
             output.positionCS = input.positionCS;
             output.tangentWS.xyzw = input.tangentWS;
+            output.texCoord0.xyzw = input.texCoord0;
+            output.color.xyzw = input.color;
+            output.positionWS.xyz = input.positionWS;
             output.normalWS.xyz = input.normalWS;
             #if UNITY_ANY_INSTANCING_ENABLED || defined(VARYINGS_NEED_INSTANCEID)
             output.instanceID = input.instanceID;
@@ -2350,6 +2471,9 @@ Shader "Spellbound/SpellboundTerrain"
             Varyings output;
             output.positionCS = input.positionCS;
             output.tangentWS = input.tangentWS.xyzw;
+            output.texCoord0 = input.texCoord0.xyzw;
+            output.color = input.color.xyzw;
+            output.positionWS = input.positionWS.xyz;
             output.normalWS = input.normalWS.xyz;
             #if UNITY_ANY_INSTANCING_ENABLED || defined(VARYINGS_NEED_INSTANCEID)
             output.instanceID = input.instanceID;
@@ -2375,6 +2499,7 @@ Shader "Spellbound/SpellboundTerrain"
         float _Blend;
         float _Tiling;
         float4x4 _WorldToLocal;
+        float _Normal_Power;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -2383,6 +2508,8 @@ Shader "Spellbound/SpellboundTerrain"
         SAMPLER(SamplerState_Linear_Repeat);
         TEXTURE2D_ARRAY(_TerrainMetalSmoothArray);
         SAMPLER(sampler_TerrainMetalSmoothArray);
+        TEXTURE2D_ARRAY(_TerrainNormalArray);
+        SAMPLER(sampler_TerrainNormalArray);
         TEXTURE2D_ARRAY(_TerrainAlbedoArray);
         SAMPLER(sampler_TerrainAlbedoArray);
         
@@ -2401,7 +2528,94 @@ Shader "Spellbound/SpellboundTerrain"
         #endif
         
         // Graph Functions
-        // GraphFunctions: <None>
+        
+        void Unity_Subtract_float(float A, float B, out float Out)
+        {
+            Out = A - B;
+        }
+        
+        void Unity_Absolute_float(float In, out float Out)
+        {
+            Out = abs(In);
+        }
+        
+        void Unity_Comparison_LessOrEqual_float(float A, float B, out float Out)
+        {
+            Out = A <= B ? 1 : 0;
+        }
+        
+        void Unity_Multiply_float_float(float A, float B, out float Out)
+        {
+            Out = A * B;
+        }
+        
+        void Unity_Round_float(float In, out float Out)
+        {
+            Out = round(In);
+        }
+        
+        void Unity_Branch_float(float Predicate, float True, float False, out float Out)
+        {
+            Out = Predicate ? True : False;
+        }
+        
+        // unity-custom-func-begin
+        void TransformPositionToVolumeSpace_float(float3 worldPos, float4x4 worldToLocal, out float3 volumeLocalPos){
+            volumeLocalPos = mul(worldToLocal, float4(worldPos, 1.0)).xyz;
+        }
+        // unity-custom-func-end
+        
+        void Unity_Multiply_float3_float3(float3 A, float3 B, out float3 Out)
+        {
+            Out = A * B;
+        }
+        
+        // unity-custom-func-begin
+        void TransformNormal_float(float3 worldNormal, float4x4 worldToLocal, out float3 volumeLocalNormal){
+            volumeLocalNormal = mul((float3x3)worldToLocal, worldNormal);
+            volumeLocalNormal = normalize(volumeLocalNormal);
+        }
+        // unity-custom-func-end
+        
+        void Unity_Absolute_float3(float3 In, out float3 Out)
+        {
+            Out = abs(In);
+        }
+        
+        void Unity_Power_float3(float3 A, float3 B, out float3 Out)
+        {
+            Out = pow(A, B);
+        }
+        
+        void Unity_DotProduct_float3(float3 A, float3 B, out float Out)
+        {
+            Out = dot(A, B);
+        }
+        
+        void Unity_Divide_float3(float3 A, float3 B, out float3 Out)
+        {
+            Out = A / B;
+        }
+        
+        void Unity_Lerp_float4(float4 A, float4 B, float4 T, out float4 Out)
+        {
+            Out = lerp(A, B, T);
+        }
+        
+        void Unity_Subtract_float4(float4 A, float4 B, out float4 Out)
+        {
+            Out = A - B;
+        }
+        
+        void Unity_Multiply_float4_float4(float4 A, float4 B, out float4 Out)
+        {
+            Out = A * B;
+        }
+        
+        void Unity_Add_float4(float4 A, float4 B, out float4 Out)
+        {
+            Out = A + B;
+        }
         
         // Custom interpolators pre vertex
         /* WARNING: $splice Could not find named fragment 'CustomInterpolatorPreVertex' */
@@ -2441,7 +2655,87 @@ Shader "Spellbound/SpellboundTerrain"
         SurfaceDescription SurfaceDescriptionFunction(SurfaceDescriptionInputs IN)
         {
             SurfaceDescription surface = (SurfaceDescription)0;
-            surface.NormalTS = IN.TangentSpaceNormal;
+            UnityTexture2DArray _Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray = UnityBuildTexture2DArrayStruct(_TerrainNormalArray);
+            float4 _UV_d9d0b1f921d04d9792208331091bd732_Out_0_Vector4 = IN.uv0;
+            float _Split_44d5bfe0ca154fe3b46e89dbc335a256_R_1_Float = _UV_d9d0b1f921d04d9792208331091bd732_Out_0_Vector4[0];
+            float _Split_44d5bfe0ca154fe3b46e89dbc335a256_G_2_Float = _UV_d9d0b1f921d04d9792208331091bd732_Out_0_Vector4[1];
+            float _Split_44d5bfe0ca154fe3b46e89dbc335a256_B_3_Float = _UV_d9d0b1f921d04d9792208331091bd732_Out_0_Vector4[2];
+            float _Split_44d5bfe0ca154fe3b46e89dbc335a256_A_4_Float = _UV_d9d0b1f921d04d9792208331091bd732_Out_0_Vector4[3];
+            float _Split_a8d1957c8fd4453686400eb31d654258_R_1_Float = IN.VertexColor[0];
+            float _Split_a8d1957c8fd4453686400eb31d654258_G_2_Float = IN.VertexColor[1];
+            float _Split_a8d1957c8fd4453686400eb31d654258_B_3_Float = IN.VertexColor[2];
+            float _Split_a8d1957c8fd4453686400eb31d654258_A_4_Float = IN.VertexColor[3];
+            float _Subtract_2d11b71bee934370b68fedc83062af7e_Out_2_Float;
+            Unity_Subtract_float(_Split_44d5bfe0ca154fe3b46e89dbc335a256_R_1_Float, _Split_a8d1957c8fd4453686400eb31d654258_R_1_Float, _Subtract_2d11b71bee934370b68fedc83062af7e_Out_2_Float);
+            float _Absolute_201e9339a486444b849796a03e1085f3_Out_1_Float;
+            Unity_Absolute_float(_Subtract_2d11b71bee934370b68fedc83062af7e_Out_2_Float, _Absolute_201e9339a486444b849796a03e1085f3_Out_1_Float);
+            float _Subtract_1317ae32cdf64a53ac6acfb00bf394c4_Out_2_Float;
+            Unity_Subtract_float(_Split_44d5bfe0ca154fe3b46e89dbc335a256_R_1_Float, _Split_a8d1957c8fd4453686400eb31d654258_G_2_Float, _Subtract_1317ae32cdf64a53ac6acfb00bf394c4_Out_2_Float);
+            float _Absolute_dd7198872cab446885ba9ea2a0b1eefa_Out_1_Float;
+            Unity_Absolute_float(_Subtract_1317ae32cdf64a53ac6acfb00bf394c4_Out_2_Float, _Absolute_dd7198872cab446885ba9ea2a0b1eefa_Out_1_Float);
+            float _Comparison_cedabaa9c3fa472296e82dafee96b6a2_Out_2_Boolean;
+            Unity_Comparison_LessOrEqual_float(_Absolute_201e9339a486444b849796a03e1085f3_Out_1_Float, _Absolute_dd7198872cab446885ba9ea2a0b1eefa_Out_1_Float, _Comparison_cedabaa9c3fa472296e82dafee96b6a2_Out_2_Boolean);
+            float _Multiply_0dbcd82b874041a4bed71fffb0423120_Out_2_Float;
+            Unity_Multiply_float_float(_Split_a8d1957c8fd4453686400eb31d654258_R_1_Float, 255, _Multiply_0dbcd82b874041a4bed71fffb0423120_Out_2_Float);
+            float _Round_0accd3a9f0504274b58d72d2bf205c87_Out_1_Float;
+            Unity_Round_float(_Multiply_0dbcd82b874041a4bed71fffb0423120_Out_2_Float, _Round_0accd3a9f0504274b58d72d2bf205c87_Out_1_Float);
+            float _Multiply_7d0c35813a68494b88bbf756e8a19f42_Out_2_Float;
+            Unity_Multiply_float_float(_Split_a8d1957c8fd4453686400eb31d654258_G_2_Float, 255, _Multiply_7d0c35813a68494b88bbf756e8a19f42_Out_2_Float);
+            float _Round_66945dc35e3f42388503a0ba244e34ea_Out_1_Float;
+            Unity_Round_float(_Multiply_7d0c35813a68494b88bbf756e8a19f42_Out_2_Float, _Round_66945dc35e3f42388503a0ba244e34ea_Out_1_Float);
+            float _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float;
+            Unity_Branch_float(_Comparison_cedabaa9c3fa472296e82dafee96b6a2_Out_2_Boolean, _Round_0accd3a9f0504274b58d72d2bf205c87_Out_1_Float, _Round_66945dc35e3f42388503a0ba244e34ea_Out_1_Float, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float);
+            float4x4 _Property_afc06409f24c43289f65687b68236683_Out_0_Matrix4 = _WorldToLocal;
+            float3 _TransformPositionToVolumeSpaceCustomFunction_00d16ccb3994440289608bddd4d489b7_volumeLocalPos_2_Vector3;
+            TransformPositionToVolumeSpace_float(IN.WorldSpacePosition, _Property_afc06409f24c43289f65687b68236683_Out_0_Matrix4, _TransformPositionToVolumeSpaceCustomFunction_00d16ccb3994440289608bddd4d489b7_volumeLocalPos_2_Vector3);
+            float _Property_f87d2573603e417eaf85659e4ec6023a_Out_0_Float = _Tiling;
+            float3 _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3;
+            Unity_Multiply_float3_float3(_TransformPositionToVolumeSpaceCustomFunction_00d16ccb3994440289608bddd4d489b7_volumeLocalPos_2_Vector3, (_Property_f87d2573603e417eaf85659e4ec6023a_Out_0_Float.xxx), _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3);
+            float2 _Swizzle_d64cbb936d3746ca99a954b6a7d1d565_Out_1_Vector2 = _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3.xz;
+            float4 _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_RGBA_0_Vector4 = PLATFORM_SAMPLE_TEXTURE2D_ARRAY(_Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray.tex, _Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray.samplerstate, _Swizzle_d64cbb936d3746ca99a954b6a7d1d565_Out_1_Vector2, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float );
+            float _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_R_4_Float = _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_RGBA_0_Vector4.r;
+            float _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_G_5_Float = _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_RGBA_0_Vector4.g;
+            float _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_B_6_Float = _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_RGBA_0_Vector4.b;
+            float _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_A_7_Float = _SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_RGBA_0_Vector4.a;
+            float2 _Swizzle_dd007626d1d740eeaa2a29d9fda70a8c_Out_1_Vector2 = _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3.yz;
+            float4 _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_RGBA_0_Vector4 = PLATFORM_SAMPLE_TEXTURE2D_ARRAY(_Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray.tex, _Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray.samplerstate, _Swizzle_dd007626d1d740eeaa2a29d9fda70a8c_Out_1_Vector2, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float );
+            float _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_R_4_Float = _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_RGBA_0_Vector4.r;
+            float _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_G_5_Float = _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_RGBA_0_Vector4.g;
+            float _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_B_6_Float = _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_RGBA_0_Vector4.b;
+            float _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_A_7_Float = _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_RGBA_0_Vector4.a;
+            float3 _TransformNormalCustomFunction_9d661e2462a641f5b517a83e82bd22cf_volumeLocalNormal_2_Vector3;
+            TransformNormal_float(IN.WorldSpaceNormal, _Property_afc06409f24c43289f65687b68236683_Out_0_Matrix4, _TransformNormalCustomFunction_9d661e2462a641f5b517a83e82bd22cf_volumeLocalNormal_2_Vector3);
+            float3 _Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3;
+            Unity_Absolute_float3(_TransformNormalCustomFunction_9d661e2462a641f5b517a83e82bd22cf_volumeLocalNormal_2_Vector3, _Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3);
+            float _Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float = _Blend;
+            float3 _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3;
+            Unity_Power_float3(_Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3, (_Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float.xxx), _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3);
+            float _DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float;
+            Unity_DotProduct_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, float3(1, 1, 1), _DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float);
+            float3 _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3;
+            Unity_Divide_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, (_DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float.xxx), _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3);
+            float _Split_3690e7172951494d811295287d62f6a9_R_1_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[0];
+            float _Split_3690e7172951494d811295287d62f6a9_G_2_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[1];
+            float _Split_3690e7172951494d811295287d62f6a9_B_3_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[2];
+            float _Split_3690e7172951494d811295287d62f6a9_A_4_Float = 0;
+            float4 _Lerp_2f0293325fd2459ab54488be09edd1b1_Out_3_Vector4;
+            Unity_Lerp_float4(_SampleTexture2DArray_d97d121eaef7432aa43b627f22725a89_RGBA_0_Vector4, _SampleTexture2DArray_f5e49bcc545c490abc51dea18fdbf92e_RGBA_0_Vector4, (_Split_3690e7172951494d811295287d62f6a9_R_1_Float.xxxx), _Lerp_2f0293325fd2459ab54488be09edd1b1_Out_3_Vector4);
+            float2 _Swizzle_ee38ded8142641ec85a87b825241a2a1_Out_1_Vector2 = _Multiply_78100c177a1d48e1976fc70c31b63407_Out_2_Vector3.xy;
+            float4 _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_RGBA_0_Vector4 = PLATFORM_SAMPLE_TEXTURE2D_ARRAY(_Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray.tex, _Property_33d3996171e343349b69919f1c8accf5_Out_0_Texture2DArray.samplerstate, _Swizzle_ee38ded8142641ec85a87b825241a2a1_Out_1_Vector2, _Branch_61526934108c4936984ce0f31f1f2e14_Out_3_Float );
+            float _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_R_4_Float = _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_RGBA_0_Vector4.r;
+            float _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_G_5_Float = _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_RGBA_0_Vector4.g;
+            float _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_B_6_Float = _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_RGBA_0_Vector4.b;
+            float _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_A_7_Float = _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_RGBA_0_Vector4.a;
+            float4 _Lerp_6a7cbbf9d3de4a1fbb98d582330d8efa_Out_3_Vector4;
+            Unity_Lerp_float4(_Lerp_2f0293325fd2459ab54488be09edd1b1_Out_3_Vector4, _SampleTexture2DArray_58868a65f81642049e0d81cf7d509960_RGBA_0_Vector4, (_Split_3690e7172951494d811295287d62f6a9_B_3_Float.xxxx), _Lerp_6a7cbbf9d3de4a1fbb98d582330d8efa_Out_3_Vector4);
+            float4 _Subtract_4fd39b463ead4d7fac0468b13e81ddd8_Out_2_Vector4;
+            Unity_Subtract_float4(_Lerp_6a7cbbf9d3de4a1fbb98d582330d8efa_Out_3_Vector4, float4(0.5, 0.5, 0.5, 0.5), _Subtract_4fd39b463ead4d7fac0468b13e81ddd8_Out_2_Vector4);
+            float _Property_b17539c59ddd4a87afbe6c608633be29_Out_0_Float = _Normal_Power;
+            float4 _Multiply_1515bdb9bc774abfb0456db98a0243d2_Out_2_Vector4;
+            Unity_Multiply_float4_float4(_Subtract_4fd39b463ead4d7fac0468b13e81ddd8_Out_2_Vector4, (_Property_b17539c59ddd4a87afbe6c608633be29_Out_0_Float.xxxx), _Multiply_1515bdb9bc774abfb0456db98a0243d2_Out_2_Vector4);
+            float4 _Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4;
+            Unity_Add_float4(_Multiply_1515bdb9bc774abfb0456db98a0243d2_Out_2_Vector4, float4(0.5, 0.5, 0.5, 0.5), _Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4);
+            surface.NormalTS = (_Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4.xyz);
             return surface;
         }
         
@@ -2482,17 +2776,24 @@ Shader "Spellbound/SpellboundTerrain"
         
             
         
+            // must use interpolated tangent, bitangent and normal before they are normalized in the pixel shader.
+            float3 unnormalizedNormalWS = input.normalWS;
+            const float renormFactor = 1.0 / length(unnormalizedNormalWS);
         
         
+            output.WorldSpaceNormal = renormFactor * input.normalWS.xyz;      // we want a unit length Normal Vector node in shader graph
             output.TangentSpaceNormal = float3(0.0f, 0.0f, 1.0f);
         
         
+            output.WorldSpacePosition = input.positionWS;
         
             #if UNITY_UV_STARTS_AT_TOP
             #else
             #endif
         
         
+            output.uv0 = input.texCoord0;
+            output.VertexColor = input.color;
         #if UNITY_ANY_INSTANCING_ENABLED
         #else // TODO: XR support for procedural instancing because in this case UNITY_ANY_INSTANCING_ENABLED is not defined and instanceID is incorrect.
         #endif
@@ -2727,6 +3028,7 @@ Shader "Spellbound/SpellboundTerrain"
         float _Blend;
         float _Tiling;
         float4x4 _WorldToLocal;
+        float _Normal_Power;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -2735,6 +3037,8 @@ Shader "Spellbound/SpellboundTerrain"
         SAMPLER(SamplerState_Linear_Repeat);
         TEXTURE2D_ARRAY(_TerrainMetalSmoothArray);
         SAMPLER(sampler_TerrainMetalSmoothArray);
+        TEXTURE2D_ARRAY(_TerrainNormalArray);
+        SAMPLER(sampler_TerrainNormalArray);
         TEXTURE2D_ARRAY(_TerrainAlbedoArray);
         SAMPLER(sampler_TerrainAlbedoArray);
         
@@ -3190,6 +3494,7 @@ Shader "Spellbound/SpellboundTerrain"
         float _Blend;
         float _Tiling;
         float4x4 _WorldToLocal;
+        float _Normal_Power;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -3198,6 +3503,8 @@ Shader "Spellbound/SpellboundTerrain"
         SAMPLER(SamplerState_Linear_Repeat);
         TEXTURE2D_ARRAY(_TerrainMetalSmoothArray);
         SAMPLER(sampler_TerrainMetalSmoothArray);
+        TEXTURE2D_ARRAY(_TerrainNormalArray);
+        SAMPLER(sampler_TerrainNormalArray);
         TEXTURE2D_ARRAY(_TerrainAlbedoArray);
         SAMPLER(sampler_TerrainAlbedoArray);
         
@@ -3525,6 +3832,7 @@ Shader "Spellbound/SpellboundTerrain"
         float _Blend;
         float _Tiling;
         float4x4 _WorldToLocal;
+        float _Normal_Power;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -3533,6 +3841,8 @@ Shader "Spellbound/SpellboundTerrain"
         SAMPLER(SamplerState_Linear_Repeat);
         TEXTURE2D_ARRAY(_TerrainMetalSmoothArray);
         SAMPLER(sampler_TerrainMetalSmoothArray);
+        TEXTURE2D_ARRAY(_TerrainNormalArray);
+        SAMPLER(sampler_TerrainNormalArray);
         TEXTURE2D_ARRAY(_TerrainAlbedoArray);
         SAMPLER(sampler_TerrainAlbedoArray);
         
@@ -4014,6 +4324,7 @@ Shader "Spellbound/SpellboundTerrain"
         float _Blend;
         float _Tiling;
         float4x4 _WorldToLocal;
+        float _Normal_Power;
         UNITY_TEXTURE_STREAMING_DEBUG_VARS;
         CBUFFER_END
         
@@ -4022,6 +4333,8 @@ Shader "Spellbound/SpellboundTerrain"
         SAMPLER(SamplerState_Linear_Repeat);
         TEXTURE2D_ARRAY(_TerrainMetalSmoothArray);
         SAMPLER(sampler_TerrainMetalSmoothArray);
+        TEXTURE2D_ARRAY(_TerrainNormalArray);
+        SAMPLER(sampler_TerrainNormalArray);
         TEXTURE2D_ARRAY(_TerrainAlbedoArray);
         SAMPLER(sampler_TerrainAlbedoArray);
         

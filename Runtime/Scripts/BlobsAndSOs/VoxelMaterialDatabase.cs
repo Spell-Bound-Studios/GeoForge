@@ -14,6 +14,9 @@ namespace Spellbound.MarchingCubes {
 
             [Tooltip("Metallic (R), AO (G), Smoothness (B) packed texture")]
             public Texture2D masTexture;
+            
+            [Tooltip("Normal map texture")]
+            public Texture2D normalTexture;
 
             public MaterialEntry(string name = "New Material") {
                 materialName = name;
@@ -22,21 +25,26 @@ namespace Spellbound.MarchingCubes {
 
         [Header("Material Definitions")] public List<MaterialEntry> materials = new();
 
-        [Header("Generated Assets")] public Texture2DArray albedoTextureArray;
+        [Header("Generated Assets")] 
+        public Texture2DArray albedoTextureArray;
         public Texture2DArray masTextureArray;
+        public Texture2DArray normalTextureArray;
 
-        [Header("Texture Array Settings")] public bool generateMipmaps = true;
+        [Header("Texture Array Settings")] 
+        public bool generateMipmaps = true;
         public FilterMode filterMode = FilterMode.Trilinear;
         public int anisoLevel = 8;
 
-        [Header("Texture Type Settings")] public bool albedoIsLinear = false;
+        [Header("Texture Type Settings")] 
+        public bool albedoIsLinear = false;
         public bool masIsLinear = true; // MAS should typically be linear
+        public bool normalIsLinear = true; // Normal maps should be linear
 
         // Runtime lookup cache
         private Dictionary<string, byte> _nameToIndex;
 
         /// <summary>
-        /// Get the material index by name. Returns -1 if not found.
+        /// Get the material index by name. Returns 255 if not found.
         /// </summary>
         public byte GetMaterialIndex(string materialName) {
             // Build cache on first access
@@ -94,15 +102,16 @@ namespace Spellbound.MarchingCubes {
         public void BuildTextureArrays() {
             if (materials == null || materials.Count == 0) {
                 Debug.LogError("No materials defined!");
-
                 return;
             }
 
             // Validate and collect textures
             var validAlbedoTextures = new List<Texture2D>();
             var validMasTextures = new List<Texture2D>();
+            var validNormalTextures = new List<Texture2D>();
             var missingAlbedoNames = new List<string>();
             var missingMasNames = new List<string>();
+            var missingNormalNames = new List<string>();
 
             for (var i = 0; i < materials.Count; i++) {
                 if (materials[i].albedoTexture == null)
@@ -114,21 +123,29 @@ namespace Spellbound.MarchingCubes {
                     missingMasNames.Add(materials[i].materialName);
                 else
                     validMasTextures.Add(materials[i].masTexture);
+                
+                if (materials[i].normalTexture == null)
+                    missingNormalNames.Add(materials[i].materialName);
+                else
+                    validNormalTextures.Add(materials[i].normalTexture);
             }
 
             if (missingAlbedoNames.Count > 0) {
                 Debug.LogError($"Missing albedo textures for materials: {string.Join(", ", missingAlbedoNames)}");
-
                 return;
             }
 
             if (missingMasNames.Count > 0) {
                 Debug.LogError($"Missing MAS textures for materials: {string.Join(", ", missingMasNames)}");
-
+                return;
+            }
+            
+            if (missingNormalNames.Count > 0) {
+                Debug.LogError($"Missing normal textures for materials: {string.Join(", ", missingNormalNames)}");
                 return;
             }
 
-            // Build albedo texture array
+            // Build all three texture arrays
             BuildTextureArray(
                 ref albedoTextureArray,
                 validAlbedoTextures,
@@ -136,12 +153,18 @@ namespace Spellbound.MarchingCubes {
                 albedoIsLinear
             );
 
-            // Build MAS texture array
             BuildTextureArray(
                 ref masTextureArray,
                 validMasTextures,
                 "MASArray",
                 masIsLinear
+            );
+            
+            BuildTextureArray(
+                ref normalTextureArray,
+                validNormalTextures,
+                "NormalArray",
+                normalIsLinear
             );
 
             EditorUtility.SetDirty(this);
@@ -155,7 +178,6 @@ namespace Spellbound.MarchingCubes {
             ref Texture2DArray textureArray, List<Texture2D> sourceTextures, string arrayName, bool isLinear) {
             if (sourceTextures.Count == 0) {
                 Debug.LogError($"No valid textures found for {arrayName}!");
-
                 return;
             }
 
@@ -175,7 +197,6 @@ namespace Spellbound.MarchingCubes {
                 if (sourceTextures[i].width != width || sourceTextures[i].height != height) {
                     Debug.LogError(
                         $"Material '{materials[i].materialName}' texture has different dimensions! All textures must be {width}x{height}");
-
                     return;
                 }
 
