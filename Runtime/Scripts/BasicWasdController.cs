@@ -8,23 +8,31 @@ using UnityEngine.InputSystem;
 
 namespace Spellbound.MarchingCubes {
     /// <summary>
-    /// Controller for Demo'ing MarchingCubes package.
+    /// Very basic controller for demonstrating some package functionality without downloading any samples. 
     /// Not recommended as a real controller.
     /// </summary>
     public class BasicWasdController : MonoBehaviour {
-        public float moveSpeed = 5f;
-        public float lookSpeed = 2f;
+        
+        // Movement fields
+        [SerializeField] private float moveSpeed = 5f;
+        [SerializeField] private float lookSpeed = 2f;
+        private float _pitch = 0f;
 
-        private float pitch = 0f;
-
+        // Marching Cubes fields
         [SerializeField] private List<byte> conditionalDigList = new();
         [SerializeField] private byte addableMaterial = 3;
-
+        
         private void Start() => Cursor.lockState = CursorLockMode.Locked;
 
         private void Update() {
             HandleMovement();
+            HandleTerraforming();
+        }
 
+        /// <summary>
+        /// Reads inputs for Terraforming. Uses legacy input system if the regular input system is not installed.
+        /// </summary>
+        private void HandleTerraforming() {
 #if ENABLE_INPUT_SYSTEM
             var keyboard = Keyboard.current;
 
@@ -33,26 +41,22 @@ namespace Spellbound.MarchingCubes {
                     RaycastTerraformRemove();
                 else if (keyboard.digit2Key.wasPressedThisFrame)
                     RaycastTerraformAdd();
-                else if (keyboard.digit3Key.wasPressedThisFrame)
-                    RaycastTerraformRemoveAll();
             }
 #else
             if (Input.GetKey(KeyCode.Alpha1))
                 RaycastTerraformRemove();
             else if (Input.GetKeyDown(KeyCode.Alpha2))
                 RaycastTerraformAdd();
-            else if (Input.GetKeyDown(KeyCode.Alpha3))
-                RaycastTerraformRemoveAll();
 #endif
         }
-
+        
+        /// <summary>
+        /// Reads inputs for Movement. Uses legacy input system if the regular input system is not installed.
+        /// </summary>
         private void HandleMovement() {
-            // --- Movement (WASD) ---
 #if ENABLE_INPUT_SYSTEM
-
             var horizontal = 0f;
             var vertical = 0f;
-
             var keyboard = Keyboard.current;
 
             if (keyboard != null) {
@@ -69,15 +73,13 @@ namespace Spellbound.MarchingCubes {
             var move = transform.right * horizontal + transform.forward * vertical;
             transform.position += move * (moveSpeed * Time.deltaTime);
 
-            // --- Mouse look ---
 #if ENABLE_INPUT_SYSTEM
             var mouseX = 0f;
             var mouseY = 0f;
-
             var mouse = Mouse.current;
 
             if (mouse != null) {
-                mouseX = mouse.delta.x.ReadValue() * lookSpeed * 0.1f; // Scale down delta
+                mouseX = mouse.delta.x.ReadValue() * lookSpeed * 0.1f;
                 mouseY = mouse.delta.y.ReadValue() * lookSpeed * 0.1f;
             }
 #else
@@ -85,12 +87,15 @@ namespace Spellbound.MarchingCubes {
             var mouseY = Input.GetAxis("Mouse Y") * lookSpeed;
 #endif
 
-            pitch -= mouseY;
-            pitch = Mathf.Clamp(pitch, -80f, 80f);
+            _pitch -= mouseY;
+            _pitch = Mathf.Clamp(_pitch, -80f, 80f);
 
-            transform.localRotation = Quaternion.Euler(pitch, transform.localEulerAngles.y + mouseX, 0f);
+            transform.localRotation = Quaternion.Euler(_pitch, transform.localEulerAngles.y + mouseX, 0f);
         }
 
+        /// <summary>
+        /// Raycasts and Terraforms Remove at the hit location.
+        /// </summary>
         private void RaycastTerraformRemove() {
             if (Physics.Raycast(
                     transform.position,
@@ -98,9 +103,12 @@ namespace Spellbound.MarchingCubes {
                     out var hit,
                     float.MaxValue,
                     ~0))
-                SbVoxel.RemoveSphere(hit.point);
+                SbVoxel.RemoveSphere(hit, transform.forward, 3,byte.MaxValue, conditionalDigList);
         }
 
+        /// <summary>
+        /// Raycasts and Terraforms Add at the hit location.
+        /// </summary>
         private void RaycastTerraformAdd() {
             if (Physics.Raycast(
                     transform.position,
@@ -108,17 +116,7 @@ namespace Spellbound.MarchingCubes {
                     out var hit,
                     float.MaxValue,
                     ~0))
-                SbVoxel.AddSphere(hit, 3, byte.MaxValue, addableMaterial);
-        }
-
-        private void RaycastTerraformRemoveAll() {
-            if (Physics.Raycast(
-                    transform.position,
-                    transform.forward,
-                    out var hit,
-                    float.MaxValue,
-                    ~0))
-                SbVoxel.RemoveSphere(hit.point, 3, byte.MaxValue, conditionalDigList);
+                SbVoxel.AddSphere(hit, transform.forward,3, byte.MaxValue, addableMaterial);
         }
     }
 }

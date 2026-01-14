@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 24cf1f274a851c949930b71f1eb56fef, type: 3}
+  m_Name: SampleOneData
+  m_EditorClassIdentifier: 
+  offset: {x: 0, y: 0, z: 0}
+  sdfGradientSteepness: 32
+  materialIndex: 0
+  shape: 0
+  size: 16
+  normalizedSize: 0
+  invertShape: 0

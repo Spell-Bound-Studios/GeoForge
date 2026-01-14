@@ -1,6 +1,6 @@
 {
   "name": "com.spellboundstudios.marchingcubes",
-  "version": "0.0.12",
+  "version": "0.0.13",
   "displayName": "Spellbound.MarchingCubes",
   "description": "This is a marching cube library for generating and managing octree meshes deriving from density voxel data.",
   "unity": "6000.0",
@@ -24,9 +24,14 @@
   ],
   "samples": [
     {
-      "displayName": "Shared Assets",
-      "description": "Common materials, textures, and prefabs used across multiple samples. Import this first.",
-      "path": "Samples~/SharedAssets"
+      "displayName": "Supplimentary Assets",
+      "description": "Additional Assets, including the Shadergraph from which the Material Shader was generated",
+      "path": "Samples~/SupplimentaryAssets"
+    },
+    {
+      "displayName": "Digging A Hole",
+      "description": "Sample Scene for digging a large and very deep hole.",
+      "path": "Samples~/DiggingAHole"
     }
   ]
 }

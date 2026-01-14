@@ -20,20 +20,20 @@ MonoBehaviour:
   - axis: 1
     side: 0
     boundaryType: 0
-    materialType: 0
+    materialType: 2
   - axis: 0
     side: 0
     boundaryType: 0
-    materialType: 0
+    materialType: 2
   - axis: 0
     side: 1
     boundaryType: 0
-    materialType: 0
+    materialType: 2
   - axis: 2
     side: 0
     boundaryType: 0
-    materialType: 0
+    materialType: 2
   - axis: 2
     side: 1
     boundaryType: 0
-    materialType: 0
+    materialType: 2
