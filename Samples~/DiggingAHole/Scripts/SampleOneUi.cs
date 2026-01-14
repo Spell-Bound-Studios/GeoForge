@@ -1,6 +1,5 @@
 // Copyright 2025 Spellbound Studio Inc.
 
-using System;
 using UnityEngine;
 using UnityEngine.UI;
 using TMPro;
@@ -10,30 +9,47 @@ using UnityEngine.InputSystem;
 
 namespace Spellbound.MarchingCubes {
     /// <summary>
-    /// UI for Demo'ing MarchingCubes package.
-    /// Not recommended as a real controller.
+    /// Controller for Sample One, Digging a Hole.
+    /// Not recommended as a real controller/UI, because it is hard-couled to the Controller.
     /// </summary>
-    public class ControllerUI : MonoBehaviour {
+    public class SampleOneUi : MonoBehaviour {
+        // Shape, what shape the terraforming command should take.
         [SerializeField] private TMP_Dropdown terraformingShapeDropdown;
         
+        // Range, how far away terraforming may be commanded at.
         [SerializeField] private Slider terraformingRangeSlider;
         [SerializeField] private TextMeshProUGUI terraformingRangeValue;
         
+        // Size, how large a region the terraforming command should affect.
         [SerializeField] private Slider terraformingSizeSlider;
         [SerializeField] private TextMeshProUGUI terraformingSizeValue;
         
+        // Strength, how significant of a change a terraforming command should have on the underlying voxels.
+        // Strength = 1 is a tiny change, barely perceptible, Strength = 255 is a complete change
         [SerializeField] private Slider terraformingStrengthSlider;
         [SerializeField] private TextMeshProUGUI terraformingStrengthValue;
         
+        // Collisions, whether the controller should collide with the mesh or pass right through.
         [SerializeField] private Toggle useCollisionToggle;
+        
+        // Material that will be added when additive terraforming occurs.
         [SerializeField] private TMP_Dropdown addableMaterialDropdown;
         
+        // Materials that will be removed when negative terraforming occurs.
         [SerializeField] private Toggle[] diggableMaterialToggles;
         
+        // Semi-Transparent overlay to indicate when tab is pressed.
         [SerializeField] private GameObject tabOverlayObj;
-        private TerraformController _controller;
+        
+        // Controller, this is what the UI controls.
+        private SampleOneController _controller;
 
-        public void SetController(TerraformController controller) {
+        /// <summary>
+        /// Sets the controller.
+        /// Subscribes to events.
+        /// Initializes values.
+        /// </summary>
+        public void SetController(SampleOneController controller) {
             _controller = controller;
 
             terraformingShapeDropdown.onValueChanged.AddListener(HandleShapeDropdownChanged);
@@ -67,10 +83,16 @@ namespace Spellbound.MarchingCubes {
             
         }
 
+        /// <summary>
+        /// Other changes are event based, but listening for the Tab key being pressed must be polled on Update.
+        /// </summary>
         private void Update() {
             PollTabKey();
         }
 
+        /// <summary>
+        /// Reads tab key input. Uses legacy input system if the regular input system is not installed.
+        /// </summary>
         private void PollTabKey() {
 #if ENABLE_INPUT_SYSTEM
             var keyboard = Keyboard.current;
@@ -86,6 +108,9 @@ namespace Spellbound.MarchingCubes {
             }
 #endif
         }
+
+        // Subscribed methods to handle value changes from the UI.
+        #region HandlerMethods
 
         private void HandleShapeDropdownChanged(int index) {
             _controller.SetProjectionShape(index);
@@ -143,5 +168,8 @@ namespace Spellbound.MarchingCubes {
             tabOverlayObj.SetActive(true);
             Cursor.lockState = CursorLockMode.None;
         }
+
+        #endregion
+        
     }
 }

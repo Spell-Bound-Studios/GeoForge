@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 8796947943306040638}
   - component: {fileID: 8172043295212878213}
   m_Layer: 0
-  m_Name: DiggingAHoleChunk
+  m_Name: SampleOneChunk
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

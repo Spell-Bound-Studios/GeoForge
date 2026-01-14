@@ -825,8 +825,12 @@ MonoBehaviour:
   terraformRange: 30
   terraformSize: 2.5
   terraformStrength: 255
-  projectionPrefab: {fileID: 1100309546162987152, guid: 3c71d793915a2d14680a5dbbcc3cbc03, type: 3}
-  conditionalDigList: 
+  lowStrengthColor: {r: 0.017205715, g: 0, b: 1, a: 0.4}
+  highStrengthColor: {r: 1, g: 0, b: 0, a: 0.4}
+  projectionMaterial: {fileID: 2100000, guid: 91521e6affe993c419265028938ed7d9, type: 2}
+  collider: {fileID: 0}
+  freezeUpdate: 0
+  diggableMaterialList: 
   addableMaterial: 0
   uiPrefab: {fileID: 4701024163546972593, guid: f3aebd854623eb844af34cfb2f530feb, type: 3}
 --- !u!135 &1109693047

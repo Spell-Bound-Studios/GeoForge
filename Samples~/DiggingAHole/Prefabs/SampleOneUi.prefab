@@ -3525,7 +3525,7 @@ GameObject:
   - component: {fileID: 5677226238028116355}
   - component: {fileID: 4701024163546972593}
   m_Layer: 5
-  m_Name: ControllerUI
+  m_Name: SampleOneUi
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
