@@ -43,6 +43,8 @@ namespace Spellbound.MarchingCubes {
 
         Transform VolumeTransform => BaseVolume.Transform;
 
+        (Vector3, Quaternion) SnapToGrid(Vector3 pos) => BaseVolume.SnapToGrid(pos);
+
         BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob => BaseVolume.ConfigBlob;
 
         bool IntersectsVolume(Bounds voxelBounds) => BaseVolume.IntersectsVolume(voxelBounds);

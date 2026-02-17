@@ -26,29 +26,29 @@ namespace Spellbound.MarchingCubes {
         }
 
         public static void RemoveSphere(
-            RaycastHit hit, Vector3 rotation, float radius = 3, int delta = byte.MaxValue, List<byte> materialTypes = null) {
+            RaycastHit hit, Vector3 rotation, float radius = 3, int delta = byte.MaxValue, List<byte> materialTypes = null, bool snapToGrid = false) {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
                 Debug.LogError("MarchingCubesManager not found. Ensure it's in the current scene.");
 
                 return;
             }
 
-            mcManager.ExecuteTerraform(
-                volume => TerraformCommands.RemoveSphere(volume, hit.point, radius, delta),
+            mcManager.ExecuteDigAll(
+                volume => TerraformCommands.RemoveSphere(volume, snapToGrid, hit.point, radius, delta),
                 materialTypes == null ? mcManager.GetAllMaterials() : materialTypes.ToHashSet()
             );
         }
 
         public static void AddSphere(
-            RaycastHit hit, Vector3 rotation, float radius = 3, int delta = byte.MaxValue, byte materialType = byte.MinValue) {
+            RaycastHit hit, Vector3 rotation, float radius = 3, int delta = byte.MaxValue, byte materialType = byte.MinValue, bool snapToGrid = false) {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
                 Debug.LogError("MarchingCubesManager not found. Ensure it's in the current scene.");
 
                 return;
             }
 
-            mcManager.ExecuteTerraform(
-                volume => TerraformCommands.AddSphere(volume, hit.point, materialType, radius, delta),
+            mcManager.ExecuteAdd(
+                volume => TerraformCommands.AddSphere(volume, snapToGrid, hit.point, materialType, radius, delta),
                 targetVolume: hit.collider.GetComponentInParent<IVolume>()
             );
         }
@@ -58,16 +58,17 @@ namespace Spellbound.MarchingCubes {
             Vector3 direction,
             float size = 3, 
             int delta = byte.MaxValue, 
-            List<byte> materialTypes = null) {
+            List<byte> materialTypes = null, 
+            bool snapToGrid = false) {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
                 Debug.LogError("MarchingCubesManager not found. Ensure it's in the current scene.");
 
                 return;
             }
 
-            mcManager.ExecuteTerraform(
-                volume => TerraformCommands.RemoveCube(volume, hit.point, direction, size, delta),
-                materialTypes == null ? mcManager.GetAllMaterials() : materialTypes.ToHashSet()
+            mcManager.ExecuteDigAll(
+                volume => TerraformCommands.RemoveCube(volume, snapToGrid, hit.point, direction, size, delta),
+                removableMatTypes: materialTypes == null ? mcManager.GetAllMaterials() : materialTypes.ToHashSet()
             );
         }
 
@@ -76,15 +77,16 @@ namespace Spellbound.MarchingCubes {
             Vector3 direction,
             float size = 3, 
             int delta = byte.MaxValue, 
-            byte materialType = byte.MinValue) {
+            byte materialType = byte.MinValue, 
+            bool snapToGrid = false) {
             if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
                 Debug.LogError("MarchingCubesManager not found. Ensure it's in the current scene.");
 
                 return;
             }
 
-            mcManager.ExecuteTerraform(
-                volume => TerraformCommands.AddCube(volume, hit.point, direction, materialType, size, delta),
+            mcManager.ExecuteAdd(
+                volume => TerraformCommands.AddCube(volume, snapToGrid,hit.point, direction, materialType, size, delta),
                 targetVolume: hit.collider.GetComponentInParent<IVolume>()
             );
         }

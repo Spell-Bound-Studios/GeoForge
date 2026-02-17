@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Rendering;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -26,6 +27,7 @@ namespace Spellbound.MarchingCubes {
         [SerializeField, Range(1, byte.MaxValue)] public int terraformStrength = byte.MaxValue;
         [SerializeField] public List<byte> diggableMaterialList = new();
         [SerializeField] public byte addableMaterial = 0;
+        [SerializeField] public bool snapToGrid;
         
         // Config
         [SerializeField] private Color lowStrengthColor;
@@ -39,8 +41,8 @@ namespace Spellbound.MarchingCubes {
 
 
         // Commands
-        private Action<RaycastHit, Vector3, float, int, List<byte>> _terraformRemove;
-        private Action<RaycastHit, Vector3, float, int, byte> _terraformAdd;
+        private Action<RaycastHit, Vector3, float, int, List<byte>,  bool> _terraformRemove;
+        private Action<RaycastHit, Vector3, float, int, byte,  bool> _terraformAdd;
         
         // Local enum for the shape of the terraforming commands
         public enum TerraformShape {
@@ -95,7 +97,7 @@ namespace Spellbound.MarchingCubes {
         private void HandleTerraforming() {
 #if ENABLE_INPUT_SYSTEM
             var keyboard = Keyboard.current;
-
+            
             if (keyboard != null) {
                 if (keyboard.digit1Key.wasPressedThisFrame
                     && Physics.Raycast(
@@ -103,16 +105,20 @@ namespace Spellbound.MarchingCubes {
                         transform.forward,
                         out var hit,
                         terraformRange,
-                        ~0))
-                    _terraformRemove(hit, transform.forward, terraformSize, terraformStrength, diggableMaterialList);
+                        ~0)) {
+                    _terraformRemove(hit, transform.forward, terraformSize, terraformStrength, diggableMaterialList, snapToGrid);
+                }
+                    
                 else if (keyboard.digit2Key.wasPressedThisFrame
                          && Physics.Raycast(
                              transform.position,
                              transform.forward,
                              out hit,
                              terraformRange,
-                             ~0))
-                    _terraformAdd(hit, transform.forward, terraformSize, terraformStrength, addableMaterial);
+                             ~0)) {
+                    _terraformAdd(hit, transform.forward, terraformSize, terraformStrength, addableMaterial, snapToGrid);
+                }
+                    
                
             }
 #else
@@ -122,16 +128,20 @@ namespace Spellbound.MarchingCubes {
                         transform.forward,
                         out var hit,
                         terraformRange,
-                        ~0))
-                    _terraformRemove(hit, transform.forward, terraformSize, terraformStrength, diggableMaterialList);
+                        ~0)){
+                _terraformRemove(pos, rot.eulerAngles, terraformSize, terraformStrength, diggableMaterialList, snapToGrid);
+            }
+                    
                 else if (Input.GetKeyDown(KeyCode.Alpha2
                          && Physics.Raycast(
                         transform.position,
                         transform.forward,
                         out hit,
                         terraformRange,
-                        ~0))
-                    _terraformAdd(hit, transform.forward, terraformSize, terraformStrength, addableMaterial);
+                        ~0)){
+                _terraformAdd(pos, rot.eulerAngles, terraformSize, terraformStrength, addableMaterial, snapToGrid);
+                }
+                    
 #endif
         }
 
@@ -170,8 +180,18 @@ namespace Spellbound.MarchingCubes {
                     out var hit,
                     terraformRange,
                     ~0)) {
-                _projectionObj.transform.position = hit.point;
-                _projectionObj.transform.rotation = Quaternion.LookRotation(transform.forward, Vector3.up);
+                var volume = hit.transform.GetComponentInParent<IVolume>();
+
+                if (volume == null) {
+                    _projectionObj.SetActive(false);
+
+                    return;
+                }
+                var tuple = volume.SnapToGrid(hit.point);
+                _projectionObj.transform.position = snapToGrid ? tuple.Item1 : hit.point;
+
+                _projectionObj.transform.rotation =
+                        snapToGrid ? tuple.Item2 : Quaternion.LookRotation(transform.forward, Vector3.up);
                 _projectionObj.transform.localScale =  terraformSize * Vector3.one;
                 _projectionObj.GetComponent<MeshRenderer>().material.color = 
                         Color.Lerp(lowStrengthColor, highStrengthColor, terraformStrength/255f);
@@ -180,6 +200,8 @@ namespace Spellbound.MarchingCubes {
                 return;
             }
             _projectionObj.SetActive(false);
+
+            return;
         }
 
         /// <summary>

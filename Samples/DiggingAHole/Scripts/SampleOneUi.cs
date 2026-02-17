@@ -16,6 +16,9 @@ namespace Spellbound.MarchingCubes {
         // Shape, what shape the terraforming command should take.
         [SerializeField] private TMP_Dropdown terraformingShapeDropdown;
         
+        // Shape, what shape the terraforming command should take.
+        [SerializeField] private Toggle snapToGridToggle;
+        
         // Range, how far away terraforming may be commanded at.
         [SerializeField] private Slider terraformingRangeSlider;
         [SerializeField] private TextMeshProUGUI terraformingRangeValue;
@@ -54,6 +57,9 @@ namespace Spellbound.MarchingCubes {
 
             terraformingShapeDropdown.onValueChanged.AddListener(HandleShapeDropdownChanged);
             HandleShapeDropdownChanged(terraformingShapeDropdown.value);
+            
+            snapToGridToggle.onValueChanged.AddListener(HandleSnapToGridChanged);
+            HandleSnapToGridChanged(snapToGridToggle.isOn);
             
             terraformingRangeSlider.onValueChanged.AddListener(HandleRangeSliderChanged);
             HandleRangeSliderChanged(terraformingRangeSlider.value);
@@ -114,6 +120,10 @@ namespace Spellbound.MarchingCubes {
 
         private void HandleShapeDropdownChanged(int index) {
             _controller.SetProjectionShape(index);
+        }
+
+        private void HandleSnapToGridChanged(bool value) {
+            _controller.snapToGrid = value;
         }
 
         private void HandleRangeSliderChanged(float value) {

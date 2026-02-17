@@ -165,6 +165,19 @@ namespace Spellbound.MarchingCubes {
             return new Bounds(center, sizeInVoxels);
         }
 
+        public (Vector3, Quaternion) SnapToGrid(Vector3 pos) {
+            var localPos = Transform.InverseTransformPoint(pos);
+            var resolution = ConfigBlob.Value.Resolution;
+            var snappedLocal = resolution * new Vector3(
+                Mathf.Round(localPos.x / resolution),
+                Mathf.Round(localPos.y / resolution),
+                Mathf.Round(localPos.z / resolution)
+            );
+            
+            var snappedWorld = Transform.TransformPoint(snappedLocal);
+            return (snappedWorld, Transform.rotation);
+        }
+
         public void Dispose() {
             if (ConfigBlob.IsCreated)
                 ConfigBlob.Dispose();

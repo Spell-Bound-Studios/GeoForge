@@ -158,17 +158,29 @@ namespace Spellbound.MarchingCubes {
         /// <param name="terraformAction"></param> Func to return a List of Edits and a Bounds, from an IVolume Param.
         /// <param name="removableMatTypes"></param> Affected Materials if the Terraform does not affect them all.
         /// <param name="targetVolume"></param> IVolume if the Terraform affects only one. 
-        public void ExecuteTerraform(
+        public void ExecuteDig(
             Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction,
-            HashSet<byte> removableMatTypes = null,
-            IVolume targetVolume = null) {
+            IVolume targetVolume,
+            HashSet<byte> removableMatTypes = null){
             if (targetVolume != null) {
                 var result = terraformAction(targetVolume);
                 DistributeVoxelEdits(targetVolume, result.edits, removableMatTypes);
-
-                return;
             }
-
+        }
+        
+        public void ExecuteAdd(
+            Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction,
+            IVolume targetVolume){
+            if (targetVolume != null) {
+                var result = terraformAction(targetVolume);
+                DistributeVoxelEdits(targetVolume, result.edits);
+            }
+        }
+        
+        public void ExecuteDigAll(
+            Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction,
+            HashSet<byte> removableMatTypes = null){
+            
             foreach (var iVolume in _voxelVolumes) {
                 var result = terraformAction(iVolume);
 
@@ -212,7 +224,7 @@ namespace Spellbound.MarchingCubes {
                 }
 
                 var existingVoxel = chunk.GetVoxelData(index);
-
+                
                 if (rawEdit.DensityChange < 0 && removableMatTypes != null &&
                     !removableMatTypes.Contains(existingVoxel.MaterialIndex)) continue;
 
