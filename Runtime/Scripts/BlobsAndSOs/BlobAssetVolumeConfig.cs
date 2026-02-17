@@ -5,7 +5,7 @@ using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     public struct VolumeConfigBlobAsset {
         public byte DensityThreshold;
         public int CubesMarchedPerOctreeLeaf;

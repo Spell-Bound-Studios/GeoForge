@@ -7,7 +7,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     /// <summary>
     /// Job to March the Cubes (generate vertices and triangles from voxels) for the main region of a leaf of terrain.
     /// </summary>
@@ -77,7 +77,7 @@ namespace Spellbound.MarchingCubes {
                             var voxelPosition = cellPos + new int3(padding, padding, padding) +
                                                 tables.RegularCornerOffset[i] * lodScale;
 
-                            cellValues[i] = VoxelArray[McStaticHelper.Coord3DToIndex(
+                            cellValues[i] = VoxelArray[GfStaticHelper.Coord3DToIndex(
                                 voxelPosition.x, voxelPosition.y, voxelPosition.z,
                                 chunkDataAreaSize, chunkDataWidthSize
                             )];
@@ -165,11 +165,11 @@ namespace Spellbound.MarchingCubes {
                                 var p1 = (float3)vertLocalPos1;
 
                                 // Get voxel data at endpoints early
-                                var index0 = McStaticHelper.Coord3DToIndex(vertLocalPos0.x, vertLocalPos0.y,
+                                var index0 = GfStaticHelper.Coord3DToIndex(vertLocalPos0.x, vertLocalPos0.y,
                                     vertLocalPos0.z, chunkDataAreaSize, chunkDataWidthSize);
                                 var voxel0 = VoxelArray[index0];
 
-                                var index1 = McStaticHelper.Coord3DToIndex(vertLocalPos1.x, vertLocalPos1.y,
+                                var index1 = GfStaticHelper.Coord3DToIndex(vertLocalPos1.x, vertLocalPos1.y,
                                     vertLocalPos1.z, chunkDataAreaSize, chunkDataWidthSize);
                                 var voxel1 = VoxelArray[index1];
 
@@ -183,7 +183,7 @@ namespace Spellbound.MarchingCubes {
 
                                     var midPointDensity =
                                             VoxelArray[
-                                                        McStaticHelper.Coord3DToIndex(samplePos.x, +samplePos.y,
+                                                        GfStaticHelper.Coord3DToIndex(samplePos.x, +samplePos.y,
                                                             samplePos.z, chunkDataAreaSize,
                                                             chunkDataWidthSize)]
                                                     .Density;
@@ -206,11 +206,11 @@ namespace Spellbound.MarchingCubes {
                                 }
 
                                 // Recompute voxel data after subdivision
-                                index0 = McStaticHelper.Coord3DToIndex(vertLocalPos0.x, vertLocalPos0.y,
+                                index0 = GfStaticHelper.Coord3DToIndex(vertLocalPos0.x, vertLocalPos0.y,
                                     vertLocalPos0.z, chunkDataAreaSize, chunkDataWidthSize);
                                 voxel0 = VoxelArray[index0];
 
-                                index1 = McStaticHelper.Coord3DToIndex(vertLocalPos1.x, vertLocalPos1.y,
+                                index1 = GfStaticHelper.Coord3DToIndex(vertLocalPos1.x, vertLocalPos1.y,
                                     vertLocalPos1.z, chunkDataAreaSize, chunkDataWidthSize);
                                 voxel1 = VoxelArray[index1];
 
@@ -231,51 +231,51 @@ namespace Spellbound.MarchingCubes {
                                 var vertPosZ1 = vertLocalPos1.z;
 
                                 var v0011 = VoxelArray[
-                                    McStaticHelper.Coord3DToIndex(vertPosX0 - 1, vertPosY0, vertPosZ0,
+                                    GfStaticHelper.Coord3DToIndex(vertPosX0 - 1, vertPosY0, vertPosZ0,
                                         chunkDataAreaSize, chunkDataWidthSize)];
 
                                 var v0211 = VoxelArray[
-                                    McStaticHelper.Coord3DToIndex(vertPosX0 + 1, vertPosY0, vertPosZ0,
+                                    GfStaticHelper.Coord3DToIndex(vertPosX0 + 1, vertPosY0, vertPosZ0,
                                         chunkDataAreaSize, chunkDataWidthSize)];
 
                                 var v0101 = VoxelArray[
-                                    McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 - 1, vertPosZ0,
+                                    GfStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 - 1, vertPosZ0,
                                         chunkDataAreaSize, chunkDataWidthSize)];
 
                                 var v0121 = VoxelArray[
-                                    McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 + 1, vertPosZ0,
+                                    GfStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 + 1, vertPosZ0,
                                         chunkDataAreaSize, chunkDataWidthSize)];
 
                                 var v0110 = VoxelArray[
-                                    McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 - 1,
+                                    GfStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 - 1,
                                         chunkDataAreaSize, chunkDataWidthSize)];
 
                                 var v0112 = VoxelArray[
-                                    McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 + 1,
+                                    GfStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 + 1,
                                         chunkDataAreaSize, chunkDataWidthSize)];
 
                                 var v1011 = VoxelArray[
-                                    McStaticHelper.Coord3DToIndex(vertPosX1 - 1, vertPosY1, vertPosZ1,
+                                    GfStaticHelper.Coord3DToIndex(vertPosX1 - 1, vertPosY1, vertPosZ1,
                                         chunkDataAreaSize, chunkDataWidthSize)];
 
                                 var v1211 = VoxelArray[
-                                    McStaticHelper.Coord3DToIndex(vertPosX1 + 1, vertPosY1, vertPosZ1,
+                                    GfStaticHelper.Coord3DToIndex(vertPosX1 + 1, vertPosY1, vertPosZ1,
                                         chunkDataAreaSize, chunkDataWidthSize)];
 
                                 var v1101 = VoxelArray[
-                                    McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 - 1, vertPosZ1,
+                                    GfStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 - 1, vertPosZ1,
                                         chunkDataAreaSize, chunkDataWidthSize)];
 
                                 var v1121 = VoxelArray[
-                                    McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 + 1, vertPosZ1,
+                                    GfStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 + 1, vertPosZ1,
                                         chunkDataAreaSize, chunkDataWidthSize)];
 
                                 var v1110 = VoxelArray[
-                                    McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 - 1,
+                                    GfStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 - 1,
                                         chunkDataAreaSize, chunkDataWidthSize)];
 
                                 var v1112 = VoxelArray[
-                                    McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 + 1,
+                                    GfStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 + 1,
                                         chunkDataAreaSize, chunkDataWidthSize)];
 
                                 var normal0 = new float3(v0011.Density - v0211.Density,

@@ -4,9 +4,9 @@ using System.Collections.Generic;
 using Unity.Collections;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     /// <summary>
-    /// Defines the contract that a chunk must fulfill to integrate with the Marching Cubes Voxel System.
+    /// Defines the contract that a chunk must fulfill to integrate with the GeoForge Marching Cubes Voxel System.
     /// </summary>
     public interface IChunk {
         #region Abstract Methods and Properties

@@ -4,8 +4,8 @@ using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
-    [CreateAssetMenu(menuName = "Spellbound/MarchingCubes/DataFactory/SimpleShapes")]
+namespace Spellbound.GeoForge {
+    [CreateAssetMenu(menuName = "Spellbound/GeoForge/DataFactory/SimpleShapes")]
     public class SimpleShapesDataFactory : DataFactory {
         public enum ShapeType {
             AllFilled,

@@ -8,7 +8,7 @@ using Unity.Entities;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     public class BaseVolume : IDisposable {
         private readonly MonoBehaviour _owner;
         private readonly IVolume _ownerAsIVolume;
@@ -38,8 +38,8 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void RegisterVolume() {
-            if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
-                Debug.LogError("MarchingCubesManager is null." + this);
+            if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var mcManager)) {
+                Debug.LogError("GeoForgeManager is null." + this);
 
                 return;
             }
@@ -81,7 +81,7 @@ namespace Spellbound.MarchingCubes {
                 if (!chunk.HasVoxelData())
                     continue;
 
-                if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out _))
+                if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out _))
                     continue;
 
                 var lodDistanceTargetVoxelSpace = WorldToVoxelSpace(_ownerAsIVolume.LodTarget.position);

@@ -3,7 +3,7 @@
 using System.Collections;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     /// <summary>
     /// Basic Implementation of IVolume for a Volume of Finite Size.
     /// Initializes Chunks one per frame until all are initialized.

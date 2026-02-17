@@ -7,7 +7,7 @@ using TMPro;
 using UnityEngine.InputSystem;
 #endif
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     /// <summary>
     /// Controller for Sample One, Digging a Hole.
     /// Not recommended as a real controller/UI, because it is hard-couled to the Controller.

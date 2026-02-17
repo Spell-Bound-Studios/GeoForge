@@ -4,7 +4,7 @@ using Unity.Burst;
 using Unity.Collections;
 using Unity.Jobs;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     /// <summary>
     /// Packs Dense VoxelData to Sparse.
     /// </summary>

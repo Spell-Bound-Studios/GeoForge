@@ -5,7 +5,7 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     [BurstCompile]
     public struct ApplyBoundaryOverridesJob : IJobParallelFor {
         public NativeArray<VoxelData> voxelArray;
@@ -22,7 +22,7 @@ namespace Spellbound.MarchingCubes {
         public NativeArray<bool> hasOverrides;
 
         public void Execute(int i) {
-            McStaticHelper.IndexToInt3(i, chunkDataAreaSize, chunkDataWidthSize,
+            GfStaticHelper.IndexToInt3(i, chunkDataAreaSize, chunkDataWidthSize,
                 out var x, out var y, out var z);
 
             VoxelData overrideVoxel;

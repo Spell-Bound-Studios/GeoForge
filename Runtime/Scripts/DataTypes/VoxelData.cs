@@ -3,7 +3,7 @@
 using System;
 using Unity.Burst;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     /// <summary>
     /// Represents a single cubic dimension in the game world. It is a discrete cube that characterizes
     /// a volume in the game world with a material and density.

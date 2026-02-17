@@ -2,7 +2,7 @@
 
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     /// <summary>
     /// VoxelEdit prior to being distributed to the relevant chunks it modifies
     /// </summary>

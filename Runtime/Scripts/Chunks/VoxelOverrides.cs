@@ -5,7 +5,7 @@ using Unity.Collections;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     public class VoxelOverrides {
         private Dictionary<int, VoxelData> _xOverrides;
         private Dictionary<int, VoxelData> _yOverrides;

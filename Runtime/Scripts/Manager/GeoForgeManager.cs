@@ -7,12 +7,12 @@ using Unity.Entities;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     /// <summary>
     /// Manager for handling the LODs and cached Dense/Unpacked Voxel Arrays for Marching Cubes.
     /// </summary>
     [DefaultExecutionOrder(-1000)]
-    public partial class MarchingCubesManager : MonoBehaviour {
+    public partial class GeoForgeManager : MonoBehaviour {
         public BlobAssetReference<McTablesBlobAsset> McTablesBlob { get; private set; }
 
         [SerializeField] public GameObject octreePrefab;
@@ -206,7 +206,7 @@ namespace Spellbound.MarchingCubes {
                 var centralCoord = volume.GetCoordByVoxelPosition(rawEdit.WorldPosition);
                 var centralLocalPos = rawEdit.WorldPosition - centralCoord * config.ChunkSize;
 
-                var index = McStaticHelper.Coord3DToIndex(centralLocalPos.x, centralLocalPos.y, centralLocalPos.z,
+                var index = GfStaticHelper.Coord3DToIndex(centralLocalPos.x, centralLocalPos.y, centralLocalPos.z,
                     config.ChunkDataAreaSize, config.ChunkDataWidthSize);
 
                 var chunk = volume.GetChunkByCoord(centralCoord);
@@ -242,7 +242,7 @@ namespace Spellbound.MarchingCubes {
                         var trueNeighborCoord = neighborCoord + centralCoord;
                         var neighborLocalPos = rawEdit.WorldPosition - trueNeighborCoord * config.ChunkSize;
 
-                        var neighborIndex = McStaticHelper.Coord3DToIndex(neighborLocalPos.x, neighborLocalPos.y,
+                        var neighborIndex = GfStaticHelper.Coord3DToIndex(neighborLocalPos.x, neighborLocalPos.y,
                             neighborLocalPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
 
                         if (!editsByChunkCoord.TryGetValue(trueNeighborCoord, out var localNeighborEdits)) {

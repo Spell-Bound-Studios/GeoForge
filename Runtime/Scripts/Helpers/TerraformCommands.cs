@@ -3,7 +3,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     public static class TerraformCommands {
         public static (List<RawVoxelEdit> edits, Bounds bounds) RemoveCube(
     IVolume iVoxelVolume,

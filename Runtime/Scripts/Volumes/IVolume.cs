@@ -3,7 +3,7 @@
 using Unity.Entities;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     public interface IVolume {
         #region Abstract Methods and Properties
 
