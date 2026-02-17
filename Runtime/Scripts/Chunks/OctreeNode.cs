@@ -9,7 +9,7 @@ using UnityEngine;
 using UnityEngine.Rendering;
 using Object = UnityEngine.Object;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     /// <summary>
     /// Recursively Subdividing OctreeNode to subdivide a chunk at varying LODs.
     /// Either it has 8 children, or it has an Octree leaf (representing actual terrain).
@@ -29,7 +29,7 @@ namespace Spellbound.MarchingCubes {
         private readonly int _lod;
         private BoundsInt _boundsVoxel;
         private readonly IChunk _chunk;
-        private readonly MarchingCubesManager _mcManager;
+        private readonly GeoForgeManager _gfManager;
         private readonly IVolume _parentVolume;
         private Vector3Int[] _cachedNeighborPositions;
         private MaterialPropertyBlock _materialPropertyBlock;
@@ -44,7 +44,7 @@ namespace Spellbound.MarchingCubes {
             _lod = lod;
             _chunk = chunk;
 
-            _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
+            _gfManager = SingletonManager.GetSingletonInstance<GeoForgeManager>();
             var octreeSizeVoxels = 3 + (_parentVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod);
             _boundsVoxel = new BoundsInt(_localPosition, Vector3Int.one * octreeSizeVoxels);
         }
@@ -62,10 +62,10 @@ namespace Spellbound.MarchingCubes {
             if (_leafGo != null) {
                 if (_transitionGo.TryGetComponent<MeshCollider>(out var transitionMeshCollider))
                     transitionMeshCollider.sharedMesh = null;
-                _mcManager.ReleasePooledObject(_transitionGo);
+                _gfManager.ReleasePooledObject(_transitionGo);
                 _transitionGo = null;
                 if (_leafGo.TryGetComponent<MeshCollider>(out var meshCollider)) meshCollider.sharedMesh = null;
-                _mcManager.ReleasePooledObject(_leafGo);
+                _gfManager.ReleasePooledObject(_leafGo);
                 _leafGo = null;
             }
 
@@ -78,7 +78,7 @@ namespace Spellbound.MarchingCubes {
             if (_transitionRanges.IsCreated)
                 _transitionRanges.Dispose();
 
-            _mcManager.OctreeBatchTransitionUpdate -= HandleTransitionUpdate;
+            _gfManager.OctreeBatchTransitionUpdate -= HandleTransitionUpdate;
         }
 
         private void Subdivide() {
@@ -172,7 +172,7 @@ namespace Spellbound.MarchingCubes {
         }
 
         public void ValidateTransition(
-            OctreeNode neighbor, Vector3Int voxelPos, McStaticHelper.TransitionFaceMask faceMask) {
+            OctreeNode neighbor, Vector3Int voxelPos, GfStaticHelper.TransitionFaceMask faceMask) {
             if (!_boundsVoxel.Contains(voxelPos))
                 return;
 
@@ -216,7 +216,7 @@ namespace Spellbound.MarchingCubes {
 
         private void MarchAndMesh(NativeArray<VoxelData> voxelArray) {
             var marchingCubeJob = new MarchingCubeJob {
-                TablesBlob = _mcManager.McTablesBlob,
+                TablesBlob = _gfManager.McTablesBlob,
                 ConfigBlob = _parentVolume.ConfigBlob,
                 VoxelArray = voxelArray,
 
@@ -227,12 +227,12 @@ namespace Spellbound.MarchingCubes {
             };
             var jobHandle = marchingCubeJob.Schedule();
 
-            _mcManager.RegisterMarchJob(this, jobHandle, marchingCubeJob.Vertices, marchingCubeJob.Triangles,
+            _gfManager.RegisterMarchJob(this, jobHandle, marchingCubeJob.Vertices, marchingCubeJob.Triangles,
                 _chunk.ChunkCoord);
 
             if (_lod != 0) {
                 var transitionMarchingCubeJob = new TransitionMarchingCubeJob {
-                    TablesBlob = _mcManager.McTablesBlob,
+                    TablesBlob = _gfManager.McTablesBlob,
                     ConfigBlob = _parentVolume.ConfigBlob,
                     VoxelArray = voxelArray,
 
@@ -246,7 +246,7 @@ namespace Spellbound.MarchingCubes {
 
                 var transitionJobHandle = transitionMarchingCubeJob.Schedule();
 
-                _mcManager.RegisterTransitionJob(this,
+                _gfManager.RegisterTransitionJob(this,
                     transitionJobHandle,
                     transitionMarchingCubeJob.TransitionMeshingVertexData,
                     transitionMarchingCubeJob.TransitionTriangles,
@@ -269,7 +269,7 @@ namespace Spellbound.MarchingCubes {
         }
 
         private void BuildLeaf() {
-            _leafGo = _mcManager.GetPooledObject(_chunk.Transform);
+            _leafGo = _gfManager.GetPooledObject(_chunk.Transform);
             _leafGo.transform.localPosition = Vector3.zero;
             _leafGo.transform.localRotation = Quaternion.identity;
 
@@ -323,7 +323,7 @@ namespace Spellbound.MarchingCubes {
         }
 
         private void BuildTransitions() {
-            _transitionGo = _mcManager.GetPooledObject(_leafGo.transform);
+            _transitionGo = _gfManager.GetPooledObject(_leafGo.transform);
             _transitionGo.transform.localPosition = Vector3.zero;
             _transitionGo.transform.localRotation = Quaternion.identity;
 
@@ -360,7 +360,7 @@ namespace Spellbound.MarchingCubes {
             );
         }
 
-        private void UpdateTransitionMask(McStaticHelper.TransitionFaceMask mask, bool isSetter) {
+        private void UpdateTransitionMask(GfStaticHelper.TransitionFaceMask mask, bool isSetter) {
             var newTransitionMask = _transitionMask;
 
             if (isSetter)
@@ -376,12 +376,12 @@ namespace Spellbound.MarchingCubes {
             if (_transitionDirtyFlag) return;
 
             _transitionDirtyFlag = true;
-            _mcManager.OctreeBatchTransitionUpdate += HandleTransitionUpdate;
+            _gfManager.OctreeBatchTransitionUpdate += HandleTransitionUpdate;
         }
 
         private void HandleTransitionUpdate() {
             if (_transitionDirtyFlag) {
-                _mcManager.OctreeBatchTransitionUpdate -= HandleTransitionUpdate;
+                _gfManager.OctreeBatchTransitionUpdate -= HandleTransitionUpdate;
                 _transitionDirtyFlag = false;
             }
 
@@ -452,16 +452,16 @@ namespace Spellbound.MarchingCubes {
             };
         }
 
-        private McStaticHelper.TransitionFaceMask GetOppositeTransition(
-            McStaticHelper.TransitionFaceMask transitionMask) =>
+        private GfStaticHelper.TransitionFaceMask GetOppositeTransition(
+            GfStaticHelper.TransitionFaceMask transitionMask) =>
                 transitionMask switch {
-                    McStaticHelper.TransitionFaceMask.XMin => McStaticHelper.TransitionFaceMask.XMax,
-                    McStaticHelper.TransitionFaceMask.YMin => McStaticHelper.TransitionFaceMask.YMax,
-                    McStaticHelper.TransitionFaceMask.ZMin => McStaticHelper.TransitionFaceMask.ZMax,
-                    McStaticHelper.TransitionFaceMask.XMax => McStaticHelper.TransitionFaceMask.XMin,
-                    McStaticHelper.TransitionFaceMask.YMax => McStaticHelper.TransitionFaceMask.YMin,
-                    McStaticHelper.TransitionFaceMask.ZMax => McStaticHelper.TransitionFaceMask.ZMin,
-                    _ => McStaticHelper.TransitionFaceMask.XMin
+                    GfStaticHelper.TransitionFaceMask.XMin => GfStaticHelper.TransitionFaceMask.XMax,
+                    GfStaticHelper.TransitionFaceMask.YMin => GfStaticHelper.TransitionFaceMask.YMax,
+                    GfStaticHelper.TransitionFaceMask.ZMin => GfStaticHelper.TransitionFaceMask.ZMax,
+                    GfStaticHelper.TransitionFaceMask.XMax => GfStaticHelper.TransitionFaceMask.XMin,
+                    GfStaticHelper.TransitionFaceMask.YMax => GfStaticHelper.TransitionFaceMask.YMin,
+                    GfStaticHelper.TransitionFaceMask.ZMax => GfStaticHelper.TransitionFaceMask.ZMin,
+                    _ => GfStaticHelper.TransitionFaceMask.XMin
                 };
 
         public void ApplyMarchResults(NativeList<MeshingVertexData> vertices, NativeList<int> triangles) {

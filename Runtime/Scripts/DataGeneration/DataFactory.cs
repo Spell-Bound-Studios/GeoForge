@@ -4,7 +4,7 @@ using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     public abstract class DataFactory : ScriptableObject {
         protected Vector3Int GetChunkOrigin(
             Vector3Int chunkCoord, in VolumeConfigBlobAsset config) =>
@@ -16,7 +16,7 @@ namespace Spellbound.MarchingCubes {
 
         protected Vector3Int GetVoxelPosition(
             int index, Vector3Int chunkOrigin, in VolumeConfigBlobAsset config) {
-            McStaticHelper.IndexToInt3(
+            GfStaticHelper.IndexToInt3(
                 index,
                 config.ChunkDataAreaSize,
                 config.ChunkDataWidthSize,

@@ -4,7 +4,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Mathematics;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     /// <summary>
     /// Blob Asset to hold Marching Cubes Settings.
     /// </summary>
@@ -26,7 +26,7 @@ namespace Spellbound.MarchingCubes {
             var innerSize = innerMax - innerMin;
 
             for (var i = 0; i < weightArray.Length; i++) {
-                McStaticHelper.IndexToInt2(i, chunkSize + 3, out var x, out var z);
+                GfStaticHelper.IndexToInt2(i, chunkSize + 3, out var x, out var z);
                 var weights = float4.zero;
 
                 // 🟩 CASE 1: Corners (exact match to CornerPositions)

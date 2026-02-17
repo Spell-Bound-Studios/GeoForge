@@ -6,12 +6,12 @@ using Unity.Burst;
 using Unity.Collections;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     /// <summary>
-    /// Contains constants and static methods for the Marching Cubes library.
+    /// Contains constants and static methods for the GeoForge library.
     /// </summary>
     [BurstCompile]
-    public static class McStaticHelper {
+    public static class GfStaticHelper {
         //public const int MaxLevelOfDetail = 3;
         //public const int CubesMarchedPerOctreeLeaf = 16; // must be ChunkSize >> MaxLevelOfDetail, eg: 32 /2 /2 = 8
 

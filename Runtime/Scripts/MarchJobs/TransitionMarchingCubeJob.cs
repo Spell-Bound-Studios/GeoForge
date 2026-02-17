@@ -8,7 +8,7 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     /// <summary>
     /// Job to March the Cubes (generate vertices and triangles from voxels) for the transition regions of a leaf of
     /// terrain.
@@ -30,26 +30,26 @@ namespace Spellbound.MarchingCubes {
 
         public void Execute() {
             var currentStart = 0;
-            GenerateTransitionMesh(McStaticHelper.TransitionFaceMask.XMin);
+            GenerateTransitionMesh(GfStaticHelper.TransitionFaceMask.XMin);
             TransitionRanges[0] = new int2(currentStart, TransitionTriangles.Length);
             currentStart = TransitionTriangles.Length;
-            GenerateTransitionMesh(McStaticHelper.TransitionFaceMask.YMin);
+            GenerateTransitionMesh(GfStaticHelper.TransitionFaceMask.YMin);
             TransitionRanges[1] = new int2(currentStart, TransitionTriangles.Length);
             currentStart = TransitionTriangles.Length;
-            GenerateTransitionMesh(McStaticHelper.TransitionFaceMask.ZMin);
+            GenerateTransitionMesh(GfStaticHelper.TransitionFaceMask.ZMin);
             TransitionRanges[2] = new int2(currentStart, TransitionTriangles.Length);
             currentStart = TransitionTriangles.Length;
-            GenerateTransitionMesh(McStaticHelper.TransitionFaceMask.XMax);
+            GenerateTransitionMesh(GfStaticHelper.TransitionFaceMask.XMax);
             TransitionRanges[3] = new int2(currentStart, TransitionTriangles.Length);
             currentStart = TransitionTriangles.Length;
-            GenerateTransitionMesh(McStaticHelper.TransitionFaceMask.YMax);
+            GenerateTransitionMesh(GfStaticHelper.TransitionFaceMask.YMax);
             TransitionRanges[4] = new int2(currentStart, TransitionTriangles.Length);
             currentStart = TransitionTriangles.Length;
-            GenerateTransitionMesh(McStaticHelper.TransitionFaceMask.ZMax);
+            GenerateTransitionMesh(GfStaticHelper.TransitionFaceMask.ZMax);
             TransitionRanges[5] = new int2(currentStart, TransitionTriangles.Length);
         }
 
-        private void GenerateTransitionMesh(McStaticHelper.TransitionFaceMask direction) {
+        private void GenerateTransitionMesh(GfStaticHelper.TransitionFaceMask direction) {
             ref var tables = ref TablesBlob.Value;
             ref var config = ref ConfigBlob.Value;
             const int padding = 1;
@@ -77,7 +77,7 @@ namespace Spellbound.MarchingCubes {
                                     0) *
                                 (lodScale >> 1);
 
-                        transitionCellValues[i] = VoxelArray[McStaticHelper.Coord3DToIndex(
+                        transitionCellValues[i] = VoxelArray[GfStaticHelper.Coord3DToIndex(
                             voxelPosition.x, voxelPosition.y, voxelPosition.z, config.ChunkDataAreaSize,
                             config.ChunkDataWidthSize)];
                     }
@@ -165,7 +165,7 @@ namespace Spellbound.MarchingCubes {
 
                                 var midPointDensity =
                                         VoxelArray[
-                                                    McStaticHelper.Coord3DToIndex(samplePos.x, samplePos.y, samplePos.z,
+                                                    GfStaticHelper.Coord3DToIndex(samplePos.x, samplePos.y, samplePos.z,
                                                         config.ChunkDataAreaSize, config.ChunkDataWidthSize)]
                                                 .Density;
 
@@ -174,7 +174,7 @@ namespace Spellbound.MarchingCubes {
 
                                 var isVert0DensityAboveThreshold =
                                         VoxelArray[
-                                                    McStaticHelper.Coord3DToIndex(corner0Copy.x, corner0Copy.y,
+                                                    GfStaticHelper.Coord3DToIndex(corner0Copy.x, corner0Copy.y,
                                                         corner0Copy.z, config.ChunkDataAreaSize,
                                                         config.ChunkDataWidthSize)]
                                                 .Density >= config.DensityThreshold;
@@ -190,11 +190,11 @@ namespace Spellbound.MarchingCubes {
                                     corner1Copy = samplePos;
                             }
 
-                            var index0 = McStaticHelper.Coord3DToIndex(corner0Copy.x, corner0Copy.y,
+                            var index0 = GfStaticHelper.Coord3DToIndex(corner0Copy.x, corner0Copy.y,
                                 corner0Copy.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
                             var voxel0 = VoxelArray[index0];
 
-                            var index1 = McStaticHelper.Coord3DToIndex(corner1Copy.x, corner1Copy.y,
+                            var index1 = GfStaticHelper.Coord3DToIndex(corner1Copy.x, corner1Copy.y,
                                 corner1Copy.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
                             var voxel1 = VoxelArray[index1];
 
@@ -286,59 +286,59 @@ namespace Spellbound.MarchingCubes {
             var vertPosZ1 = corner1.z;
 
             var voxel0 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0, config.ChunkDataAreaSize,
+                GfStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0, config.ChunkDataAreaSize,
                     config.ChunkDataWidthSize)];
 
             var voxel1 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1, config.ChunkDataAreaSize,
+                GfStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1, config.ChunkDataAreaSize,
                     config.ChunkDataWidthSize)];
 
             var v0011 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0 - 1, vertPosY0, vertPosZ0, config.ChunkDataAreaSize,
+                GfStaticHelper.Coord3DToIndex(vertPosX0 - 1, vertPosY0, vertPosZ0, config.ChunkDataAreaSize,
                     config.ChunkDataWidthSize)];
 
             var v0211 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0 + 1, vertPosY0, vertPosZ0, config.ChunkDataAreaSize,
+                GfStaticHelper.Coord3DToIndex(vertPosX0 + 1, vertPosY0, vertPosZ0, config.ChunkDataAreaSize,
                     config.ChunkDataWidthSize)];
 
             var v0101 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 - 1, vertPosZ0, config.ChunkDataAreaSize,
+                GfStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 - 1, vertPosZ0, config.ChunkDataAreaSize,
                     config.ChunkDataWidthSize)];
 
             var v0121 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 + 1, vertPosZ0, config.ChunkDataAreaSize,
+                GfStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 + 1, vertPosZ0, config.ChunkDataAreaSize,
                     config.ChunkDataWidthSize)];
 
             var v0110 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 - 1, config.ChunkDataAreaSize,
+                GfStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 - 1, config.ChunkDataAreaSize,
                     config.ChunkDataWidthSize)];
 
             var v0112 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 + 1, config.ChunkDataAreaSize,
+                GfStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 + 1, config.ChunkDataAreaSize,
                     config.ChunkDataWidthSize)];
 
             var v1011 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1 - 1, vertPosY1, vertPosZ1, config.ChunkDataAreaSize,
+                GfStaticHelper.Coord3DToIndex(vertPosX1 - 1, vertPosY1, vertPosZ1, config.ChunkDataAreaSize,
                     config.ChunkDataWidthSize)];
 
             var v1211 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1 + 1, vertPosY1, vertPosZ1, config.ChunkDataAreaSize,
+                GfStaticHelper.Coord3DToIndex(vertPosX1 + 1, vertPosY1, vertPosZ1, config.ChunkDataAreaSize,
                     config.ChunkDataWidthSize)];
 
             var v1101 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 - 1, vertPosZ1, config.ChunkDataAreaSize,
+                GfStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 - 1, vertPosZ1, config.ChunkDataAreaSize,
                     config.ChunkDataWidthSize)];
 
             var v1121 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 + 1, vertPosZ1, config.ChunkDataAreaSize,
+                GfStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 + 1, vertPosZ1, config.ChunkDataAreaSize,
                     config.ChunkDataWidthSize)];
 
             var v1110 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 - 1, config.ChunkDataAreaSize,
+                GfStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 - 1, config.ChunkDataAreaSize,
                     config.ChunkDataWidthSize)];
 
             var v1112 = VoxelArray[
-                McStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 + 1, config.ChunkDataAreaSize,
+                GfStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 + 1, config.ChunkDataAreaSize,
                     config.ChunkDataWidthSize)];
 
             var normal0 = new float3(v0011.Density - v0211.Density,
@@ -441,18 +441,18 @@ namespace Spellbound.MarchingCubes {
 
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
         private int3 FaceToLocalSpace(
-            McStaticHelper.TransitionFaceMask direction,
+            GfStaticHelper.TransitionFaceMask direction,
             int leafSize,
             int x,
             int y,
             int z) =>
                 direction switch {
-                    McStaticHelper.TransitionFaceMask.XMin => new int3(z, x, y),
-                    McStaticHelper.TransitionFaceMask.XMax => new int3(leafSize - z, y, x),
-                    McStaticHelper.TransitionFaceMask.YMin => new int3(y, z, x),
-                    McStaticHelper.TransitionFaceMask.YMax => new int3(x, leafSize - z, y),
-                    McStaticHelper.TransitionFaceMask.ZMin => new int3(x, y, z),
-                    McStaticHelper.TransitionFaceMask.ZMax => new int3(y, x, leafSize - z),
+                    GfStaticHelper.TransitionFaceMask.XMin => new int3(z, x, y),
+                    GfStaticHelper.TransitionFaceMask.XMax => new int3(leafSize - z, y, x),
+                    GfStaticHelper.TransitionFaceMask.YMin => new int3(y, z, x),
+                    GfStaticHelper.TransitionFaceMask.YMax => new int3(x, leafSize - z, y),
+                    GfStaticHelper.TransitionFaceMask.ZMin => new int3(x, y, z),
+                    GfStaticHelper.TransitionFaceMask.ZMax => new int3(y, x, leafSize - z),
                     _ => new int3(x, y, z)
                 };
     }

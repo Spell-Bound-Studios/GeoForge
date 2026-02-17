@@ -1,6 +1,6 @@
 // Copyright 2025 Spellbound Studio Inc.
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     /// <summary>
     /// Indication of if a region of voxel data can skip marching its cubes or not
     /// </summary>

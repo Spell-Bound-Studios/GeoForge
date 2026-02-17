@@ -6,7 +6,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 #endif
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     /// <summary>
     /// Very basic controller for demonstrating some package functionality without downloading any samples. 
     /// Not recommended as a real controller.
@@ -103,7 +103,7 @@ namespace Spellbound.MarchingCubes {
                     out var hit,
                     float.MaxValue,
                     ~0))
-                SbVoxel.RemoveSphere(hit, transform.forward, 3,byte.MaxValue, conditionalDigList);
+                GeoForgeStatic.RemoveSphere(hit, transform.forward, 3,byte.MaxValue, conditionalDigList);
         }
 
         /// <summary>
@@ -116,7 +116,7 @@ namespace Spellbound.MarchingCubes {
                     out var hit,
                     float.MaxValue,
                     ~0))
-                SbVoxel.AddSphere(hit, transform.forward,3, byte.MaxValue, addableMaterial);
+                GeoForgeStatic.AddSphere(hit, transform.forward,3, byte.MaxValue, addableMaterial);
         }
     }
 }

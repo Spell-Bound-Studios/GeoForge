@@ -7,14 +7,14 @@ using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     public class BaseChunk : IDisposable {
         private Vector3Int _chunkCoord;
         private BoundsInt _bounds;
         private NativeList<SparseVoxelData> _sparseVoxels;
         private OctreeNode _rootNode;
         private DensityRange _densityRange;
-        private readonly MarchingCubesManager _mcManager;
+        private readonly GeoForgeManager _mcManager;
         private IVolume _parentVolume;
         private readonly MonoBehaviour _owner;
         private readonly IChunk _ownerAsIChunk;
@@ -31,7 +31,7 @@ namespace Spellbound.MarchingCubes {
         public BaseChunk(MonoBehaviour owner, IChunk ownerAsIChunk) {
             _owner = owner;
             _ownerAsIChunk = ownerAsIChunk;
-            _mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
+            _mcManager = SingletonManager.GetSingletonInstance<GeoForgeManager>();
             _voxelOverrides = new VoxelOverrides();
         }
 
@@ -190,7 +190,7 @@ namespace Spellbound.MarchingCubes {
             foreach (var voxelEdit in voxelEdits) {
                 var index = voxelEdit.index;
 
-                McStaticHelper.IndexToInt3(index, config.ChunkDataAreaSize, config.ChunkDataWidthSize, out var x,
+                GfStaticHelper.IndexToInt3(index, config.ChunkDataAreaSize, config.ChunkDataWidthSize, out var x,
                     out var y, out var z);
                 var voxelPos = new Vector3Int(x, y, z);
 
@@ -247,12 +247,12 @@ namespace Spellbound.MarchingCubes {
             var worldVoxelPos = pos + _chunkCoord * config.ChunkSize;
 
             if (_bounds.Contains(worldVoxelPos)) {
-                _rootNode?.ValidateTransition(newLeaf, pos, McStaticHelper.GetTransitionFaceMask(index));
+                _rootNode?.ValidateTransition(newLeaf, pos, GfStaticHelper.GetTransitionFaceMask(index));
 
                 return;
             }
 
-            var neighborCoord = McStaticHelper.GetNeighborCoord(index, _chunkCoord);
+            var neighborCoord = GfStaticHelper.GetNeighborCoord(index, _chunkCoord);
             var neighborChunk = _parentVolume.GetChunkByCoord(neighborCoord);
 
             if (neighborChunk == null)
@@ -264,7 +264,7 @@ namespace Spellbound.MarchingCubes {
 
         public VoxelData GetVoxelData(int index) {
             ref var config = ref ParentVolume.ConfigBlob.Value;
-            var sparseIndex = McStaticHelper.BinarySearchVoxelData(index, config.ChunkDataVolumeSize, _sparseVoxels);
+            var sparseIndex = GfStaticHelper.BinarySearchVoxelData(index, config.ChunkDataVolumeSize, _sparseVoxels);
 
             return _sparseVoxels[sparseIndex].Voxel;
         }
@@ -273,7 +273,7 @@ namespace Spellbound.MarchingCubes {
             ref var config = ref ParentVolume.ConfigBlob.Value;
             var chunkSpacePosition = position - _chunkCoord * config.ChunkSize;
 
-            var index = McStaticHelper.Coord3DToIndex(
+            var index = GfStaticHelper.Coord3DToIndex(
                 chunkSpacePosition.x,
                 chunkSpacePosition.y,
                 chunkSpacePosition.z,

@@ -6,7 +6,7 @@ using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     /// <summary>
     /// Unpacks Sparse Voxel Data to Dense.
     /// Vibecoded with chatgpt because Binary Searches and RLEs are well-known and replicable. 
@@ -27,7 +27,7 @@ namespace Spellbound.MarchingCubes {
             var end = start + voxelsPerDeck;
 
             var rleIndex =
-                    McStaticHelper.BinarySearchVoxelData(start, ConfigBlob.Value.ChunkDataVolumeSize, SparseVoxels);
+                    GfStaticHelper.BinarySearchVoxelData(start, ConfigBlob.Value.ChunkDataVolumeSize, SparseVoxels);
 
             while (rleIndex < SparseVoxels.Length) {
                 var rle = SparseVoxels[rleIndex];

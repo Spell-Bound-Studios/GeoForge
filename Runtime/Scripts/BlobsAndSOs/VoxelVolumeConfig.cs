@@ -3,8 +3,8 @@
 using Spellbound.Core;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
-    [CreateAssetMenu(menuName = "Spellbound/MarchingCubes/VoxelVolumeConfig")]
+namespace Spellbound.GeoForge {
+    [CreateAssetMenu(menuName = "Spellbound/GeoForge/VoxelVolumeConfig")]
     public class VoxelVolumeConfig : ScriptableObject {
         [Tooltip("Voxel Fill threshold separating full and empty. 128 is default."),
          Range(1, 255)]

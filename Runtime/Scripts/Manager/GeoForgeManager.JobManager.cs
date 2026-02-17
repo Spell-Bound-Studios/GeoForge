@@ -6,8 +6,8 @@ using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
-    public partial class MarchingCubesManager : MonoBehaviour {
+namespace Spellbound.GeoForge {
+    public partial class GeoForgeManager : MonoBehaviour {
         private JobHandle _combinedJobHandle;
         private Dictionary<OctreeNode, MarchJobData> _pendingMarchJobData = new();
         private Dictionary<OctreeNode, TransitionMarchJobData> _pendingTransitionMarchJobData = new();

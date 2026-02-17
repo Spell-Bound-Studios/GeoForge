@@ -7,8 +7,8 @@ using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
-    public partial class MarchingCubesManager : MonoBehaviour {
+namespace Spellbound.GeoForge {
+    public partial class GeoForgeManager : MonoBehaviour {
         private Dictionary<int, DenseVoxelData> _denseVoxelDataDict = new();
 
         public NativeArray<VoxelData> GetOrUnpackVoxelArray(
@@ -159,7 +159,7 @@ namespace Spellbound.MarchingCubes {
                 );
 
                 for (var i = 0; i < cs * cs * cs; i++) {
-                    McStaticHelper.IndexToInt3(i, cs * cs, cs, out var x, out var y,
+                    GfStaticHelper.IndexToInt3(i, cs * cs, cs, out var x, out var y,
                         out var z);
                     var localPos = new Vector3Int(x, y, z);
 

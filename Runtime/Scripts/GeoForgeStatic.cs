@@ -6,48 +6,48 @@ using Spellbound.Core;
 using Spellbound.Core.Console;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
-    public static class SbVoxel {
+namespace Spellbound.GeoForge {
+    public static class GeoForgeStatic {
         public static bool IsInitialized() =>
-                SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out _)
+                SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out _)
                 && SingletonManager.TryGetSingletonInstance<IVolume>(out _);
 
         public static bool IsActive() {
-            var mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
+            var gfManager = SingletonManager.GetSingletonInstance<GeoForgeManager>();
 
-            return mcManager.IsActive();
+            return gfManager.IsActive();
         }
 
         public static bool IsInsideTerrain(Vector3 position) {
-            var mcManager = SingletonManager.GetSingletonInstance<MarchingCubesManager>();
-            var voxelData = mcManager.QueryVoxel(position, out var volume);
+            var gfManager = SingletonManager.GetSingletonInstance<GeoForgeManager>();
+            var voxelData = gfManager.QueryVoxel(position, out var volume);
 
             return voxelData.Density >= volume.ConfigBlob.Value.DensityThreshold;
         }
 
         public static void RemoveSphere(
             RaycastHit hit, Vector3 rotation, float radius = 3, int delta = byte.MaxValue, List<byte> materialTypes = null, bool snapToGrid = false) {
-            if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
-                Debug.LogError("MarchingCubesManager not found. Ensure it's in the current scene.");
+            if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager)) {
+                Debug.LogError("GeoForgeManager not found. Ensure it's in the current scene.");
 
                 return;
             }
 
-            mcManager.ExecuteDigAll(
+            gfManager.ExecuteDigAll(
                 volume => TerraformCommands.RemoveSphere(volume, snapToGrid, hit.point, radius, delta),
-                materialTypes == null ? mcManager.GetAllMaterials() : materialTypes.ToHashSet()
+                materialTypes == null ? gfManager.GetAllMaterials() : materialTypes.ToHashSet()
             );
         }
 
         public static void AddSphere(
             RaycastHit hit, Vector3 rotation, float radius = 3, int delta = byte.MaxValue, byte materialType = byte.MinValue, bool snapToGrid = false) {
-            if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
-                Debug.LogError("MarchingCubesManager not found. Ensure it's in the current scene.");
+            if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager)) {
+                Debug.LogError("GeoForgeManager not found. Ensure it's in the current scene.");
 
                 return;
             }
 
-            mcManager.ExecuteAdd(
+            gfManager.ExecuteAdd(
                 volume => TerraformCommands.AddSphere(volume, snapToGrid, hit.point, materialType, radius, delta),
                 targetVolume: hit.collider.GetComponentInParent<IVolume>()
             );
@@ -60,15 +60,15 @@ namespace Spellbound.MarchingCubes {
             int delta = byte.MaxValue, 
             List<byte> materialTypes = null, 
             bool snapToGrid = false) {
-            if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
-                Debug.LogError("MarchingCubesManager not found. Ensure it's in the current scene.");
+            if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager)) {
+                Debug.LogError("GeoForgeManager not found. Ensure it's in the current scene.");
 
                 return;
             }
 
-            mcManager.ExecuteDigAll(
+            gfManager.ExecuteDigAll(
                 volume => TerraformCommands.RemoveCube(volume, snapToGrid, hit.point, direction, size, delta),
-                removableMatTypes: materialTypes == null ? mcManager.GetAllMaterials() : materialTypes.ToHashSet()
+                removableMatTypes: materialTypes == null ? gfManager.GetAllMaterials() : materialTypes.ToHashSet()
             );
         }
 
@@ -79,13 +79,13 @@ namespace Spellbound.MarchingCubes {
             int delta = byte.MaxValue, 
             byte materialType = byte.MinValue, 
             bool snapToGrid = false) {
-            if (!SingletonManager.TryGetSingletonInstance<MarchingCubesManager>(out var mcManager)) {
-                Debug.LogError("MarchingCubesManager not found. Ensure it's in the current scene.");
+            if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager)) {
+                Debug.LogError("GeoForgeManager not found. Ensure it's in the current scene.");
 
                 return;
             }
 
-            mcManager.ExecuteAdd(
+            gfManager.ExecuteAdd(
                 volume => TerraformCommands.AddCube(volume, snapToGrid,hit.point, direction, materialType, size, delta),
                 targetVolume: hit.collider.GetComponentInParent<IVolume>()
             );

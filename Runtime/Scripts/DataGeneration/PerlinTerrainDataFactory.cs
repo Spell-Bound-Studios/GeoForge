@@ -4,8 +4,8 @@ using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
-    [CreateAssetMenu(menuName = "Spellbound/MarchingCubes/DataFactory/PerlinTerrain")]
+namespace Spellbound.GeoForge {
+    [CreateAssetMenu(menuName = "Spellbound/GeoForge/DataFactory/PerlinTerrain")]
     public class PerlinTerrainDataFactory : DataFactory {
         [Header("Data Factory Settings"), Tooltip("Offset of Terrain from Volume Origin"), SerializeField]
         private Vector3 offset = Vector3.zero;

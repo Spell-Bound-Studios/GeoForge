@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using Unity.Collections;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     public class SimpleChunk : MonoBehaviour, IChunk {
         [Tooltip("Preset for what voxel data is generated in the volume"), SerializeField]
         protected DataFactory dataFactory;

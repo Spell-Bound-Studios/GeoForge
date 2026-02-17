@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
-    [CreateAssetMenu(menuName = "Spellbound/MarchingCubes/VoxelMaterialDatabase")]
+namespace Spellbound.GeoForge {
+    [CreateAssetMenu(menuName = "Spellbound/GeoForge/VoxelMaterialDatabase")]
     public class VoxelMaterialDatabase : ScriptableObject {
         [System.Serializable]
         public class MaterialEntry {

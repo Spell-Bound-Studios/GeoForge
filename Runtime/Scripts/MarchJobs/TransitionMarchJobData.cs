@@ -4,7 +4,7 @@ using System;
 using Unity.Collections;
 using Unity.Mathematics;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     public struct TransitionMarchJobData : IDisposable {
         public NativeList<MeshingVertexData> Vertices;
         public NativeList<int> Triangles;

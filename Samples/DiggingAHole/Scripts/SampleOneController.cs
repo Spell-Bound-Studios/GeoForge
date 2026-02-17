@@ -8,7 +8,7 @@ using UnityEngine.Rendering;
 using UnityEngine.InputSystem;
 #endif
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     /// <summary>
     /// Controller for Sample One, Digging a Hole.
     /// Not recommended as a real controller.
@@ -154,13 +154,13 @@ namespace Spellbound.MarchingCubes {
             switch (shape) {
                 case TerraformShape.Sphere:
                     _projectionObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    _terraformRemove = SbVoxel.RemoveSphere;
-                    _terraformAdd = SbVoxel.AddSphere;
+                    _terraformRemove = GeoForgeStatic.RemoveSphere;
+                    _terraformAdd = GeoForgeStatic.AddSphere;
                     break;
                 case TerraformShape.Cube:
                     _projectionObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    _terraformRemove = SbVoxel.RemoveCube;
-                    _terraformAdd = SbVoxel.AddCube;
+                    _terraformRemove = GeoForgeStatic.RemoveCube;
+                    _terraformAdd = GeoForgeStatic.AddCube;
                     break;
             }
 

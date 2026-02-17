@@ -3,7 +3,7 @@
 using System;
 using Unity.Collections;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     public struct MarchJobData : IDisposable {
         public NativeList<MeshingVertexData> Vertices;
         public NativeList<int> Triangles;

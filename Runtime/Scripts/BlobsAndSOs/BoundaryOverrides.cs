@@ -4,8 +4,8 @@ using System.Collections.Generic;
 using Unity.Entities;
 using UnityEngine;
 
-namespace Spellbound.MarchingCubes {
-    [CreateAssetMenu(menuName = "Spellbound/MarchingCubes/BoundaryOverrides")]
+namespace Spellbound.GeoForge {
+    [CreateAssetMenu(menuName = "Spellbound/GeoForge/BoundaryOverrides")]
     public class BoundaryOverrides : ScriptableObject {
         [Tooltip("Full list of boundaries. Note 6 of them one on each face will fully constrain the volume boundaries"),
          SerializeField]

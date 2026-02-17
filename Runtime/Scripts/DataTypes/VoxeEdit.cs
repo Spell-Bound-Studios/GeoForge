@@ -3,7 +3,7 @@
 using System;
 using Spellbound.Core.Packing;
 
-namespace Spellbound.MarchingCubes {
+namespace Spellbound.GeoForge {
     /// <summary>
     /// Represents a saved modification to a voxel at an index
     /// </summary>
