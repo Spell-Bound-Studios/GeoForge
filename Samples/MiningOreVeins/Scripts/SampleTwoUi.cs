@@ -46,9 +46,6 @@ namespace Spellbound.GeoForge {
             
             HandleShapeDropdownChanged(0);
             
-
-            HandleSnapToGridChanged(false);
-            
             terraformingRangeSlider.onValueChanged.AddListener(HandleRangeSliderChanged);
             HandleRangeSliderChanged(terraformingRangeSlider.value);
             
@@ -99,11 +96,7 @@ namespace Spellbound.GeoForge {
         private void HandleShapeDropdownChanged(int index) {
             _controller.SetProjectionShape(index);
         }
-
-        private void HandleSnapToGridChanged(bool value) {
-            _controller.snapToGrid = value;
-        }
-
+        
         private void HandleRangeSliderChanged(float value) {
             terraformingRangeValue.text = value.ToString();
             _controller.terraformRange = value;

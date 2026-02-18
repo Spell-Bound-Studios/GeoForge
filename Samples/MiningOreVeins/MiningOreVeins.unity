@@ -324,15 +324,15 @@ MonoBehaviour:
   terraformRange: 5
   terraformSize: 1
   terraformStrength: 255
-  diggableMaterialList: 
-  addableMaterial: 0
   snapToGrid: 0
-  lowStrengthColor: {r: 0, g: 0, b: 0, a: 0}
-  highStrengthColor: {r: 0, g: 0, b: 0, a: 0}
-  projectionMaterial: {fileID: 0}
+  lowStrengthColor: {r: 0, g: 0.2929263, b: 1, a: 0.4}
+  highStrengthColor: {r: 1, g: 0, b: 0, a: 0.4}
+  projectionMaterial: {fileID: 2100000, guid: 91521e6affe993c419265028938ed7d9, type: 2}
   collider: {fileID: 0}
   freezeUpdate: 0
   uiPrefab: {fileID: 660016640278960988, guid: 3bc7bf43f33cdd44eb5f0ba5bc3db1a3, type: 3}
+  MiningAudioClip: {fileID: 8300000, guid: 136f2e10604e3554091113ca7c37a09d, type: 3}
+  MiningParticle: {fileID: 3297046239529303336, guid: 7de03d7526efcf142999f8bbbc26d715, type: 3}
 --- !u!1 &414567658
 GameObject:
   m_ObjectHideFlags: 0

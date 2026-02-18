@@ -25,8 +25,7 @@ namespace Spellbound.GeoForge {
         [SerializeField] public float terraformRange = 5f;
         [SerializeField] public float terraformSize = 1f;
         [SerializeField, Range(1, byte.MaxValue)] public int terraformStrength = byte.MaxValue;
-        [SerializeField] public List<byte> diggableMaterialList = new List<byte> { 0, 1, 2, 3 };
-        [SerializeField] public bool snapToGrid;
+        private readonly List<byte> _diggableMaterialList = new List<byte> { 0, 1, 2, 3 };
         
         // Config
         [SerializeField] private Color lowStrengthColor;
@@ -109,7 +108,7 @@ namespace Spellbound.GeoForge {
                         out var hit,
                         terraformRange,
                         ~0)) {
-                    _terraformRemove(hit, transform.forward, terraformSize, terraformStrength, diggableMaterialList, snapToGrid);
+                    _terraformRemove(hit, transform.forward, terraformSize, terraformStrength, _diggableMaterialList, false);
                     AudioSource.PlayClipAtPoint(MiningAudioClip, hit.point);
                     var direction = Vector3.Slerp(-transform.forward, hit.normal, 0.5f);
                     var geoVolume = hit.collider.gameObject.GetComponentInParent<IVolume>();
@@ -129,7 +128,7 @@ namespace Spellbound.GeoForge {
                         out var hit,
                         terraformRange,
                         ~0)){
-                _terraformRemove(pos, rot.eulerAngles, terraformSize, terraformStrength, diggableMaterialList, snapToGrid);
+                _terraformRemove(pos, rot.eulerAngles, terraformSize, terraformStrength, _diggableMaterialList, snapToGrid);
             }
 #endif
         }
@@ -175,15 +174,13 @@ namespace Spellbound.GeoForge {
                     return;
                 }
                 var tuple = volume.SnapToGrid(hit.point);
-                _projectionObj.transform.position = snapToGrid ? tuple.Item1 : hit.point;
+                _projectionObj.transform.position = hit.point;
 
-                _projectionObj.transform.rotation =
-                        snapToGrid ? tuple.Item2 : Quaternion.LookRotation(transform.forward, Vector3.up);
+                _projectionObj.transform.rotation = Quaternion.LookRotation(transform.forward, Vector3.up);
                 _projectionObj.transform.localScale =  terraformSize * Vector3.one;
                 _projectionObj.GetComponent<MeshRenderer>().material.color = 
                         Color.Lerp(lowStrengthColor, highStrengthColor, terraformStrength/255f);
                 _projectionObj.SetActive(true);
-
                 return;
             }
             _projectionObj.SetActive(false);
