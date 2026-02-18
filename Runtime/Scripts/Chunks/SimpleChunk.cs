@@ -6,24 +6,26 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     public class SimpleChunk : MonoBehaviour, IChunk {
-        [Tooltip("Preset for what voxel data is generated in the volume"), SerializeField]
-        protected DataFactory dataFactory;
 
-        [Tooltip("Rules for immutable voxels on the external faces of the volume"), SerializeField]
+        protected DataFactory dataFactory;
+        
         protected BoundaryOverrides boundaryOverrides;
 
-        private BaseChunk _baseChunk;
+        protected BaseChunk _baseChunk;
         public BaseChunk BaseChunk => _baseChunk;
 
         private void Awake() => _baseChunk = new BaseChunk(this, this);
-
-        private void Start() => InitializeChunk();
+        
+        public void SetDataFactory(DataFactory factory) => dataFactory = factory;
+        
+        public void SetBoundaryOverrides(BoundaryOverrides overrides) => boundaryOverrides = overrides;
 
         /// <summary>
         /// Generates voxels with the datafactory.
         /// </summary>
         /// <param name="voxels"></param>
         public void InitializeChunk(NativeArray<VoxelData> voxels = default) {
+            Debug.Log("InitializeChunk");
             _baseChunk.ParentVolume.BaseVolume.RegisterChunk(_baseChunk.ChunkCoord, this);
 
             if (boundaryOverrides != null) {
@@ -50,7 +52,7 @@ namespace Spellbound.GeoForge {
         /// and must validate the octree within the bounds of the edits.
         /// </summary>
         /// <param name="newVoxelEdits"></param> VoxelEdits distributed to this chunk by the Marching Cubes Manager.
-        public void PassVoxelEdits(List<VoxelEdit> newVoxelEdits) {
+        public virtual void PassVoxelEdits(List<VoxelEdit> newVoxelEdits) {
             if (_baseChunk.ApplyVoxelEdits(newVoxelEdits, out var editBounds))
                 _baseChunk.ValidateOctreeEdits(editBounds);
         }

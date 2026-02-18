@@ -13,6 +13,12 @@ namespace Spellbound.GeoForge {
     /// create a new class instead of inheriting from SimpleVolume.
     /// </summary>
     public class SimpleVolume : MonoBehaviour, IVolume {
+        [Tooltip("Preset for what voxel data is generated in the volume"), SerializeField]
+        protected DataFactory dataFactory;
+
+        [Tooltip("Rules for immutable voxels on the external faces of the volume"), SerializeField]
+        protected BoundaryOverrides boundaryOverrides;
+        
         [Header("Volume Settings"), Tooltip("Config for ChunkSize, VolumeSize, etc"), SerializeField]
         protected VoxelVolumeConfig config;
 
@@ -85,8 +91,13 @@ namespace Spellbound.GeoForge {
                 for (var y = 0; y < size.y; y++) {
                     for (var z = 0; z < size.z; z++) {
                         var chunkCoord = new Vector3Int(x, y, z) - offset;
-                        _baseVolume.CreateChunk<IChunk>(chunkCoord, chunkPrefab);
+                        var chunk = _baseVolume.CreateChunk<IChunk>(chunkCoord, chunkPrefab);
 
+                        if (chunk is SimpleChunk simpleChunk) {
+                            simpleChunk.SetDataFactory(dataFactory);
+                            simpleChunk.SetBoundaryOverrides(boundaryOverrides);
+                        }
+                        chunk.InitializeChunk();
                         yield return null;
                     }
                 }
