@@ -1,11 +1,10 @@
 // Copyright 2025 Spellbound Studio Inc.
 
 using System.Collections.Generic;
-using Unity.Collections;
 using UnityEngine;
 
-namespace Spellbound.GeoForge {
-    public class SampleTwoChunk : SimpleChunk {
+namespace Spellbound.GeoForge.Sample2 {
+    public class MiningVeinChunk : SimpleChunk {
         [SerializeField] private int oreHealth;
         private Dictionary<int, int> _damagedVoxels = new();
         

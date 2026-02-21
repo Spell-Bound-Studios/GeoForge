@@ -7,12 +7,12 @@ using TMPro;
 using UnityEngine.InputSystem;
 #endif
 
-namespace Spellbound.GeoForge {
+namespace Spellbound.GeoForge.Sample1 {
     /// <summary>
     /// Controller for Sample One, Digging a Hole.
     /// Not recommended as a real controller/UI, because it is hard-couled to the Controller.
     /// </summary>
-    public class SampleOneUi : MonoBehaviour {
+    public class Ui : MonoBehaviour {
         // Shape, what shape the terraforming command should take.
         [SerializeField] private TMP_Dropdown terraformingShapeDropdown;
         
@@ -42,14 +42,14 @@ namespace Spellbound.GeoForge {
         [SerializeField] private GameObject tabOverlayObj;
         
         // Controller, this is what the UI controls.
-        private SampleOneController _controller;
+        private Controller _controller;
 
         /// <summary>
         /// Sets the controller.
         /// Subscribes to events.
         /// Initializes values.
         /// </summary>
-        public void SetController(SampleOneController controller) {
+        public void SetController(Controller controller) {
             _controller = controller;
 
             terraformingShapeDropdown.onValueChanged.AddListener(HandleShapeDropdownChanged);

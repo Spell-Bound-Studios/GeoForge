@@ -7,13 +7,13 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 #endif
 
-namespace Spellbound.GeoForge {
+namespace Spellbound.GeoForge.Sample1 {
     /// <summary>
-    /// Controller for Sample Three, Orbiting Planets.
+    /// Controller for Sample One, Digging a Hole.
     /// Not recommended as a real controller.
     /// Fields and settings are controlled from the UI, which is created on Start(), and why some fields are public.
     /// </summary>
-    public class SampleThreeController : MonoBehaviour {
+    public class Controller : MonoBehaviour {
         
         // Movement fields
         [SerializeField] private float moveSpeed = 5f;
@@ -24,7 +24,7 @@ namespace Spellbound.GeoForge {
         [SerializeField] public float terraformRange = 5f;
         [SerializeField] public float terraformSize = 1f;
         [SerializeField, Range(1, byte.MaxValue)] public int terraformStrength = byte.MaxValue;
-        [SerializeField] public List<byte> diggableMaterialList = new();
+        [SerializeField] public List<byte> diggableMaterialList = new() { 0, 1, 2, 3 };
         [SerializeField] public byte addableMaterial;
         
         // Config
@@ -35,16 +35,12 @@ namespace Spellbound.GeoForge {
         private Rigidbody _rb;
         [HideInInspector] public Collider playerCollider;
         [HideInInspector] public bool freezeUpdate;
-        [SerializeField] private SampleThreeUi uiPrefab;
+        [SerializeField] private Ui uiPrefab;
 
 
         // Commands
         private Action<RaycastHit, Vector3, float, int, List<byte>,  bool> _terraformRemove;
         private Action<RaycastHit, Vector3, float, int, byte,  bool> _terraformAdd;
-        
-        // Effects
-        [SerializeField] private LineRenderer lineRenderer;
-        [SerializeField] private float lineRendererStartOffset;
         
         // Local enum for the shape of the terraforming commands
         private enum TerraformShape {
@@ -75,10 +71,8 @@ namespace Spellbound.GeoForge {
             }
             
             _rb.freezeRotation = true;
-            var ui = Instantiate(uiPrefab).GetComponent<SampleThreeUi>();
+            var ui = Instantiate(uiPrefab).GetComponent<Ui>();
             ui.SetController(this);
-            
-            lineRenderer.enabled = false;
         }
 
         /// <summary>
@@ -103,7 +97,7 @@ namespace Spellbound.GeoForge {
             var keyboard = Keyboard.current;
             
             if (keyboard != null) {
-                if (keyboard.digit1Key.isPressed
+                if (keyboard.digit1Key.wasPressedThisFrame
                     && Physics.Raycast(
                         transform.position,
                         transform.forward,
@@ -111,12 +105,9 @@ namespace Spellbound.GeoForge {
                         terraformRange,
                         ~0)) {
                     _terraformRemove(hit, transform.forward, terraformSize, terraformStrength, diggableMaterialList, false);
-                    lineRenderer.enabled = true;
-                    lineRenderer.SetPosition(0, transform.position - transform.up * lineRendererStartOffset);
-                    lineRenderer.SetPosition(1, hit.point);
                 }
                     
-                else if (keyboard.digit2Key.isPressed
+                else if (keyboard.digit2Key.wasPressedThisFrame
                          && Physics.Raycast(
                              transform.position,
                              transform.forward,
@@ -124,13 +115,6 @@ namespace Spellbound.GeoForge {
                              terraformRange,
                              ~0)) {
                     _terraformAdd(hit, transform.forward, terraformSize, terraformStrength, addableMaterial, false);
-                    lineRenderer.enabled = true;
-                    lineRenderer.SetPosition(0, transform.position - transform.up * lineRendererStartOffset);
-                    lineRenderer.SetPosition(1, hit.point);
-                }
-
-                else {
-                    lineRenderer.enabled = false;
                 }
                     
                
@@ -201,7 +185,6 @@ namespace Spellbound.GeoForge {
 
                     return;
                 }
-                
                 _projectionObj.transform.position = hit.point;
 
                 _projectionObj.transform.rotation = Quaternion.LookRotation(transform.forward, Vector3.up);
