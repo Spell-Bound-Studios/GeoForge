@@ -7,17 +7,14 @@ using TMPro;
 using UnityEngine.InputSystem;
 #endif
 
-namespace Spellbound.GeoForge {
+namespace Spellbound.GeoForge.Sample3 {
     /// <summary>
     /// Controller for Sample One, Digging a Hole.
     /// Not recommended as a real controller/UI, because it is hard-couled to the Controller.
     /// </summary>
-    public class SampleOneUi : MonoBehaviour {
+    public class Ui : MonoBehaviour {
         // Shape, what shape the terraforming command should take.
         [SerializeField] private TMP_Dropdown terraformingShapeDropdown;
-        
-        // Shape, what shape the terraforming command should take.
-        [SerializeField] private Toggle snapToGridToggle;
         
         // Range, how far away terraforming may be commanded at.
         [SerializeField] private Slider terraformingRangeSlider;
@@ -45,21 +42,18 @@ namespace Spellbound.GeoForge {
         [SerializeField] private GameObject tabOverlayObj;
         
         // Controller, this is what the UI controls.
-        private SampleOneController _controller;
+        private Controller _controller;
 
         /// <summary>
         /// Sets the controller.
         /// Subscribes to events.
         /// Initializes values.
         /// </summary>
-        public void SetController(SampleOneController controller) {
+        public void SetController(Controller controller) {
             _controller = controller;
 
             terraformingShapeDropdown.onValueChanged.AddListener(HandleShapeDropdownChanged);
             HandleShapeDropdownChanged(terraformingShapeDropdown.value);
-            
-            snapToGridToggle.onValueChanged.AddListener(HandleSnapToGridChanged);
-            HandleSnapToGridChanged(snapToGridToggle.isOn);
             
             terraformingRangeSlider.onValueChanged.AddListener(HandleRangeSliderChanged);
             HandleRangeSliderChanged(terraformingRangeSlider.value);
@@ -122,28 +116,23 @@ namespace Spellbound.GeoForge {
             _controller.SetProjectionShape(index);
         }
 
-        private void HandleSnapToGridChanged(bool value) {
-            _controller.snapToGrid = value;
-        }
-
         private void HandleRangeSliderChanged(float value) {
-            terraformingRangeValue.text = value.ToString();
+            terraformingRangeValue.text = value.ToString("F2");
             _controller.terraformRange = value;
         }
         
         private void HandleSizeSliderChanged(float value) {
-            terraformingSizeValue.text = value.ToString();
+            terraformingSizeValue.text = value.ToString("F2");
             _controller.terraformSize = value;
         }
         
         private void HandleStrengthSliderChanged(float value) {
-            terraformingStrengthValue.text = value.ToString();
+            terraformingStrengthValue.text = value.ToString("F2");
             _controller.terraformStrength = (int)value;
-            
         }
         
         private void HandleCollisionToggle(bool value) {
-            _controller.collider.enabled = value;
+            _controller.playerCollider.enabled = value;
         }
 
         private void HandleAddableMaterialChanged(int index) {

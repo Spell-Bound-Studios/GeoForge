@@ -3,31 +3,28 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
 
-namespace Spellbound.GeoForge {
+namespace Spellbound.GeoForge.Sample2 {
     /// <summary>
     /// Controller for Sample One, Digging a Hole.
     /// Not recommended as a real controller.
     /// Fields and settings are controlled from the UI, which is created on Start(), and why some fields are public.
     /// </summary>
-    public class SampleOneController : MonoBehaviour {
+    public class Controller : MonoBehaviour {
         
         // Movement fields
         [SerializeField] private float moveSpeed = 5f;
         [SerializeField] private float lookSpeed = 2f;
-        private float _pitch = 0f;
+        private float _pitch;
         
         // Marching Cubes fields
         [SerializeField] public float terraformRange = 5f;
         [SerializeField] public float terraformSize = 1f;
         [SerializeField, Range(1, byte.MaxValue)] public int terraformStrength = byte.MaxValue;
-        [SerializeField] public List<byte> diggableMaterialList = new();
-        [SerializeField] public byte addableMaterial = 0;
-        [SerializeField] public bool snapToGrid;
+        private readonly List<byte> _diggableMaterialList = new() { 0, 1, 2, 3 };
         
         // Config
         [SerializeField] private Color lowStrengthColor;
@@ -35,17 +32,21 @@ namespace Spellbound.GeoForge {
         [SerializeField] private Material projectionMaterial;
         private GameObject _projectionObj;
         private Rigidbody _rb;
-        [HideInInspector] public Collider collider;
-        [HideInInspector] public bool freezeUpdate = false;
-        [SerializeField] private SampleOneUi uiPrefab;
+        [HideInInspector] public Collider playerCollider;
+        [HideInInspector] public bool freezeUpdate;
+        [SerializeField] private Ui uiPrefab;
+        
+        // Effects
+        [SerializeField] private AudioClip miningAudioClip;
+        [SerializeField] private ParticleSystem miningParticle;
+        
 
 
         // Commands
         private Action<RaycastHit, Vector3, float, int, List<byte>,  bool> _terraformRemove;
-        private Action<RaycastHit, Vector3, float, int, byte,  bool> _terraformAdd;
         
         // Local enum for the shape of the terraforming commands
-        public enum TerraformShape {
+        private enum TerraformShape {
             Sphere,
             Cube
         }
@@ -55,7 +56,7 @@ namespace Spellbound.GeoForge {
         /// </summary>
         private void Start() {
             _rb = GetComponent<Rigidbody>();
-            collider = GetComponent<Collider>();
+            playerCollider = GetComponent<Collider>();
             
 
             if (_rb == null) {
@@ -65,7 +66,7 @@ namespace Spellbound.GeoForge {
                 return;
             }
             
-            if (collider == null) {
+            if (playerCollider == null) {
                 Debug.LogError("No Collider component found!");
                 enabled = false;
 
@@ -73,7 +74,7 @@ namespace Spellbound.GeoForge {
             }
             
             _rb.freezeRotation = true;
-            var ui = Instantiate(uiPrefab).GetComponent<SampleOneUi>();
+            var ui = Instantiate(uiPrefab).GetComponent<Ui>();
             ui.SetController(this);
         }
 
@@ -106,20 +107,17 @@ namespace Spellbound.GeoForge {
                         out var hit,
                         terraformRange,
                         ~0)) {
-                    _terraformRemove(hit, transform.forward, terraformSize, terraformStrength, diggableMaterialList, snapToGrid);
-                }
+                    _terraformRemove(hit, transform.forward, terraformSize, terraformStrength, _diggableMaterialList, false);
+                    AudioSource.PlayClipAtPoint(miningAudioClip, hit.point);
+                    var direction = Vector3.Slerp(-transform.forward, hit.normal, 0.5f);
+                    var geoVolume = hit.collider.gameObject.GetComponentInParent<IVolume>();
+
+                    if (geoVolume != null) {
+                        var ps = Instantiate(miningParticle, hit.point, Quaternion.LookRotation(direction, Vector3.up));
+                        Destroy(ps.gameObject, ps.main.duration);
+                    }
                     
-                else if (keyboard.digit2Key.wasPressedThisFrame
-                         && Physics.Raycast(
-                             transform.position,
-                             transform.forward,
-                             out hit,
-                             terraformRange,
-                             ~0)) {
-                    _terraformAdd(hit, transform.forward, terraformSize, terraformStrength, addableMaterial, snapToGrid);
                 }
-                    
-               
             }
 #else
             if (Input.GetKeyDown(KeyCode.Alpha1)
@@ -129,38 +127,25 @@ namespace Spellbound.GeoForge {
                         out var hit,
                         terraformRange,
                         ~0)){
-                _terraformRemove(pos, rot.eulerAngles, terraformSize, terraformStrength, diggableMaterialList, snapToGrid);
+                _terraformRemove(pos, rot.eulerAngles, terraformSize, terraformStrength, _diggableMaterialList, snapToGrid);
             }
-                    
-                else if (Input.GetKeyDown(KeyCode.Alpha2
-                         && Physics.Raycast(
-                        transform.position,
-                        transform.forward,
-                        out hit,
-                        terraformRange,
-                        ~0)){
-                _terraformAdd(pos, rot.eulerAngles, terraformSize, terraformStrength, addableMaterial, snapToGrid);
-                }
-                    
 #endif
         }
 
         /// <summary>
         /// Method for setting or changing the shape of the terraforming projection and commands.
         /// </summary>
-        public void SetProjectionShape(TerraformShape shape) {
+        private void SetProjectionShape(TerraformShape shape) {
             if (_projectionObj != null)
                 Destroy(_projectionObj);
             switch (shape) {
                 case TerraformShape.Sphere:
                     _projectionObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
                     _terraformRemove = GeoForgeStatic.RemoveSphere;
-                    _terraformAdd = GeoForgeStatic.AddSphere;
                     break;
                 case TerraformShape.Cube:
                     _projectionObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
                     _terraformRemove = GeoForgeStatic.RemoveCube;
-                    _terraformAdd = GeoForgeStatic.AddCube;
                     break;
             }
 
@@ -187,21 +172,17 @@ namespace Spellbound.GeoForge {
 
                     return;
                 }
-                var tuple = volume.SnapToGrid(hit.point);
-                _projectionObj.transform.position = snapToGrid ? tuple.Item1 : hit.point;
+                _projectionObj.transform.position = hit.point;
 
-                _projectionObj.transform.rotation =
-                        snapToGrid ? tuple.Item2 : Quaternion.LookRotation(transform.forward, Vector3.up);
+                _projectionObj.transform.rotation = Quaternion.LookRotation(transform.forward, Vector3.up);
                 _projectionObj.transform.localScale =  terraformSize * Vector3.one;
                 _projectionObj.GetComponent<MeshRenderer>().material.color = 
                         Color.Lerp(lowStrengthColor, highStrengthColor, terraformStrength/255f);
                 _projectionObj.SetActive(true);
-
                 return;
             }
             _projectionObj.SetActive(false);
-
-            return;
+            
         }
 
         /// <summary>

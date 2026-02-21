@@ -3,31 +3,29 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
 
-namespace Spellbound.GeoForge {
+namespace Spellbound.GeoForge.Sample3 {
     /// <summary>
     /// Controller for Sample Three, Orbiting Planets.
     /// Not recommended as a real controller.
     /// Fields and settings are controlled from the UI, which is created on Start(), and why some fields are public.
     /// </summary>
-    public class SampleThreeController : MonoBehaviour {
+    public class Controller : MonoBehaviour {
         
         // Movement fields
         [SerializeField] private float moveSpeed = 5f;
         [SerializeField] private float lookSpeed = 2f;
-        private float _pitch = 0f;
+        private float _pitch;
         
         // Marching Cubes fields
         [SerializeField] public float terraformRange = 5f;
         [SerializeField] public float terraformSize = 1f;
         [SerializeField, Range(1, byte.MaxValue)] public int terraformStrength = byte.MaxValue;
         [SerializeField] public List<byte> diggableMaterialList = new();
-        [SerializeField] public byte addableMaterial = 0;
-        [SerializeField] public bool snapToGrid;
+        [SerializeField] public byte addableMaterial;
         
         // Config
         [SerializeField] private Color lowStrengthColor;
@@ -35,9 +33,9 @@ namespace Spellbound.GeoForge {
         [SerializeField] private Material projectionMaterial;
         private GameObject _projectionObj;
         private Rigidbody _rb;
-        [HideInInspector] public Collider collider;
-        [HideInInspector] public bool freezeUpdate = false;
-        [SerializeField] private SampleThreeUi uiPrefab;
+        [HideInInspector] public Collider playerCollider;
+        [HideInInspector] public bool freezeUpdate;
+        [SerializeField] private Ui uiPrefab;
 
 
         // Commands
@@ -49,7 +47,7 @@ namespace Spellbound.GeoForge {
         [SerializeField] private float lineRendererStartOffset;
         
         // Local enum for the shape of the terraforming commands
-        public enum TerraformShape {
+        private enum TerraformShape {
             Sphere,
             Cube
         }
@@ -59,7 +57,7 @@ namespace Spellbound.GeoForge {
         /// </summary>
         private void Start() {
             _rb = GetComponent<Rigidbody>();
-            collider = GetComponent<Collider>();
+            playerCollider = GetComponent<Collider>();
             
 
             if (_rb == null) {
@@ -69,7 +67,7 @@ namespace Spellbound.GeoForge {
                 return;
             }
             
-            if (collider == null) {
+            if (playerCollider == null) {
                 Debug.LogError("No Collider component found!");
                 enabled = false;
 
@@ -77,7 +75,7 @@ namespace Spellbound.GeoForge {
             }
             
             _rb.freezeRotation = true;
-            var ui = Instantiate(uiPrefab).GetComponent<SampleThreeUi>();
+            var ui = Instantiate(uiPrefab).GetComponent<Ui>();
             ui.SetController(this);
             
             lineRenderer.enabled = false;
@@ -112,7 +110,7 @@ namespace Spellbound.GeoForge {
                         out var hit,
                         terraformRange,
                         ~0)) {
-                    _terraformRemove(hit, transform.forward, terraformSize, terraformStrength, diggableMaterialList, snapToGrid);
+                    _terraformRemove(hit, transform.forward, terraformSize, terraformStrength, diggableMaterialList, false);
                     lineRenderer.enabled = true;
                     lineRenderer.SetPosition(0, transform.position - transform.up * lineRendererStartOffset);
                     lineRenderer.SetPosition(1, hit.point);
@@ -125,7 +123,7 @@ namespace Spellbound.GeoForge {
                              out hit,
                              terraformRange,
                              ~0)) {
-                    _terraformAdd(hit, transform.forward, terraformSize, terraformStrength, addableMaterial, snapToGrid);
+                    _terraformAdd(hit, transform.forward, terraformSize, terraformStrength, addableMaterial, false);
                     lineRenderer.enabled = true;
                     lineRenderer.SetPosition(0, transform.position - transform.up * lineRendererStartOffset);
                     lineRenderer.SetPosition(1, hit.point);
@@ -164,7 +162,7 @@ namespace Spellbound.GeoForge {
         /// <summary>
         /// Method for setting or changing the shape of the terraforming projection and commands.
         /// </summary>
-        public void SetProjectionShape(TerraformShape shape) {
+        private void SetProjectionShape(TerraformShape shape) {
             if (_projectionObj != null)
                 Destroy(_projectionObj);
             switch (shape) {
@@ -203,11 +201,10 @@ namespace Spellbound.GeoForge {
 
                     return;
                 }
-                var tuple = volume.SnapToGrid(hit.point);
-                _projectionObj.transform.position = snapToGrid ? tuple.Item1 : hit.point;
+                
+                _projectionObj.transform.position = hit.point;
 
-                _projectionObj.transform.rotation =
-                        snapToGrid ? tuple.Item2 : Quaternion.LookRotation(transform.forward, Vector3.up);
+                _projectionObj.transform.rotation = Quaternion.LookRotation(transform.forward, Vector3.up);
                 _projectionObj.transform.localScale =  terraformSize * Vector3.one;
                 _projectionObj.GetComponent<MeshRenderer>().material.color = 
                         Color.Lerp(lowStrengthColor, highStrengthColor, terraformStrength/255f);
@@ -216,8 +213,6 @@ namespace Spellbound.GeoForge {
                 return;
             }
             _projectionObj.SetActive(false);
-
-            return;
         }
 
         /// <summary>

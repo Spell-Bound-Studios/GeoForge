@@ -188,6 +188,10 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: boundaryOverrides
+      value: 
+      objectReference: {fileID: 11400000, guid: 4f43f851bbe38eb47ab25e7b9ff01110, type: 2}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: viewDistanceLodRanges.Array.size
       value: 4
       objectReference: {fileID: 0}
@@ -831,7 +835,6 @@ MonoBehaviour:
   terraformStrength: 255
   diggableMaterialList: 
   addableMaterial: 0
-  snapToGrid: 0
   lowStrengthColor: {r: 0.017205715, g: 0, b: 1, a: 0.4}
   highStrengthColor: {r: 1, g: 0, b: 0, a: 0.4}
   projectionMaterial: {fileID: 2100000, guid: 91521e6affe993c419265028938ed7d9, type: 2}

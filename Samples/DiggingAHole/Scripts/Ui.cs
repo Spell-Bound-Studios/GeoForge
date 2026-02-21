@@ -7,13 +7,15 @@ using TMPro;
 using UnityEngine.InputSystem;
 #endif
 
-namespace Spellbound.GeoForge {
+namespace Spellbound.GeoForge.Sample1 {
     /// <summary>
-    /// Controller for Sample Two, Mining Ore Veins.
+    /// Controller for Sample One, Digging a Hole.
     /// Not recommended as a real controller/UI, because it is hard-couled to the Controller.
     /// </summary>
-    public class SampleTwoUi : MonoBehaviour {
-
+    public class Ui : MonoBehaviour {
+        // Shape, what shape the terraforming command should take.
+        [SerializeField] private TMP_Dropdown terraformingShapeDropdown;
+        
         // Range, how far away terraforming may be commanded at.
         [SerializeField] private Slider terraformingRangeSlider;
         [SerializeField] private TextMeshProUGUI terraformingRangeValue;
@@ -30,21 +32,28 @@ namespace Spellbound.GeoForge {
         // Collisions, whether the controller should collide with the mesh or pass right through.
         [SerializeField] private Toggle useCollisionToggle;
         
+        // Material that will be added when additive terraforming occurs.
+        [SerializeField] private TMP_Dropdown addableMaterialDropdown;
+        
+        // Materials that will be removed when negative terraforming occurs.
+        [SerializeField] private Toggle[] diggableMaterialToggles;
+        
         // Semi-Transparent overlay to indicate when tab is pressed.
         [SerializeField] private GameObject tabOverlayObj;
         
         // Controller, this is what the UI controls.
-        private SampleTwoController _controller;
+        private Controller _controller;
 
         /// <summary>
         /// Sets the controller.
         /// Subscribes to events.
         /// Initializes values.
         /// </summary>
-        public void SetController(SampleTwoController controller) {
+        public void SetController(Controller controller) {
             _controller = controller;
-            
-            HandleShapeDropdownChanged(0);
+
+            terraformingShapeDropdown.onValueChanged.AddListener(HandleShapeDropdownChanged);
+            HandleShapeDropdownChanged(terraformingShapeDropdown.value);
             
             terraformingRangeSlider.onValueChanged.AddListener(HandleRangeSliderChanged);
             HandleRangeSliderChanged(terraformingRangeSlider.value);
@@ -58,6 +67,16 @@ namespace Spellbound.GeoForge {
             useCollisionToggle.onValueChanged.AddListener(HandleCollisionToggle);
             HandleCollisionToggle(useCollisionToggle.isOn);
             
+            addableMaterialDropdown.onValueChanged.AddListener(HandleAddableMaterialChanged);
+            HandleAddableMaterialChanged(addableMaterialDropdown.value);
+
+            for(var i = 0; i < diggableMaterialToggles.Length; i++) {
+                var index = i;
+
+                diggableMaterialToggles[i].onValueChanged.AddListener((value)
+                        => HandleDiggableMateralsChanged(index, value));
+                HandleDiggableMateralsChanged(index,  diggableMaterialToggles[i].isOn);
+            }
             
             Cursor.lockState = CursorLockMode.Locked;
             tabOverlayObj.SetActive(false);
@@ -96,27 +115,42 @@ namespace Spellbound.GeoForge {
         private void HandleShapeDropdownChanged(int index) {
             _controller.SetProjectionShape(index);
         }
-        
+
         private void HandleRangeSliderChanged(float value) {
-            terraformingRangeValue.text = value.ToString();
+            terraformingRangeValue.text = value.ToString("F2");
             _controller.terraformRange = value;
         }
         
         private void HandleSizeSliderChanged(float value) {
-            terraformingSizeValue.text = value.ToString();
+            terraformingSizeValue.text = value.ToString("F2");
             _controller.terraformSize = value;
         }
         
         private void HandleStrengthSliderChanged(float value) {
-            terraformingStrengthValue.text = value.ToString();
+            terraformingStrengthValue.text = value.ToString("F2");
             _controller.terraformStrength = (int)value;
             
         }
         
         private void HandleCollisionToggle(bool value) {
-            _controller.collider.enabled = value;
+            _controller.GetComponent<Collider>().enabled = value;
         }
-        
+
+        private void HandleAddableMaterialChanged(int index) {
+            _controller.addableMaterial = (byte)index;
+        }
+
+        private void HandleDiggableMateralsChanged(int index, bool isDiggable) {
+            if (!isDiggable) {
+                _controller.diggableMaterialList.Remove((byte)index);
+
+                return;
+            }
+
+            if (!_controller.diggableMaterialList.Contains((byte)index)) {
+                _controller.diggableMaterialList.Add((byte)index);
+            }
+        }
 
         private void HandleTabPressed() {
             if (_controller == null)
