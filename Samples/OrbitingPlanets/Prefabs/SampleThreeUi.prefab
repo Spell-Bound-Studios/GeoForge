@@ -2612,10 +2612,10 @@ MonoBehaviour:
   m_FillRect: {fileID: 7117042050968952136}
   m_HandleRect: {fileID: 917461935542266841}
   m_Direction: 0
-  m_MinValue: 1.75
-  m_MaxValue: 10
+  m_MinValue: 1
+  m_MaxValue: 4
   m_WholeNumbers: 0
-  m_Value: 1.75
+  m_Value: 1
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -3423,7 +3423,7 @@ MonoBehaviour:
   onValueChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_IsOn: 0
+  m_IsOn: 1
 --- !u!1 &4297594922379098619
 GameObject:
   m_ObjectHideFlags: 0
@@ -3659,9 +3659,9 @@ GameObject:
   - component: {fileID: 3924586516277985935}
   - component: {fileID: 6437444879634881468}
   - component: {fileID: 5677226238028116355}
-  - component: {fileID: 4701024163546972593}
+  - component: {fileID: -4218648525367237547}
   m_Layer: 5
-  m_Name: SampleOneUi
+  m_Name: SampleThreeUi
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -3764,7 +3764,7 @@ MonoBehaviour:
   m_BlockingMask:
     serializedVersion: 2
     m_Bits: 4294967295
---- !u!114 &4701024163546972593
+--- !u!114 &-4218648525367237547
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -3773,7 +3773,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 4414025462879609599}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 746bc662c7cf845459365f2a6306a5ef, type: 3}
+  m_Script: {fileID: 11500000, guid: d789286f91fda294691cb51d87d18346, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   terraformingShapeDropdown: {fileID: 2339482792319771499}
@@ -4788,9 +4788,9 @@ RectTransform:
   - {fileID: 6167359702827150656}
   m_Father: {fileID: 1323018642167850297}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0, y: 0}
-  m_AnchorMax: {x: 0, y: 0}
-  m_AnchoredPosition: {x: 270, y: -136}
+  m_AnchorMin: {x: 0, y: 1}
+  m_AnchorMax: {x: 0, y: 1}
+  m_AnchoredPosition: {x: 270, y: -741}
   m_SizeDelta: {x: 160, y: 20}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &8407794451863272432
@@ -5138,7 +5138,7 @@ MonoBehaviour:
   onValueChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_IsOn: 0
+  m_IsOn: 1
 --- !u!1 &6236532202873635525
 GameObject:
   m_ObjectHideFlags: 0
@@ -5224,10 +5224,10 @@ MonoBehaviour:
   m_FillRect: {fileID: 7867633574329317019}
   m_HandleRect: {fileID: 6654997092338228578}
   m_Direction: 0
-  m_MinValue: 1
-  m_MaxValue: 100
+  m_MinValue: 3
+  m_MaxValue: 1000
   m_WholeNumbers: 1
-  m_Value: 35
+  m_Value: 10
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
@@ -6602,7 +6602,7 @@ MonoBehaviour:
   m_MinValue: 1
   m_MaxValue: 255
   m_WholeNumbers: 1
-  m_Value: 240
+  m_Value: 10
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []
