@@ -410,6 +410,11 @@ Shader "Spellbound/SpellboundTerrain"
             Out = pow(A, B);
         }
         
+        void Unity_Add_float3(float3 A, float3 B, out float3 Out)
+        {
+            Out = A + B;
+        }
+        
         void Unity_DotProduct_float3(float3 A, float3 B, out float Out)
         {
             Out = dot(A, B);
@@ -538,10 +543,12 @@ Shader "Spellbound/SpellboundTerrain"
             float _Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float = _Blend;
             float3 _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3;
             Unity_Power_float3(_Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3, (_Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float.xxx), _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3);
+            float3 _Add_9568d3ef0e354b9e8d488098645f602b_Out_2_Vector3;
+            Unity_Add_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, float3(0.001, 0.001, 0.001), _Add_9568d3ef0e354b9e8d488098645f602b_Out_2_Vector3);
             float _DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float;
             Unity_DotProduct_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, float3(1, 1, 1), _DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float);
             float3 _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3;
-            Unity_Divide_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, (_DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float.xxx), _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3);
+            Unity_Divide_float3(_Add_9568d3ef0e354b9e8d488098645f602b_Out_2_Vector3, (_DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float.xxx), _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3);
             float _Split_3690e7172951494d811295287d62f6a9_R_1_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[0];
             float _Split_3690e7172951494d811295287d62f6a9_G_2_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[1];
             float _Split_3690e7172951494d811295287d62f6a9_B_3_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[2];
@@ -1079,6 +1086,11 @@ Shader "Spellbound/SpellboundTerrain"
             Out = pow(A, B);
         }
         
+        void Unity_Add_float3(float3 A, float3 B, out float3 Out)
+        {
+            Out = A + B;
+        }
+        
         void Unity_DotProduct_float3(float3 A, float3 B, out float Out)
         {
             Out = dot(A, B);
@@ -1207,10 +1219,12 @@ Shader "Spellbound/SpellboundTerrain"
             float _Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float = _Blend;
             float3 _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3;
             Unity_Power_float3(_Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3, (_Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float.xxx), _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3);
+            float3 _Add_9568d3ef0e354b9e8d488098645f602b_Out_2_Vector3;
+            Unity_Add_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, float3(0.001, 0.001, 0.001), _Add_9568d3ef0e354b9e8d488098645f602b_Out_2_Vector3);
             float _DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float;
             Unity_DotProduct_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, float3(1, 1, 1), _DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float);
             float3 _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3;
-            Unity_Divide_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, (_DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float.xxx), _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3);
+            Unity_Divide_float3(_Add_9568d3ef0e354b9e8d488098645f602b_Out_2_Vector3, (_DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float.xxx), _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3);
             float _Split_3690e7172951494d811295287d62f6a9_R_1_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[0];
             float _Split_3690e7172951494d811295287d62f6a9_G_2_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[1];
             float _Split_3690e7172951494d811295287d62f6a9_B_3_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[2];
@@ -2587,6 +2601,11 @@ Shader "Spellbound/SpellboundTerrain"
             Out = pow(A, B);
         }
         
+        void Unity_Add_float3(float3 A, float3 B, out float3 Out)
+        {
+            Out = A + B;
+        }
+        
         void Unity_DotProduct_float3(float3 A, float3 B, out float Out)
         {
             Out = dot(A, B);
@@ -2710,10 +2729,12 @@ Shader "Spellbound/SpellboundTerrain"
             float _Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float = _Blend;
             float3 _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3;
             Unity_Power_float3(_Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3, (_Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float.xxx), _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3);
+            float3 _Add_9568d3ef0e354b9e8d488098645f602b_Out_2_Vector3;
+            Unity_Add_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, float3(0.001, 0.001, 0.001), _Add_9568d3ef0e354b9e8d488098645f602b_Out_2_Vector3);
             float _DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float;
             Unity_DotProduct_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, float3(1, 1, 1), _DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float);
             float3 _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3;
-            Unity_Divide_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, (_DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float.xxx), _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3);
+            Unity_Divide_float3(_Add_9568d3ef0e354b9e8d488098645f602b_Out_2_Vector3, (_DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float.xxx), _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3);
             float _Split_3690e7172951494d811295287d62f6a9_R_1_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[0];
             float _Split_3690e7172951494d811295287d62f6a9_G_2_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[1];
             float _Split_3690e7172951494d811295287d62f6a9_B_3_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[2];
@@ -3116,6 +3137,11 @@ Shader "Spellbound/SpellboundTerrain"
             Out = pow(A, B);
         }
         
+        void Unity_Add_float3(float3 A, float3 B, out float3 Out)
+        {
+            Out = A + B;
+        }
+        
         void Unity_DotProduct_float3(float3 A, float3 B, out float Out)
         {
             Out = dot(A, B);
@@ -3225,10 +3251,12 @@ Shader "Spellbound/SpellboundTerrain"
             float _Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float = _Blend;
             float3 _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3;
             Unity_Power_float3(_Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3, (_Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float.xxx), _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3);
+            float3 _Add_9568d3ef0e354b9e8d488098645f602b_Out_2_Vector3;
+            Unity_Add_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, float3(0.001, 0.001, 0.001), _Add_9568d3ef0e354b9e8d488098645f602b_Out_2_Vector3);
             float _DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float;
             Unity_DotProduct_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, float3(1, 1, 1), _DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float);
             float3 _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3;
-            Unity_Divide_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, (_DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float.xxx), _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3);
+            Unity_Divide_float3(_Add_9568d3ef0e354b9e8d488098645f602b_Out_2_Vector3, (_DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float.xxx), _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3);
             float _Split_3690e7172951494d811295287d62f6a9_R_1_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[0];
             float _Split_3690e7172951494d811295287d62f6a9_G_2_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[1];
             float _Split_3690e7172951494d811295287d62f6a9_B_3_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[2];
@@ -3920,6 +3948,11 @@ Shader "Spellbound/SpellboundTerrain"
             Out = pow(A, B);
         }
         
+        void Unity_Add_float3(float3 A, float3 B, out float3 Out)
+        {
+            Out = A + B;
+        }
+        
         void Unity_DotProduct_float3(float3 A, float3 B, out float Out)
         {
             Out = dot(A, B);
@@ -4028,10 +4061,12 @@ Shader "Spellbound/SpellboundTerrain"
             float _Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float = _Blend;
             float3 _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3;
             Unity_Power_float3(_Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3, (_Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float.xxx), _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3);
+            float3 _Add_9568d3ef0e354b9e8d488098645f602b_Out_2_Vector3;
+            Unity_Add_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, float3(0.001, 0.001, 0.001), _Add_9568d3ef0e354b9e8d488098645f602b_Out_2_Vector3);
             float _DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float;
             Unity_DotProduct_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, float3(1, 1, 1), _DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float);
             float3 _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3;
-            Unity_Divide_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, (_DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float.xxx), _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3);
+            Unity_Divide_float3(_Add_9568d3ef0e354b9e8d488098645f602b_Out_2_Vector3, (_DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float.xxx), _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3);
             float _Split_3690e7172951494d811295287d62f6a9_R_1_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[0];
             float _Split_3690e7172951494d811295287d62f6a9_G_2_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[1];
             float _Split_3690e7172951494d811295287d62f6a9_B_3_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[2];
@@ -4412,6 +4447,11 @@ Shader "Spellbound/SpellboundTerrain"
             Out = pow(A, B);
         }
         
+        void Unity_Add_float3(float3 A, float3 B, out float3 Out)
+        {
+            Out = A + B;
+        }
+        
         void Unity_DotProduct_float3(float3 A, float3 B, out float Out)
         {
             Out = dot(A, B);
@@ -4520,10 +4560,12 @@ Shader "Spellbound/SpellboundTerrain"
             float _Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float = _Blend;
             float3 _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3;
             Unity_Power_float3(_Absolute_094194bc00394f35809dbcc8b16b67aa_Out_1_Vector3, (_Property_00ee875f04c647c5b8b41e0fad8dc487_Out_0_Float.xxx), _Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3);
+            float3 _Add_9568d3ef0e354b9e8d488098645f602b_Out_2_Vector3;
+            Unity_Add_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, float3(0.001, 0.001, 0.001), _Add_9568d3ef0e354b9e8d488098645f602b_Out_2_Vector3);
             float _DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float;
             Unity_DotProduct_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, float3(1, 1, 1), _DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float);
             float3 _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3;
-            Unity_Divide_float3(_Power_90252c4dd15645f9b7bb39152532570a_Out_2_Vector3, (_DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float.xxx), _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3);
+            Unity_Divide_float3(_Add_9568d3ef0e354b9e8d488098645f602b_Out_2_Vector3, (_DotProduct_a845186bc324466090213cee57784f1b_Out_2_Float.xxx), _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3);
             float _Split_3690e7172951494d811295287d62f6a9_R_1_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[0];
             float _Split_3690e7172951494d811295287d62f6a9_G_2_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[1];
             float _Split_3690e7172951494d811295287d62f6a9_B_3_Float = _Divide_fe4d854d8eea41a78aa2d52fb159164a_Out_2_Vector3[2];

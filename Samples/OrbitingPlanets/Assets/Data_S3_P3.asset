@@ -10,12 +10,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 24cf1f274a851c949930b71f1eb56fef, type: 3}
-  m_Name: SampleOneData
+  m_Name: Data_S3_P3
   m_EditorClassIdentifier: 
   offset: {x: 0, y: 0, z: 0}
   sdfGradientSteepness: 32
-  materialIndex: 0
-  shape: 0
-  size: 16
+  materialIndex: 2
+  shape: 4
+  size: 30
   normalizedSize: 0
   invertShape: 0
