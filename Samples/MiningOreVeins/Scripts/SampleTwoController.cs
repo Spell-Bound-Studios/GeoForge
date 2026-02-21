@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
 #endif
@@ -19,13 +18,13 @@ namespace Spellbound.GeoForge {
         // Movement fields
         [SerializeField] private float moveSpeed = 5f;
         [SerializeField] private float lookSpeed = 2f;
-        private float _pitch = 0f;
+        private float _pitch;
         
         // Marching Cubes fields
         [SerializeField] public float terraformRange = 5f;
         [SerializeField] public float terraformSize = 1f;
         [SerializeField, Range(1, byte.MaxValue)] public int terraformStrength = byte.MaxValue;
-        private readonly List<byte> _diggableMaterialList = new List<byte> { 0, 1, 2, 3 };
+        private readonly List<byte> _diggableMaterialList = new() { 0, 1, 2, 3 };
         
         // Config
         [SerializeField] private Color lowStrengthColor;
@@ -33,13 +32,13 @@ namespace Spellbound.GeoForge {
         [SerializeField] private Material projectionMaterial;
         private GameObject _projectionObj;
         private Rigidbody _rb;
-        [HideInInspector] public Collider collider;
-        [HideInInspector] public bool freezeUpdate = false;
+        [HideInInspector] public Collider playerCollider;
+        [HideInInspector] public bool freezeUpdate;
         [SerializeField] private SampleTwoUi uiPrefab;
         
         // Effects
-        [SerializeField] private AudioClip MiningAudioClip;
-        [SerializeField] private ParticleSystem MiningParticle;
+        [SerializeField] private AudioClip miningAudioClip;
+        [SerializeField] private ParticleSystem miningParticle;
         
 
 
@@ -47,7 +46,7 @@ namespace Spellbound.GeoForge {
         private Action<RaycastHit, Vector3, float, int, List<byte>,  bool> _terraformRemove;
         
         // Local enum for the shape of the terraforming commands
-        public enum TerraformShape {
+        private enum TerraformShape {
             Sphere,
             Cube
         }
@@ -57,7 +56,7 @@ namespace Spellbound.GeoForge {
         /// </summary>
         private void Start() {
             _rb = GetComponent<Rigidbody>();
-            collider = GetComponent<Collider>();
+            playerCollider = GetComponent<Collider>();
             
 
             if (_rb == null) {
@@ -67,7 +66,7 @@ namespace Spellbound.GeoForge {
                 return;
             }
             
-            if (collider == null) {
+            if (playerCollider == null) {
                 Debug.LogError("No Collider component found!");
                 enabled = false;
 
@@ -109,12 +108,12 @@ namespace Spellbound.GeoForge {
                         terraformRange,
                         ~0)) {
                     _terraformRemove(hit, transform.forward, terraformSize, terraformStrength, _diggableMaterialList, false);
-                    AudioSource.PlayClipAtPoint(MiningAudioClip, hit.point);
+                    AudioSource.PlayClipAtPoint(miningAudioClip, hit.point);
                     var direction = Vector3.Slerp(-transform.forward, hit.normal, 0.5f);
                     var geoVolume = hit.collider.gameObject.GetComponentInParent<IVolume>();
 
                     if (geoVolume != null) {
-                        var ps = Instantiate(MiningParticle, hit.point, Quaternion.LookRotation(direction, Vector3.up));
+                        var ps = Instantiate(miningParticle, hit.point, Quaternion.LookRotation(direction, Vector3.up));
                         Destroy(ps.gameObject, ps.main.duration);
                     }
                     
@@ -136,7 +135,7 @@ namespace Spellbound.GeoForge {
         /// <summary>
         /// Method for setting or changing the shape of the terraforming projection and commands.
         /// </summary>
-        public void SetProjectionShape(TerraformShape shape) {
+        private void SetProjectionShape(TerraformShape shape) {
             if (_projectionObj != null)
                 Destroy(_projectionObj);
             switch (shape) {
@@ -173,7 +172,6 @@ namespace Spellbound.GeoForge {
 
                     return;
                 }
-                var tuple = volume.SnapToGrid(hit.point);
                 _projectionObj.transform.position = hit.point;
 
                 _projectionObj.transform.rotation = Quaternion.LookRotation(transform.forward, Vector3.up);
@@ -184,8 +182,7 @@ namespace Spellbound.GeoForge {
                 return;
             }
             _projectionObj.SetActive(false);
-
-            return;
+            
         }
 
         /// <summary>

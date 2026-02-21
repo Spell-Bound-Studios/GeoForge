@@ -98,23 +98,23 @@ namespace Spellbound.GeoForge {
         }
         
         private void HandleRangeSliderChanged(float value) {
-            terraformingRangeValue.text = value.ToString();
+            terraformingRangeValue.text = value.ToString("F2");
             _controller.terraformRange = value;
         }
         
         private void HandleSizeSliderChanged(float value) {
-            terraformingSizeValue.text = value.ToString();
+            terraformingSizeValue.text = value.ToString("F2");
             _controller.terraformSize = value;
         }
         
         private void HandleStrengthSliderChanged(float value) {
-            terraformingStrengthValue.text = value.ToString();
+            terraformingStrengthValue.text = value.ToString("F2");
             _controller.terraformStrength = (int)value;
             
         }
         
         private void HandleCollisionToggle(bool value) {
-            _controller.collider.enabled = value;
+            _controller.GetComponent<Collider>().enabled = value;
         }
         
 

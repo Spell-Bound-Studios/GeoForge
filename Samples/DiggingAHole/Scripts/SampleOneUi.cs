@@ -16,9 +16,6 @@ namespace Spellbound.GeoForge {
         // Shape, what shape the terraforming command should take.
         [SerializeField] private TMP_Dropdown terraformingShapeDropdown;
         
-        // Shape, what shape the terraforming command should take.
-        [SerializeField] private Toggle snapToGridToggle;
-        
         // Range, how far away terraforming may be commanded at.
         [SerializeField] private Slider terraformingRangeSlider;
         [SerializeField] private TextMeshProUGUI terraformingRangeValue;
@@ -57,9 +54,6 @@ namespace Spellbound.GeoForge {
 
             terraformingShapeDropdown.onValueChanged.AddListener(HandleShapeDropdownChanged);
             HandleShapeDropdownChanged(terraformingShapeDropdown.value);
-            
-            snapToGridToggle.onValueChanged.AddListener(HandleSnapToGridChanged);
-            HandleSnapToGridChanged(snapToGridToggle.isOn);
             
             terraformingRangeSlider.onValueChanged.AddListener(HandleRangeSliderChanged);
             HandleRangeSliderChanged(terraformingRangeSlider.value);
@@ -122,28 +116,24 @@ namespace Spellbound.GeoForge {
             _controller.SetProjectionShape(index);
         }
 
-        private void HandleSnapToGridChanged(bool value) {
-            _controller.snapToGrid = value;
-        }
-
         private void HandleRangeSliderChanged(float value) {
-            terraformingRangeValue.text = value.ToString();
+            terraformingRangeValue.text = value.ToString("F2");
             _controller.terraformRange = value;
         }
         
         private void HandleSizeSliderChanged(float value) {
-            terraformingSizeValue.text = value.ToString();
+            terraformingSizeValue.text = value.ToString("F2");
             _controller.terraformSize = value;
         }
         
         private void HandleStrengthSliderChanged(float value) {
-            terraformingStrengthValue.text = value.ToString();
+            terraformingStrengthValue.text = value.ToString("F2");
             _controller.terraformStrength = (int)value;
             
         }
         
         private void HandleCollisionToggle(bool value) {
-            _controller.collider.enabled = value;
+            _controller.GetComponent<Collider>().enabled = value;
         }
 
         private void HandleAddableMaterialChanged(int index) {
