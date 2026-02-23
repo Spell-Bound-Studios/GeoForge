@@ -103,7 +103,7 @@ namespace Spellbound.GeoForge {
                     out var hit,
                     float.MaxValue,
                     ~0))
-                GeoForgeStatic.RemoveSphere(hit, transform.forward, 3,byte.MaxValue, conditionalDigList);
+                GeoForgeStatic.RemoveSphereAll(hit, 3,byte.MaxValue, conditionalDigList);
         }
 
         /// <summary>
@@ -116,7 +116,7 @@ namespace Spellbound.GeoForge {
                     out var hit,
                     float.MaxValue,
                     ~0))
-                GeoForgeStatic.AddSphere(hit, transform.forward,3, byte.MaxValue, addableMaterial);
+                GeoForgeStatic.AddSphere(hit, 3,byte.MaxValue, addableMaterial);
         }
     }
 }

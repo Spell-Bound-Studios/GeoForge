@@ -28,6 +28,7 @@ namespace Spellbound.GeoForge {
         private Transform _objectPoolParent;
 
         private HashSet<byte> _allMaterials;
+        [SerializeField] private byte defaultMaterial;
 
         public HashSet<byte> GetAllMaterials() {
             if (_allMaterials == null) {
@@ -37,6 +38,8 @@ namespace Spellbound.GeoForge {
 
             return _allMaterials;
         }
+        
+        public byte GetDefaultMaterial() => defaultMaterial;
 
         public event Action OctreeBatchTransitionUpdate;
 
@@ -151,35 +154,9 @@ namespace Spellbound.GeoForge {
         private void ClearPool() {
             while (_objectPool.Count > 0) Destroy(_objectPool.Pop());
         }
-
-        /// <summary>
-        /// Access point for digging/terraforming Marching Cubes Volume(s)
-        /// </summary>
-        /// <param name="terraformAction"></param> Func to return a List of Edits and a Bounds, from an IVolume Param.
-        /// <param name="removableMatTypes"></param> Affected Materials if the Terraform does not affect them all.
-        /// <param name="targetVolume"></param> IVolume if the Terraform affects only one. 
-        public void ExecuteDig(
-            Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction,
-            IVolume targetVolume,
-            HashSet<byte> removableMatTypes = null){
-            if (targetVolume != null) {
-                var result = terraformAction(targetVolume);
-                DistributeVoxelEdits(targetVolume, result.edits, removableMatTypes);
-            }
-        }
         
-        public void ExecuteAdd(
-            Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction,
-            IVolume targetVolume){
-            if (targetVolume != null) {
-                var result = terraformAction(targetVolume);
-                DistributeVoxelEdits(targetVolume, result.edits);
-            }
-        }
-        
-        public void ExecuteDigAll(
-            Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction,
-            HashSet<byte> removableMatTypes = null){
+        public void ExecuteTerraformAll(
+            Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction){
             
             foreach (var iVolume in _voxelVolumes) {
                 var result = terraformAction(iVolume);
@@ -187,7 +164,7 @@ namespace Spellbound.GeoForge {
                 if (!iVolume.IntersectsVolume(result.bounds))
                     continue;
 
-                DistributeVoxelEdits(iVolume, result.edits, removableMatTypes);
+                DistributeVoxelEdits(iVolume, result.edits);
             }
         }
 
@@ -197,14 +174,14 @@ namespace Spellbound.GeoForge {
         /// This is required because there's data overlap between the chunks. 
         /// </summary>
         public void DistributeVoxelEdits(
-            IVolume volume, List<RawVoxelEdit> rawVoxelEdits, HashSet<byte> removableMatTypes = null) {
+            IVolume volume, List<RawVoxelEdit> rawVoxelEdits) {
             var editsByChunkCoord = new Dictionary<Vector3Int, List<VoxelEdit>>();
 
             ref var config = ref volume.ConfigBlob.Value;
 
             foreach (var rawEdit in rawVoxelEdits) {
-                var centralCoord = volume.GetCoordByVoxelPosition(rawEdit.WorldPosition);
-                var centralLocalPos = rawEdit.WorldPosition - centralCoord * config.ChunkSize;
+                var centralCoord = volume.GetCoordByVoxelPosition(rawEdit.voxelSpacePosition);
+                var centralLocalPos = rawEdit.voxelSpacePosition - centralCoord * config.ChunkSize;
 
                 var index = GfStaticHelper.Coord3DToIndex(centralLocalPos.x, centralLocalPos.y, centralLocalPos.z,
                     config.ChunkDataAreaSize, config.ChunkDataWidthSize);
@@ -222,25 +199,14 @@ namespace Spellbound.GeoForge {
                     localEdits = new List<VoxelEdit>();
                     editsByChunkCoord[centralCoord] = localEdits;
                 }
-
-                var existingVoxel = chunk.GetVoxelData(index);
                 
-                if (rawEdit.DensityChange < 0 && removableMatTypes != null &&
-                    !removableMatTypes.Contains(existingVoxel.MaterialIndex)) continue;
-
-                var newDensity = (byte)Mathf.Clamp(existingVoxel.Density + rawEdit.DensityChange, 0, 255);
-
-                var mat = math.abs(rawEdit.DensityChange) - existingVoxel.Density <= 0
-                        ? existingVoxel.MaterialIndex
-                        : rawEdit.NewMatIndex;
-
-                var localEdit = new VoxelEdit(index, newDensity, mat);
+                var localEdit = new VoxelEdit(index, rawEdit.NewDensity, rawEdit.NewMatIndex);
                 localEdits.Add(localEdit);
 
                 if (denseVoxelData.SharedIndicesAcrossChunks.TryGetValue(index, out var neighborCoords)) {
                     foreach (var neighborCoord in neighborCoords) {
                         var trueNeighborCoord = neighborCoord + centralCoord;
-                        var neighborLocalPos = rawEdit.WorldPosition - trueNeighborCoord * config.ChunkSize;
+                        var neighborLocalPos = rawEdit.voxelSpacePosition - trueNeighborCoord * config.ChunkSize;
 
                         var neighborIndex = GfStaticHelper.Coord3DToIndex(neighborLocalPos.x, neighborLocalPos.y,
                             neighborLocalPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
@@ -250,7 +216,7 @@ namespace Spellbound.GeoForge {
                             editsByChunkCoord[trueNeighborCoord] = localNeighborEdits;
                         }
 
-                        var localNeighborEdit = new VoxelEdit(neighborIndex, newDensity, mat);
+                        var localNeighborEdit = new VoxelEdit(neighborIndex, rawEdit.NewDensity, rawEdit.NewMatIndex);
                         localNeighborEdits.Add(localNeighborEdit);
                     }
                 }

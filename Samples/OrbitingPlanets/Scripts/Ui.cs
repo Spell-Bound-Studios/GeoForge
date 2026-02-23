@@ -13,9 +13,6 @@ namespace Spellbound.GeoForge.Sample3 {
     /// Not recommended as a real controller/UI, because it is hard-couled to the Controller.
     /// </summary>
     public class Ui : MonoBehaviour {
-        // Shape, what shape the terraforming command should take.
-        [SerializeField] private TMP_Dropdown terraformingShapeDropdown;
-        
         // Range, how far away terraforming may be commanded at.
         [SerializeField] private Slider terraformingRangeSlider;
         [SerializeField] private TextMeshProUGUI terraformingRangeValue;
@@ -51,9 +48,6 @@ namespace Spellbound.GeoForge.Sample3 {
         /// </summary>
         public void SetController(Controller controller) {
             _controller = controller;
-
-            terraformingShapeDropdown.onValueChanged.AddListener(HandleShapeDropdownChanged);
-            HandleShapeDropdownChanged(terraformingShapeDropdown.value);
             
             terraformingRangeSlider.onValueChanged.AddListener(HandleRangeSliderChanged);
             HandleRangeSliderChanged(terraformingRangeSlider.value);
@@ -111,10 +105,6 @@ namespace Spellbound.GeoForge.Sample3 {
 
         // Subscribed methods to handle value changes from the UI.
         #region HandlerMethods
-
-        private void HandleShapeDropdownChanged(int index) {
-            _controller.SetProjectionShape(index);
-        }
 
         private void HandleRangeSliderChanged(float value) {
             terraformingRangeValue.text = value.ToString("F2");

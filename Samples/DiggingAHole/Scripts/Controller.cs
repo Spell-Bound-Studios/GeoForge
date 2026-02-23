@@ -36,17 +36,8 @@ namespace Spellbound.GeoForge.Sample1 {
         [HideInInspector] public Collider playerCollider;
         [HideInInspector] public bool freezeUpdate;
         [SerializeField] private Ui uiPrefab;
-
-
-        // Commands
-        private Action<RaycastHit, Vector3, float, int, List<byte>,  bool> _terraformRemove;
-        private Action<RaycastHit, Vector3, float, int, byte,  bool> _terraformAdd;
         
-        // Local enum for the shape of the terraforming commands
-        private enum TerraformShape {
-            Sphere,
-            Cube
-        }
+        
         
         /// <summary>
         /// Start method initializes the controller, and creates and initializes it's UI. 
@@ -54,6 +45,10 @@ namespace Spellbound.GeoForge.Sample1 {
         private void Start() {
             _rb = GetComponent<Rigidbody>();
             playerCollider = GetComponent<Collider>();
+            
+            _projectionObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            Destroy(_projectionObj.transform.GetComponent<Collider>());
+            _projectionObj.GetComponent<Renderer>().material = projectionMaterial;
             
 
             if (_rb == null) {
@@ -104,7 +99,7 @@ namespace Spellbound.GeoForge.Sample1 {
                         out var hit,
                         terraformRange,
                         ~0)) {
-                    _terraformRemove(hit, transform.forward, terraformSize, terraformStrength, diggableMaterialList, false);
+                    GeoForgeStatic.RemoveSphereAll(hit, terraformSize, terraformStrength, diggableMaterialList);
                 }
                     
                 else if (keyboard.digit2Key.wasPressedThisFrame
@@ -114,10 +109,8 @@ namespace Spellbound.GeoForge.Sample1 {
                              out hit,
                              terraformRange,
                              ~0)) {
-                    _terraformAdd(hit, transform.forward, terraformSize, terraformStrength, addableMaterial, false);
+                    GeoForgeStatic.AddSphere(hit, terraformSize, terraformStrength, addableMaterial);
                 }
-                    
-               
             }
 #else
             if (Input.GetKeyDown(KeyCode.Alpha1)
@@ -127,7 +120,7 @@ namespace Spellbound.GeoForge.Sample1 {
                         out var hit,
                         terraformRange,
                         ~0)){
-                _terraformRemove(pos, rot.eulerAngles, terraformSize, terraformStrength, diggableMaterialList, snapToGrid);
+                GeoForgeStatic.RemoveSphereAll(hit, terraformSize, terraformStrength, diggableMaterialList);
             }
                     
                 else if (Input.GetKeyDown(KeyCode.Alpha2
@@ -137,37 +130,12 @@ namespace Spellbound.GeoForge.Sample1 {
                         out hit,
                         terraformRange,
                         ~0)){
-                _terraformAdd(pos, rot.eulerAngles, terraformSize, terraformStrength, addableMaterial, snapToGrid);
+                GeoForgeStatic.AddSphere(hit, terraformSize, terraformStrength, addableMaterial);
                 }
                     
 #endif
         }
-
-        /// <summary>
-        /// Method for setting or changing the shape of the terraforming projection and commands.
-        /// </summary>
-        private void SetProjectionShape(TerraformShape shape) {
-            if (_projectionObj != null)
-                Destroy(_projectionObj);
-            switch (shape) {
-                case TerraformShape.Sphere:
-                    _projectionObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    _terraformRemove = GeoForgeStatic.RemoveSphere;
-                    _terraformAdd = GeoForgeStatic.AddSphere;
-                    break;
-                case TerraformShape.Cube:
-                    _projectionObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    _terraformRemove = GeoForgeStatic.RemoveCube;
-                    _terraformAdd = GeoForgeStatic.AddCube;
-                    break;
-            }
-
-            Destroy(_projectionObj.transform.GetComponent<Collider>());
-            _projectionObj.GetComponent<Renderer>().material = projectionMaterial;
-        }
-
-        public void SetProjectionShape(int index) => SetProjectionShape((TerraformShape)index);
-   
+        
         /// <summary>
         /// Updates a semi-transparent projection of what terraforming fields are set to.
         /// </summary>

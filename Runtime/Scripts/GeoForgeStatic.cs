@@ -26,69 +26,59 @@ namespace Spellbound.GeoForge {
         }
 
         public static void RemoveSphere(
-            RaycastHit hit, Vector3 rotation, float radius = 3, int delta = byte.MaxValue, List<byte> materialTypes = null, bool snapToGrid = false) {
+            RaycastHit hit, float radius, int delta, List<byte> materials = null) {
             if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager)) {
                 Debug.LogError("GeoForgeManager not found. Ensure it's in the current scene.");
 
                 return;
             }
+            
+            var iVolume = hit.collider.transform.GetComponentInParent<IVolume>();
 
-            gfManager.ExecuteDigAll(
-                volume => TerraformCommands.RemoveSphere(volume, snapToGrid, hit.point, radius, delta),
-                materialTypes == null ? gfManager.GetAllMaterials() : materialTypes.ToHashSet()
+            if (iVolume == null)
+                return;
+            
+            var matHashSet = materials == null ? gfManager.GetAllMaterials() : materials.ToHashSet();
+            var results = TerraformCommands.TerraformSphere(iVolume, hit.point, radius, -delta, matHashSet);
+            gfManager.DistributeVoxelEdits(iVolume, results.edits);
+        }
+        
+        public static void RemoveSphereAll(
+            RaycastHit hit, float radius, int delta, List<byte> materials = null) {
+            if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager)) {
+                Debug.LogError("GeoForgeManager not found. Ensure it's in the current scene.");
+
+                return;
+            }
+            
+            var iVolume = hit.collider.transform.GetComponentInParent<IVolume>();
+
+            if (iVolume == null)
+                return;
+            
+            var matHashSet = materials == null ? gfManager.GetAllMaterials() : materials.ToHashSet();
+            var results = TerraformCommands.TerraformSphere(iVolume, hit.point, radius, -delta, matHashSet);
+            gfManager.ExecuteTerraformAll(
+                volume => TerraformCommands.TerraformSphere(volume, hit.point, radius, -delta, matHashSet)
             );
         }
 
         public static void AddSphere(
-            RaycastHit hit, Vector3 rotation, float radius = 3, int delta = byte.MaxValue, byte materialType = byte.MinValue, bool snapToGrid = false) {
+            RaycastHit hit, float radius, int delta, byte material) {
             if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager)) {
                 Debug.LogError("GeoForgeManager not found. Ensure it's in the current scene.");
 
                 return;
             }
+            
+            var iVolume = hit.collider.transform.GetComponentInParent<IVolume>();
 
-            gfManager.ExecuteAdd(
-                volume => TerraformCommands.AddSphere(volume, snapToGrid, hit.point, materialType, radius, delta),
-                targetVolume: hit.collider.GetComponentInParent<IVolume>()
-            );
-        }
-        
-        public static void RemoveCube(
-            RaycastHit hit,
-            Vector3 direction,
-            float size = 3, 
-            int delta = byte.MaxValue, 
-            List<byte> materialTypes = null, 
-            bool snapToGrid = false) {
-            if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager)) {
-                Debug.LogError("GeoForgeManager not found. Ensure it's in the current scene.");
-
+            if (iVolume == null)
                 return;
-            }
-
-            gfManager.ExecuteDigAll(
-                volume => TerraformCommands.RemoveCube(volume, snapToGrid, hit.point, direction, size, delta),
-                removableMatTypes: materialTypes == null ? gfManager.GetAllMaterials() : materialTypes.ToHashSet()
-            );
-        }
-
-        public static void AddCube(
-            RaycastHit hit,
-            Vector3 direction,
-            float size = 3, 
-            int delta = byte.MaxValue, 
-            byte materialType = byte.MinValue, 
-            bool snapToGrid = false) {
-            if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager)) {
-                Debug.LogError("GeoForgeManager not found. Ensure it's in the current scene.");
-
-                return;
-            }
-
-            gfManager.ExecuteAdd(
-                volume => TerraformCommands.AddCube(volume, snapToGrid,hit.point, direction, materialType, size, delta),
-                targetVolume: hit.collider.GetComponentInParent<IVolume>()
-            );
+            
+            var matHashSet = new HashSet<byte>() {material};
+            var results = TerraformCommands.TerraformSphere(iVolume, hit.point, radius, delta, matHashSet);
+            gfManager.DistributeVoxelEdits(iVolume, results.edits);
         }
     }
 }

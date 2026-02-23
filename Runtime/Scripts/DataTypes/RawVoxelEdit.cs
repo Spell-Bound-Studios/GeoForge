@@ -4,16 +4,16 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// VoxelEdit prior to being distributed to the relevant chunks it modifies
+    /// VoxelEdit relative to IVolume position and scale.
     /// </summary>
     public readonly struct RawVoxelEdit {
-        public Vector3Int WorldPosition { get; }
-        public int DensityChange { get; }
+        public Vector3Int voxelSpacePosition { get; }
+        public byte NewDensity { get; }
         public byte NewMatIndex { get; }
 
-        public RawVoxelEdit(Vector3Int worldPosition, int densityChange, byte newMatIndex) {
-            WorldPosition = worldPosition;
-            DensityChange = densityChange;
+        public RawVoxelEdit(Vector3Int voxelSpacePosition, byte newDensity, byte newMatIndex) {
+            this.voxelSpacePosition = voxelSpacePosition;
+            NewDensity = newDensity;
             NewMatIndex = newMatIndex;
         }
     }
