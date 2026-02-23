@@ -40,11 +40,6 @@ namespace Spellbound.GeoForge.Sample2 {
         [SerializeField] private AudioClip miningAudioClip;
         [SerializeField] private ParticleSystem miningParticle;
         
-
-
-        // Commands
-        private Action<RaycastHit, Vector3, float, int, List<byte>,  bool> _terraformRemove;
-        
         // Local enum for the shape of the terraforming commands
         private enum TerraformShape {
             Sphere,
@@ -107,7 +102,7 @@ namespace Spellbound.GeoForge.Sample2 {
                         out var hit,
                         terraformRange,
                         ~0)) {
-                    _terraformRemove(hit, transform.forward, terraformSize, terraformStrength, _diggableMaterialList, false);
+                    GeoForgeStatic.RemoveSphereAll(hit, terraformSize, terraformStrength, _diggableMaterialList);
                     AudioSource.PlayClipAtPoint(miningAudioClip, hit.point);
                     var direction = Vector3.Slerp(-transform.forward, hit.normal, 0.5f);
                     var geoVolume = hit.collider.gameObject.GetComponentInParent<IVolume>();
@@ -141,11 +136,9 @@ namespace Spellbound.GeoForge.Sample2 {
             switch (shape) {
                 case TerraformShape.Sphere:
                     _projectionObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    _terraformRemove = GeoForgeStatic.RemoveSphere;
                     break;
                 case TerraformShape.Cube:
                     _projectionObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    _terraformRemove = GeoForgeStatic.RemoveCube;
                     break;
             }
 

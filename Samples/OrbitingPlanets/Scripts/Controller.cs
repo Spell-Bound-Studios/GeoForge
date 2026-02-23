@@ -36,11 +36,6 @@ namespace Spellbound.GeoForge.Sample3 {
         [HideInInspector] public Collider playerCollider;
         [HideInInspector] public bool freezeUpdate;
         [SerializeField] private Ui uiPrefab;
-
-
-        // Commands
-        private Action<RaycastHit, Vector3, float, int, List<byte>,  bool> _terraformRemove;
-        private Action<RaycastHit, Vector3, float, int, byte,  bool> _terraformAdd;
         
         // Effects
         [SerializeField] private LineRenderer lineRenderer;
@@ -110,7 +105,7 @@ namespace Spellbound.GeoForge.Sample3 {
                         out var hit,
                         terraformRange,
                         ~0)) {
-                    _terraformRemove(hit, transform.forward, terraformSize, terraformStrength, diggableMaterialList, false);
+                    GeoForgeStatic.RemoveSphereAll(hit, terraformSize, terraformStrength, diggableMaterialList);
                     lineRenderer.enabled = true;
                     lineRenderer.SetPosition(0, transform.position - transform.up * lineRendererStartOffset);
                     lineRenderer.SetPosition(1, hit.point);
@@ -123,7 +118,7 @@ namespace Spellbound.GeoForge.Sample3 {
                              out hit,
                              terraformRange,
                              ~0)) {
-                    _terraformAdd(hit, transform.forward, terraformSize, terraformStrength, addableMaterial, false);
+                    GeoForgeStatic.AddSphere(hit, terraformSize, terraformStrength, addableMaterial);
                     lineRenderer.enabled = true;
                     lineRenderer.SetPosition(0, transform.position - transform.up * lineRendererStartOffset);
                     lineRenderer.SetPosition(1, hit.point);
@@ -168,13 +163,9 @@ namespace Spellbound.GeoForge.Sample3 {
             switch (shape) {
                 case TerraformShape.Sphere:
                     _projectionObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    _terraformRemove = GeoForgeStatic.RemoveSphere;
-                    _terraformAdd = GeoForgeStatic.AddSphere;
                     break;
                 case TerraformShape.Cube:
                     _projectionObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    _terraformRemove = GeoForgeStatic.RemoveCube;
-                    _terraformAdd = GeoForgeStatic.AddCube;
                     break;
             }
 
