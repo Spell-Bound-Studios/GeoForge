@@ -1,4 +1,4 @@
-// Copyright 2025 Spellbound Studio Inc.
+// Copyright 2026 Spellbound Studio Inc.
 
 using System.Collections.Generic;
 using UnityEngine;
@@ -8,23 +8,25 @@ using UnityEngine.InputSystem;
 
 namespace Spellbound.GeoForge.Sample2 {
     /// <summary>
-    /// Controller for Sample One, Digging a Hole.
+    /// Controller for Sample Two, Mining Ore Veins.
     /// Not recommended as a real controller.
     /// Fields and settings are controlled from the UI, which is created on Start(), and why some fields are public.
     /// </summary>
     public class Controller : MonoBehaviour {
-        
         // Movement fields
         [SerializeField] private float moveSpeed = 5f;
         [SerializeField] private float lookSpeed = 2f;
         private float _pitch;
-        
+
         // Marching Cubes fields
         [SerializeField] public float terraformRange = 5f;
         [SerializeField] public float terraformSize = 1f;
-        [SerializeField, Range(1, byte.MaxValue)] public int terraformStrength = byte.MaxValue;
+
+        [SerializeField, Range(1, byte.MaxValue)]
+        public int terraformStrength = byte.MaxValue;
+
         private readonly List<byte> _diggableMaterialList = new() { 0, 1, 2, 3 };
-        
+
         // Config
         [SerializeField] private Color lowStrengthColor;
         [SerializeField] private Color highStrengthColor;
@@ -34,22 +36,17 @@ namespace Spellbound.GeoForge.Sample2 {
         [HideInInspector] public Collider playerCollider;
         [HideInInspector] public bool freezeUpdate;
         [SerializeField] private Ui uiPrefab;
-        
+
         // Effects
         [SerializeField] private AudioClip miningAudioClip;
         [SerializeField] private ParticleSystem miningParticle;
-        
+
         /// <summary>
-        /// Start method initializes the controller, and creates and initializes it's UI. 
+        /// Start method initializes the controller and Projection Object, and creates and initializes it's UI. 
         /// </summary>
         private void Start() {
             _rb = GetComponent<Rigidbody>();
             playerCollider = GetComponent<Collider>();
-            
-            _projectionObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            Destroy(_projectionObj.transform.GetComponent<Collider>());
-            _projectionObj.GetComponent<Renderer>().material = projectionMaterial;
-            
 
             if (_rb == null) {
                 Debug.LogError("No Rigidbody component found!");
@@ -57,15 +54,20 @@ namespace Spellbound.GeoForge.Sample2 {
 
                 return;
             }
-            
+
             if (playerCollider == null) {
                 Debug.LogError("No Collider component found!");
                 enabled = false;
 
                 return;
             }
-            
+
             _rb.freezeRotation = true;
+
+            _projectionObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            Destroy(_projectionObj.transform.GetComponent<Collider>());
+            _projectionObj.GetComponent<Renderer>().material = projectionMaterial;
+
             var ui = Instantiate(uiPrefab).GetComponent<Ui>();
             ui.SetController(this);
         }
@@ -77,9 +79,10 @@ namespace Spellbound.GeoForge.Sample2 {
         /// </summary>
         private void Update() {
             HandleProjection();
-            
+
             if (freezeUpdate)
                 return;
+
             HandleMovement();
             HandleTerraforming();
         }
@@ -90,7 +93,7 @@ namespace Spellbound.GeoForge.Sample2 {
         private void HandleTerraforming() {
 #if ENABLE_INPUT_SYSTEM
             var keyboard = Keyboard.current;
-            
+
             if (keyboard != null) {
                 if (keyboard.digit1Key.wasPressedThisFrame
                     && Physics.Raycast(
@@ -108,7 +111,6 @@ namespace Spellbound.GeoForge.Sample2 {
                         var ps = Instantiate(miningParticle, hit.point, Quaternion.LookRotation(direction, Vector3.up));
                         Destroy(ps.gameObject, ps.main.duration);
                     }
-                    
                 }
             }
 #else
@@ -131,8 +133,7 @@ namespace Spellbound.GeoForge.Sample2 {
             }
 #endif
         }
-        
-   
+
         /// <summary>
         /// Updates a semi-transparent projection of what terraforming fields are set to.
         /// </summary>
@@ -150,17 +151,20 @@ namespace Spellbound.GeoForge.Sample2 {
 
                     return;
                 }
+
                 _projectionObj.transform.position = hit.point;
 
                 _projectionObj.transform.rotation = Quaternion.LookRotation(transform.forward, Vector3.up);
-                _projectionObj.transform.localScale =  terraformSize * Vector3.one;
-                _projectionObj.GetComponent<MeshRenderer>().material.color = 
-                        Color.Lerp(lowStrengthColor, highStrengthColor, terraformStrength/255f);
+                _projectionObj.transform.localScale = terraformSize * Vector3.one;
+
+                _projectionObj.GetComponent<MeshRenderer>().material.color =
+                        Color.Lerp(lowStrengthColor, highStrengthColor, terraformStrength / 255f);
                 _projectionObj.SetActive(true);
+
                 return;
             }
+
             _projectionObj.SetActive(false);
-            
         }
 
         /// <summary>
@@ -187,7 +191,7 @@ namespace Spellbound.GeoForge.Sample2 {
 
             var move = transform.right * horizontal + transform.forward * vertical;
             _rb.MovePosition(_rb.position + move * (moveSpeed * Time.deltaTime));
-            
+
 #if ENABLE_INPUT_SYSTEM
             var mouseX = 0f;
             var mouseY = 0f;

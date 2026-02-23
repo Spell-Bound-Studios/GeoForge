@@ -1,4 +1,4 @@
-// Copyright 2025 Spellbound Studio Inc.
+// Copyright 2026 Spellbound Studio Inc.
 
 using System.Collections.Generic;
 using UnityEngine;
@@ -12,7 +12,6 @@ namespace Spellbound.GeoForge {
     /// Not recommended as a real controller.
     /// </summary>
     public class BasicWasdController : MonoBehaviour {
-        
         // Movement fields
         [SerializeField] private float moveSpeed = 5f;
         [SerializeField] private float lookSpeed = 2f;
@@ -21,7 +20,7 @@ namespace Spellbound.GeoForge {
         // Marching Cubes fields
         [SerializeField] private List<byte> conditionalDigList = new();
         [SerializeField] private byte addableMaterial = 3;
-        
+
         private void Start() => Cursor.lockState = CursorLockMode.Locked;
 
         private void Update() {
@@ -49,7 +48,7 @@ namespace Spellbound.GeoForge {
                 RaycastTerraformAdd();
 #endif
         }
-        
+
         /// <summary>
         /// Reads inputs for Movement. Uses legacy input system if the regular input system is not installed.
         /// </summary>
@@ -103,7 +102,7 @@ namespace Spellbound.GeoForge {
                     out var hit,
                     float.MaxValue,
                     ~0))
-                GeoForgeStatic.RemoveSphereAll(hit, 3,byte.MaxValue, conditionalDigList);
+                GeoForgeStatic.RemoveSphereAll(hit, 3, byte.MaxValue, conditionalDigList);
         }
 
         /// <summary>
@@ -116,7 +115,7 @@ namespace Spellbound.GeoForge {
                     out var hit,
                     float.MaxValue,
                     ~0))
-                GeoForgeStatic.AddSphere(hit, 3,byte.MaxValue, addableMaterial);
+                GeoForgeStatic.AddSphere(hit, 3, byte.MaxValue, addableMaterial);
         }
     }
 }

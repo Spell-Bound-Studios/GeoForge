@@ -3063,7 +3063,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d789286f91fda294691cb51d87d18346, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  terraformingShapeDropdown: {fileID: 0}
   terraformingRangeSlider: {fileID: 5542330605356823648}
   terraformingRangeValue: {fileID: 6990002492627575}
   terraformingSizeSlider: {fileID: 259904145451489274}
@@ -4190,7 +4189,7 @@ MonoBehaviour:
   m_MinValue: 3
   m_MaxValue: 1000
   m_WholeNumbers: 1
-  m_Value: 10
+  m_Value: 500
   m_OnValueChanged:
     m_PersistentCalls:
       m_Calls: []

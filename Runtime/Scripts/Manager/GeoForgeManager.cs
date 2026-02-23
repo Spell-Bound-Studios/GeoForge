@@ -1,10 +1,9 @@
-// Copyright 2025 Spellbound Studio Inc.
+// Copyright 2026 Spellbound Studio Inc.
 
 using System;
 using System.Collections.Generic;
 using Spellbound.Core;
 using Unity.Entities;
-using Unity.Mathematics;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
@@ -38,7 +37,7 @@ namespace Spellbound.GeoForge {
 
             return _allMaterials;
         }
-        
+
         public byte GetDefaultMaterial() => defaultMaterial;
 
         public event Action OctreeBatchTransitionUpdate;
@@ -154,10 +153,12 @@ namespace Spellbound.GeoForge {
         private void ClearPool() {
             while (_objectPool.Count > 0) Destroy(_objectPool.Pop());
         }
-        
+
+        /// <summary>
+        /// For Terraforming Commands that might affect multiple volumes.
+        /// </summary>
         public void ExecuteTerraformAll(
-            Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction){
-            
+            Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction) {
             foreach (var iVolume in _voxelVolumes) {
                 var result = terraformAction(iVolume);
 
@@ -199,7 +200,7 @@ namespace Spellbound.GeoForge {
                     localEdits = new List<VoxelEdit>();
                     editsByChunkCoord[centralCoord] = localEdits;
                 }
-                
+
                 var localEdit = new VoxelEdit(index, rawEdit.NewDensity, rawEdit.NewMatIndex);
                 localEdits.Add(localEdit);
 

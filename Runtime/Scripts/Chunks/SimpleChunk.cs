@@ -6,18 +6,17 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     public class SimpleChunk : MonoBehaviour, IChunk {
-
         protected DataFactory dataFactory;
-        
+
         protected BoundaryOverrides boundaryOverrides;
 
         protected BaseChunk _baseChunk;
         public BaseChunk BaseChunk => _baseChunk;
 
         private void Awake() => _baseChunk = new BaseChunk(this, this);
-        
+
         public void SetDataFactory(DataFactory factory) => dataFactory = factory;
-        
+
         public void SetBoundaryOverrides(BoundaryOverrides overrides) => boundaryOverrides = overrides;
 
         /// <summary>

@@ -14,9 +14,8 @@ namespace Spellbound.GeoForge {
 
             [Tooltip("Metallic (R), AO (G), Smoothness (B) packed texture")]
             public Texture2D masTexture;
-            
-            [Tooltip("Normal map texture")]
-            public Texture2D normalTexture;
+
+            [Tooltip("Normal map texture")] public Texture2D normalTexture;
 
             public MaterialEntry(string name = "New Material") {
                 materialName = name;
@@ -25,19 +24,16 @@ namespace Spellbound.GeoForge {
 
         [Header("Material Definitions")] public List<MaterialEntry> materials = new();
 
-        [Header("Generated Assets")] 
-        public Texture2DArray albedoTextureArray;
+        [Header("Generated Assets")] public Texture2DArray albedoTextureArray;
         public Texture2DArray masTextureArray;
         public Texture2DArray normalTextureArray;
 
-        [Header("Texture Array Settings")] 
-        public bool generateMipmaps = true;
+        [Header("Texture Array Settings")] public bool generateMipmaps = true;
         public FilterMode filterMode = FilterMode.Trilinear;
         public int anisoLevel = 8;
 
-        [Header("Texture Type Settings")] 
-        public bool albedoIsLinear = false;
-        public bool masIsLinear = true; // MAS should typically be linear
+        [Header("Texture Type Settings")] public bool albedoIsLinear = false;
+        public bool masIsLinear = true;    // MAS should typically be linear
         public bool normalIsLinear = true; // Normal maps should be linear
 
         // Runtime lookup cache
@@ -102,6 +98,7 @@ namespace Spellbound.GeoForge {
         public void BuildTextureArrays() {
             if (materials == null || materials.Count == 0) {
                 Debug.LogError("No materials defined!");
+
                 return;
             }
 
@@ -123,7 +120,7 @@ namespace Spellbound.GeoForge {
                     missingMasNames.Add(materials[i].materialName);
                 else
                     validMasTextures.Add(materials[i].masTexture);
-                
+
                 if (materials[i].normalTexture == null)
                     missingNormalNames.Add(materials[i].materialName);
                 else
@@ -132,16 +129,19 @@ namespace Spellbound.GeoForge {
 
             if (missingAlbedoNames.Count > 0) {
                 Debug.LogError($"Missing albedo textures for materials: {string.Join(", ", missingAlbedoNames)}");
+
                 return;
             }
 
             if (missingMasNames.Count > 0) {
                 Debug.LogError($"Missing MAS textures for materials: {string.Join(", ", missingMasNames)}");
+
                 return;
             }
-            
+
             if (missingNormalNames.Count > 0) {
                 Debug.LogError($"Missing normal textures for materials: {string.Join(", ", missingNormalNames)}");
+
                 return;
             }
 
@@ -159,7 +159,7 @@ namespace Spellbound.GeoForge {
                 "MASArray",
                 masIsLinear
             );
-            
+
             BuildTextureArray(
                 ref normalTextureArray,
                 validNormalTextures,
@@ -178,6 +178,7 @@ namespace Spellbound.GeoForge {
             ref Texture2DArray textureArray, List<Texture2D> sourceTextures, string arrayName, bool isLinear) {
             if (sourceTextures.Count == 0) {
                 Debug.LogError($"No valid textures found for {arrayName}!");
+
                 return;
             }
 
@@ -197,6 +198,7 @@ namespace Spellbound.GeoForge {
                 if (sourceTextures[i].width != width || sourceTextures[i].height != height) {
                     Debug.LogError(
                         $"Material '{materials[i].materialName}' texture has different dimensions! All textures must be {width}x{height}");
+
                     return;
                 }
 
