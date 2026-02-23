@@ -1,8 +1,8 @@
 {
   "name": "com.spellboundstudios.geoforge",
   "version": "0.0.15",
-  "displayName": "Spellbound.geoforge",
-  "description": "This is a destructible/terraformable terrain package based on Marching Cubes Desnsity Voxels.",
+  "displayName": "Spellbound.Geoforge",
+  "description": "This is a destructible/terraformable terrain package based on Marching Cubes Density Voxels.",
   "unity": "6000.0",
   "author": {
     "name": "Spellbound Studios",
