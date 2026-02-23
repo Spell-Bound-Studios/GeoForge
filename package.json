@@ -1,6 +1,6 @@
 {
   "name": "com.spellboundstudios.geoforge",
-  "version": "0.0.14",
+  "version": "0.0.15",
   "displayName": "Spellbound.geoforge",
   "description": "This is a destructible/terraformable terrain package based on Marching Cubes Desnsity Voxels.",
   "unity": "6000.0",
@@ -32,6 +32,16 @@
       "displayName": "Digging A Hole",
       "description": "Sample Scene for digging a large and very deep hole.",
       "path": "Samples~/DiggingAHole"
+    },
+    {
+      "displayName": "Mining Ore Veins",
+      "description": "Sample Scene for Mining discrete ore veins where the ore feels like it has a health pool",
+      "path": "Samples~/MiningOreVeins"
+    },
+    {
+      "displayName": "Orbiting Planets",
+      "description": "Sample Scene for Orbiting Planets; GeoForge volumes in motion.",
+      "path": "Samples~/OrbitingPlanets"
     }
   ]
 }

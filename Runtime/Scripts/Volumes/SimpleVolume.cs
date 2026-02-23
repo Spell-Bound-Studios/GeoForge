@@ -18,7 +18,7 @@ namespace Spellbound.GeoForge {
 
         [Tooltip("Rules for immutable voxels on the external faces of the volume"), SerializeField]
         protected BoundaryOverrides boundaryOverrides;
-        
+
         [Header("Volume Settings"), Tooltip("Config for ChunkSize, VolumeSize, etc"), SerializeField]
         protected VoxelVolumeConfig config;
 
@@ -97,7 +97,9 @@ namespace Spellbound.GeoForge {
                             simpleChunk.SetDataFactory(dataFactory);
                             simpleChunk.SetBoundaryOverrides(boundaryOverrides);
                         }
+
                         chunk.InitializeChunk();
+
                         yield return null;
                     }
                 }

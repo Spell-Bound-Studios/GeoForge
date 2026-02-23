@@ -5,14 +5,16 @@ using System.Linq;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
-    public static class TerraformCommands {
-        public static (List<RawVoxelEdit> edits, Bounds bounds) TerraformSphere(
+    /// <summary>
+    /// Terraform commands. Internal and "DRY". Should be accessed through the public GeoForgeStatic class.
+    /// </summary>
+    internal static class TerraformCommands {
+        internal static (List<RawVoxelEdit> edits, Bounds bounds) TerraformSphere(
             IVolume iVoxelVolume,
             Vector3 worldPosition,
             float size,
             int delta,
-            HashSet<byte> materials)
-        {
+            HashSet<byte> materials) {
             var voxelCenter = iVoxelVolume.WorldToVoxelSpace(worldPosition);
             var halfSizeVoxels = size * 0.5f / iVoxelVolume.ConfigBlob.Value.Resolution;
             var r = Mathf.CeilToInt(halfSizeVoxels);
@@ -22,22 +24,25 @@ namespace Spellbound.GeoForge {
 
             for (var x = -r; x <= r; x++)
             for (var y = -r; y <= r; y++)
-            for (var z = -r; z <= r; z++)
-            {
+            for (var z = -r; z <= r; z++) {
                 var dist = Mathf.Sqrt(x * x + y * y + z * z);
                 var voxelPos = voxelCenter + new Vector3Int(x, y, z);
                 var chunk = iVoxelVolume.GetChunkByVoxelPosition(voxelPos);
+
                 if (chunk == null)
                     continue;
+
                 var voxelData = chunk.GetVoxelDataFromVoxelPosition(voxelPos);
-                if (delta < 0 && !materials.Contains(voxelData.MaterialIndex)) 
+
+                if (delta < 0 && !materials.Contains(voxelData.MaterialIndex))
                     continue;
-                
-                var falloff = 1f - (dist / halfSizeVoxels);
+
+                var falloff = 1f - dist / halfSizeVoxels;
                 var scaledDelta = Mathf.RoundToInt(delta * Mathf.Clamp01(falloff));
                 var newDensity = (byte)Mathf.Clamp(voxelData.Density + scaledDelta, byte.MinValue, byte.MaxValue);
-                
+
                 byte newMaterial;
+
                 if (delta < 0 || voxelData.Density == byte.MaxValue)
                     newMaterial = voxelData.MaterialIndex;
                 else
