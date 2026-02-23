@@ -25,9 +25,6 @@ namespace Spellbound.GeoForge {
             for (var z = -r; z <= r; z++)
             {
                 var dist = Mathf.Sqrt(x * x + y * y + z * z);
-                if (dist > halfSizeVoxels) 
-                    continue;
-                
                 var voxelPos = voxelCenter + new Vector3Int(x, y, z);
                 var chunk = iVoxelVolume.GetChunkByVoxelPosition(voxelPos);
                 if (chunk == null)
@@ -37,7 +34,7 @@ namespace Spellbound.GeoForge {
                     continue;
                 
                 var falloff = 1f - (dist / halfSizeVoxels);
-                var scaledDelta = Mathf.RoundToInt(delta * falloff);
+                var scaledDelta = Mathf.RoundToInt(delta * Mathf.Clamp01(falloff));
                 var newDensity = (byte)Mathf.Clamp(voxelData.Density + scaledDelta, byte.MinValue, byte.MaxValue);
                 
                 byte newMaterial;

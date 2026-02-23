@@ -14,10 +14,10 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   threshold: 128
   cubesPerMarch: 16
-  levelsOfDetail: 1
-  maxChunkSize: 16
-  chunkSize: 16
-  resolution: 1
+  levelsOfDetail: 3
+  maxChunkSize: 64
+  chunkSize: 64
+  resolution: 0.25
   isFiniteSize: 1
   sizeInChunks: {x: 1, y: 1, z: 1}
   volumeSize: {x: 16, y: 16, z: 16}

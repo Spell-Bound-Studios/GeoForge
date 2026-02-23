@@ -1,6 +1,5 @@
 // Copyright 2025 Spellbound Studio Inc.
 
-using System;
 using System.Collections.Generic;
 using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
@@ -40,18 +39,16 @@ namespace Spellbound.GeoForge.Sample2 {
         [SerializeField] private AudioClip miningAudioClip;
         [SerializeField] private ParticleSystem miningParticle;
         
-        // Local enum for the shape of the terraforming commands
-        private enum TerraformShape {
-            Sphere,
-            Cube
-        }
-        
         /// <summary>
         /// Start method initializes the controller, and creates and initializes it's UI. 
         /// </summary>
         private void Start() {
             _rb = GetComponent<Rigidbody>();
             playerCollider = GetComponent<Collider>();
+            
+            _projectionObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            Destroy(_projectionObj.transform.GetComponent<Collider>());
+            _projectionObj.GetComponent<Renderer>().material = projectionMaterial;
             
 
             if (_rb == null) {
@@ -122,31 +119,19 @@ namespace Spellbound.GeoForge.Sample2 {
                         out var hit,
                         terraformRange,
                         ~0)){
-                _terraformRemove(pos, rot.eulerAngles, terraformSize, terraformStrength, _diggableMaterialList, snapToGrid);
+                GeoForgeStatic.RemoveSphereAll(hit, terraformSize, terraformStrength, _diggableMaterialList);
+                    AudioSource.PlayClipAtPoint(miningAudioClip, hit.point);
+                    var direction = Vector3.Slerp(-transform.forward, hit.normal, 0.5f);
+                    var geoVolume = hit.collider.gameObject.GetComponentInParent<IVolume>();
+
+                    if (geoVolume != null) {
+                        var ps = Instantiate(miningParticle, hit.point, Quaternion.LookRotation(direction, Vector3.up));
+                        Destroy(ps.gameObject, ps.main.duration);
+                    }
             }
 #endif
         }
-
-        /// <summary>
-        /// Method for setting or changing the shape of the terraforming projection and commands.
-        /// </summary>
-        private void SetProjectionShape(TerraformShape shape) {
-            if (_projectionObj != null)
-                Destroy(_projectionObj);
-            switch (shape) {
-                case TerraformShape.Sphere:
-                    _projectionObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-                    break;
-                case TerraformShape.Cube:
-                    _projectionObj = GameObject.CreatePrimitive(PrimitiveType.Cube);
-                    break;
-            }
-
-            Destroy(_projectionObj.transform.GetComponent<Collider>());
-            _projectionObj.GetComponent<Renderer>().material = projectionMaterial;
-        }
-
-        public void SetProjectionShape(int index) => SetProjectionShape((TerraformShape)index);
+        
    
         /// <summary>
         /// Updates a semi-transparent projection of what terraforming fields are set to.

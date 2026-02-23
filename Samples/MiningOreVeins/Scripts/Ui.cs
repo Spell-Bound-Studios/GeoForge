@@ -44,8 +44,6 @@ namespace Spellbound.GeoForge.Sample2 {
         public void SetController(Controller controller) {
             _controller = controller;
             
-            HandleShapeDropdownChanged(0);
-            
             terraformingRangeSlider.onValueChanged.AddListener(HandleRangeSliderChanged);
             HandleRangeSliderChanged(terraformingRangeSlider.value);
             
@@ -92,10 +90,6 @@ namespace Spellbound.GeoForge.Sample2 {
 
         // Subscribed methods to handle value changes from the UI.
         #region HandlerMethods
-
-        private void HandleShapeDropdownChanged(int index) {
-            _controller.SetProjectionShape(index);
-        }
         
         private void HandleRangeSliderChanged(float value) {
             terraformingRangeValue.text = value.ToString("F2");
