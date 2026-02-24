@@ -37,8 +37,9 @@ namespace Spellbound.GeoForge {
                 if (delta < 0 && !materials.Contains(voxelData.MaterialIndex))
                     continue;
 
-                var falloff = 1f - dist / halfSizeVoxels;
-                var scaledDelta = Mathf.RoundToInt(delta * Mathf.Clamp01(falloff));
+                var normalizedDist = dist - (halfSizeVoxels - 1f); 
+                var falloff = 1f - Mathf.Clamp01(normalizedDist);
+                var scaledDelta = Mathf.RoundToInt(delta * falloff);
                 var newDensity = (byte)Mathf.Clamp(voxelData.Density + scaledDelta, byte.MinValue, byte.MaxValue);
 
                 byte newMaterial;
