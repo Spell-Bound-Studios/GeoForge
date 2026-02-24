@@ -42,6 +42,11 @@
       "displayName": "Orbiting Planets",
       "description": "Sample Scene for Orbiting Planets; GeoForge volumes in motion.",
       "path": "Samples~/OrbitingPlanets"
+    },
+    {
+      "displayName": "Networked Sample",
+      "description": "Networked Version of the Digging a Hole sample scene.",
+      "path": "Samples~/NetworkedSample"
     }
   ]
 }
