@@ -18,8 +18,8 @@ namespace Spellbound.GeoForge {
         private float _pitch = 0f;
 
         // Marching Cubes fields
-        [SerializeField] private List<byte> conditionalDigList = new();
-        [SerializeField] private byte addableMaterial = 3;
+        [SerializeField] private List<byte> conditionalDigList = new() {0, 1, 2};
+        [SerializeField] private byte addableMaterial = 2;
 
         private void Start() => Cursor.lockState = CursorLockMode.Locked;
 
