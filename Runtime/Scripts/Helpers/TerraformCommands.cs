@@ -44,7 +44,7 @@ namespace Spellbound.GeoForge {
 
                 byte newMaterial;
 
-                if (delta < 0 || byte.MaxValue * 0.4f - voxelData.Density > scaledDelta)
+                if (delta < 0 || byte.MaxValue * 0.6f - voxelData.Density > scaledDelta)
                     newMaterial = voxelData.MaterialIndex;
                 else
                     newMaterial = materials.First();
