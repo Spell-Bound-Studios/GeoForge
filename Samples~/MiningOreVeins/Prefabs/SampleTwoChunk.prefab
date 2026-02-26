@@ -44,4 +44,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c134169852de8724ab1c237826263108, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  oreHealth: 400
+  oreHealth: 1000
