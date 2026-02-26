@@ -44,14 +44,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a267c7dee4fba2b4cb57ec15aace9111, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  config: {fileID: 11400000, guid: 1a71f712e11359545b0357a8503a60b8, type: 2}
-  dataFactory: {fileID: 11400000, guid: e708ac57d0c413241a51d64ad0ddcaa0, type: 2}
+  dataFactory: {fileID: 11400000, guid: 32fd03bf75be58349b83b1627c600cba, type: 2}
   boundaryOverrides: {fileID: 11400000, guid: 418912af9029cc44ab70960ba4cd7239, type: 2}
+  config: {fileID: 11400000, guid: 1a71f712e11359545b0357a8503a60b8, type: 2}
   isMoving: 1
   isPrimaryTerrain: 0
   viewDistanceLodRanges:
-  - {x: 0, y: 8}
-  - {x: 8, y: 24}
-  - {x: 24, y: 56}
-  - {x: 56, y: 120}
+  - {x: 0, y: 32}
+  - {x: 32, y: 96}
+  - {x: 96, y: 224}
+  - {x: 224, y: 480}
   chunkPrefab: {fileID: 4065535263056542906, guid: 4af8e799ce530654588b63eb3c2a9d0d, type: 3}
