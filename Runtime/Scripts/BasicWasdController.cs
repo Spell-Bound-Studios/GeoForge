@@ -15,7 +15,7 @@ namespace Spellbound.GeoForge {
         // Movement fields
         [SerializeField] private float moveSpeed = 5f;
         [SerializeField] private float lookSpeed = 2f;
-        private float _pitch = 0f;
+        private float _pitch;
 
         // Marching Cubes fields
         [SerializeField] private List<byte> conditionalDigList = new() {0, 1, 2};
@@ -36,13 +36,13 @@ namespace Spellbound.GeoForge {
             var keyboard = Keyboard.current;
 
             if (keyboard != null) {
-                if (keyboard.digit1Key.isPressed)
+                if (keyboard.digit1Key.wasPressedThisFrame)
                     RaycastTerraformRemove();
                 else if (keyboard.digit2Key.wasPressedThisFrame)
                     RaycastTerraformAdd();
             }
 #else
-            if (Input.GetKey(KeyCode.Alpha1))
+            if (Input.GetKeyDown(KeyCode.Alpha1))
                 RaycastTerraformRemove();
             else if (Input.GetKeyDown(KeyCode.Alpha2))
                 RaycastTerraformAdd();
@@ -102,7 +102,7 @@ namespace Spellbound.GeoForge {
                     out var hit,
                     float.MaxValue,
                     ~0))
-                GeoForgeStatic.RemoveSphereAll(hit, 3, byte.MaxValue, conditionalDigList);
+                GeoForgeStatic.RemoveSphereAll(hit, 6, byte.MaxValue, conditionalDigList);
         }
 
         /// <summary>
@@ -115,7 +115,7 @@ namespace Spellbound.GeoForge {
                     out var hit,
                     float.MaxValue,
                     ~0))
-                GeoForgeStatic.AddSphere(hit, 3, byte.MaxValue, addableMaterial);
+                GeoForgeStatic.AddSphere(hit, 6, byte.MaxValue, addableMaterial);
         }
     }
 }
