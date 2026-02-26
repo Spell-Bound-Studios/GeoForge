@@ -42,12 +42,10 @@ namespace Spellbound.GeoForge {
                 var scaledDelta = Mathf.RoundToInt(delta * falloff);
                 var newDensity = (byte)Mathf.Clamp(voxelData.Density + scaledDelta, byte.MinValue, byte.MaxValue);
 
-                byte newMaterial;
-
-                if (delta < 0 || voxelData.Density == byte.MaxValue)
-                    newMaterial = voxelData.MaterialIndex;
-                else
-                    newMaterial = materials.First();
+                var newMaterial = byte.MaxValue - voxelData.Density > scaledDelta
+                        ? voxelData.MaterialIndex
+                        : materials.First();
+                
                 rawVoxelEdits.Add(new RawVoxelEdit(voxelPos, newDensity, newMaterial));
             }
 
