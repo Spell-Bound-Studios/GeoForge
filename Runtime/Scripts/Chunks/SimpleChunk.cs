@@ -24,7 +24,6 @@ namespace Spellbound.GeoForge {
         /// </summary>
         /// <param name="voxels"></param>
         public void InitializeChunk(NativeArray<VoxelData> voxels = default) {
-            Debug.Log("InitializeChunk");
             _baseChunk.ParentVolume.BaseVolume.RegisterChunk(_baseChunk.ChunkCoord, this);
 
             if (boundaryOverrides != null) {

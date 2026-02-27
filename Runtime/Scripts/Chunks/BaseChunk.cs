@@ -36,7 +36,6 @@ namespace Spellbound.GeoForge {
         }
 
         public void SetCoordAndFields(Vector3Int coord) {
-            Debug.Log("in SetCoordAndFields");
             _parentVolume = _owner.GetComponentInParent<IVolume>();
             ref var config = ref ParentVolume.ConfigBlob.Value;
             _chunkCoord = coord;
