@@ -1,8 +1,8 @@
 {
   "name": "com.spellboundstudios.geoforge",
   "version": "0.0.15",
-  "displayName": "Spellbound.Geoforge",
-  "description": "This is a destructible/terraformable terrain package based on Marching Cubes Density Voxels.",
+  "displayName": "Spellbound.GeoForge",
+  "description": "Package for a Dynamic 3-Dimensional World. Powered by performant multi-threaded Marching Cubes.",
   "unity": "6000.0",
   "author": {
     "name": "Spellbound Studios",
@@ -44,7 +44,7 @@
       "path": "Samples~/OrbitingPlanets"
     },
     {
-      "displayName": "Networked Sample",
+      "displayName": "Networked Digging a Hole",
       "description": "Networked Version of the Digging a Hole sample scene.",
       "path": "Samples~/NetworkedSample"
     }

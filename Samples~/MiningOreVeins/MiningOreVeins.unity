@@ -476,9 +476,9 @@ MonoBehaviour:
   isMoving: 0
   isPrimaryTerrain: 0
   viewDistanceLodRanges:
-  - {x: 0, y: 8}
-  - {x: 8, y: 24}
-  - {x: 24, y: 56}
+  - {x: 0, y: 50.13}
+  - {x: 50.13, y: 66.130005}
+  - {x: 66.130005, y: 98.130005}
   chunkPrefab: {fileID: 1721800789933831427, guid: 5cdf60b3aae5b0e4a889a01d03a6e6a1, type: 3}
 --- !u!4 &1360954103
 Transform:

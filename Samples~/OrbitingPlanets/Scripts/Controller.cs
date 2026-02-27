@@ -79,7 +79,7 @@ namespace Spellbound.GeoForge.Sample3 {
         /// Projection continues to be updated to reflect whats being tweaked in the UI.
         /// Movement and Terraforming are disabled while utilizing the UI.
         /// </summary>
-        private void Update() {
+        private void FixedUpdate() {
             HandleProjection();
 
             if (freezeUpdate)
@@ -140,7 +140,7 @@ namespace Spellbound.GeoForge.Sample3 {
                     lineRenderer.SetPosition(1, hit.point);
             }
                     
-                else if (Input.GetKeyDown(KeyCode.Alpha2
+                else if (Input.GetKeyDown(KeyCode.Alpha2)
                          && Physics.Raycast(
                         transform.position,
                         transform.forward,
