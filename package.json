@@ -26,7 +26,7 @@
     {
       "displayName": "Supplimentary Assets",
       "description": "Additional Assets, including the Shadergraph from which the Material Shader was generated",
-      "path": "Samples~/SupplimentaryAssets"
+      "path": "Samples~/SupplementaryAssets"
     },
     {
       "displayName": "Digging A Hole",

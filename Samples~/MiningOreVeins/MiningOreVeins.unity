@@ -326,7 +326,7 @@ MonoBehaviour:
   terraformStrength: 255
   lowStrengthColor: {r: 0, g: 0.2929263, b: 1, a: 0.4}
   highStrengthColor: {r: 1, g: 0, b: 0, a: 0.4}
-  projectionMaterial: {fileID: 2100000, guid: 91521e6affe993c419265028938ed7d9, type: 2}
+  projectionMaterial: {fileID: 2100000, guid: bf6682cd2fe75ad4895842487cf74ab3, type: 2}
   playerCollider: {fileID: 0}
   freezeUpdate: 0
   uiPrefab: {fileID: 660016640278960988, guid: 3bc7bf43f33cdd44eb5f0ba5bc3db1a3, type: 3}

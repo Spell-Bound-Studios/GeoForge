@@ -837,7 +837,7 @@ MonoBehaviour:
   addableMaterial: 0
   lowStrengthColor: {r: 0.017205715, g: 0, b: 1, a: 0.4}
   highStrengthColor: {r: 1, g: 0, b: 0, a: 0.4}
-  projectionMaterial: {fileID: 2100000, guid: 91521e6affe993c419265028938ed7d9, type: 2}
+  projectionMaterial: {fileID: 2100000, guid: 04ea3c173fa771e499fc1509f996624c, type: 2}
   playerCollider: {fileID: 0}
   freezeUpdate: 0
   uiPrefab: {fileID: 4701024163546972593, guid: f3aebd854623eb844af34cfb2f530feb, type: 3}

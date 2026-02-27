@@ -1170,11 +1170,10 @@ MonoBehaviour:
   terraformStrength: 255
   diggableMaterialList: 
   addableMaterial: 0
-  snapToGrid: 0
   lowStrengthColor: {r: 0, g: 0.3212328, b: 1, a: 0.4}
   highStrengthColor: {r: 1, g: 0, b: 0, a: 0.4}
-  projectionMaterial: {fileID: 2100000, guid: 91521e6affe993c419265028938ed7d9, type: 2}
-  collider: {fileID: 0}
+  projectionMaterial: {fileID: 2100000, guid: 4d745a8e8038d1b40a93be700b93dcac, type: 2}
+  playerCollider: {fileID: 0}
   freezeUpdate: 0
   uiPrefab: {fileID: -4218648525367237547, guid: daf4cb05b3b753545a7da69f82697914, type: 3}
   lineRenderer: {fileID: 1350744724}
