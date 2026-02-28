@@ -679,7 +679,7 @@ MonoBehaviour:
   _networkPrefabs: {fileID: 11400000, guid: 8047d85540db97a48bf757c25b19b391, type: 2}
   _networkAssets: {fileID: 0}
   _networkRules: {fileID: 11400000, guid: 6abc5ff662b58e84a9b1ed84a5a72ccd, type: 2}
-  _visibilityRules: {fileID: 11400000, guid: 0f8ef412ae50eac40ab56767453d4d80, type: 2}
+  _visibilityRules: {fileID: 11400000, guid: 8f014a5bd8dc68646a2a3c0b18c5bbd8, type: 2}
   _authenticator: {fileID: 0}
   _tickRate: 20
   _patchLingeringProcessBug: 0
