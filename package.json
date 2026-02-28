@@ -1,6 +1,6 @@
 {
   "name": "com.spellboundstudios.geoforge",
-  "version": "0.0.15",
+  "version": "0.1.0",
   "displayName": "Spellbound.GeoForge",
   "description": "Package for a Dynamic 3-Dimensional World. Powered by performant multi-threaded Marching Cubes.",
   "unity": "6000.0",
