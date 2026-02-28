@@ -141,7 +141,6 @@ namespace GeoForge.Sample4 {
                     BaseChunk.ParentVolume.ConfigBlob.Value.ChunkDataVolumeSize, Allocator.Persistent);
             
             dataFactory.FillDataArray(BaseChunk.ChunkCoord, BaseChunk.ParentVolume.ConfigBlob, voxels);
-            Debug.Log("initialize chunk is running, about to initialze voxels");
             BaseChunk.InitializeVoxels(voxels);
 
             if (voxels.IsCreated) 

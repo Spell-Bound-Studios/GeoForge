@@ -899,7 +899,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 2143009024312342097, guid: 649071cd54a327946a92f1cedecd78e2, type: 3}
       propertyPath: m_Name
-      value: MarchingCubesManager
+      value: GeoForgeManager
       objectReference: {fileID: 0}
     - target: {fileID: 6002279756793364359, guid: 649071cd54a327946a92f1cedecd78e2, type: 3}
       propertyPath: m_LocalPosition.x
