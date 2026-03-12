@@ -45,7 +45,7 @@ namespace Spellbound.GeoForge {
                 return;
             }
 
-            var iVolume = hit.collider.transform.GetComponentInParent<IVolume>();
+            var iVolume = hit.collider.transform.GetComponentInParent<IGeoVolume>();
 
             if (iVolume == null)
                 return;
@@ -66,7 +66,7 @@ namespace Spellbound.GeoForge {
                 return;
             }
 
-            var iVolume = hit.collider.transform.GetComponentInParent<IVolume>();
+            var iVolume = hit.collider.transform.GetComponentInParent<IGeoVolume>();
 
             if (iVolume == null)
                 return;
@@ -80,7 +80,7 @@ namespace Spellbound.GeoForge {
         }
         
         /// <summary>
-        /// Public method to Add or "Deposit-onto" a spherical region for one specific GeoForge volume. 
+        /// Public method to Add or "Deposit-onto" a spherical region for one specific GeoForge geoVolume. 
         /// </summary>
         public static void AddSphere(
             RaycastHit hit, float radius, int delta, byte material) {
@@ -90,7 +90,7 @@ namespace Spellbound.GeoForge {
                 return;
             }
 
-            var iVolume = hit.collider.transform.GetComponentInParent<IVolume>();
+            var iVolume = hit.collider.transform.GetComponentInParent<IGeoVolume>();
 
             if (iVolume == null)
                 return;

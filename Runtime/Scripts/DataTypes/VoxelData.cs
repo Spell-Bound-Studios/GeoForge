@@ -6,7 +6,7 @@ using Unity.Burst;
 namespace Spellbound.GeoForge {
     /// <summary>
     /// Represents a single cubic dimension in the game world. It is a discrete cube that characterizes
-    /// a volume in the game world with a material and density.
+    /// a geoVolume in the game world with a material and density.
     /// This doesn't get sent on the network or saved.
     /// </summary>
     [Serializable]

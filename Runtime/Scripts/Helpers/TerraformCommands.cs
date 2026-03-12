@@ -10,13 +10,13 @@ namespace Spellbound.GeoForge {
     /// </summary>
     internal static class TerraformCommands {
         internal static (List<RawVoxelEdit> edits, Bounds bounds) TerraformSphere(
-            IVolume iVoxelVolume,
+            IGeoVolume iGeoVoxelVolume,
             Vector3 worldPosition,
             float size,
             int delta,
             HashSet<byte> materials) {
-            var voxelCenter = iVoxelVolume.WorldToVoxelSpace(worldPosition);
-            var halfSizeVoxels = size * 0.5f / iVoxelVolume.ConfigBlob.Value.Resolution;
+            var voxelCenter = iGeoVoxelVolume.WorldToVoxelSpace(worldPosition);
+            var halfSizeVoxels = size * 0.5f / iGeoVoxelVolume.ConfigBlob.Value.Resolution;
             var r = Mathf.CeilToInt(halfSizeVoxels);
 
             var diameter = 2 * r + 1;
@@ -27,7 +27,7 @@ namespace Spellbound.GeoForge {
             for (var z = -r; z <= r; z++) {
                 var dist = Mathf.Sqrt(x * x + y * y + z * z);
                 var voxelPos = voxelCenter + new Vector3Int(x, y, z);
-                var chunk = iVoxelVolume.GetChunkByVoxelPosition(voxelPos);
+                var chunk = iGeoVoxelVolume.GetChunkByVoxelPosition(voxelPos);
 
                 if (chunk == null)
                     continue;

@@ -22,7 +22,7 @@ namespace GeoForge.Sample4 {
     /// to seamlessly swap between server authoritative and local terraforming based on client proximity. This capability
     /// creates lag-free environment regardless of host ping and location.
     /// </summary>
-    public class NetworkedChunk : NetworkIdentity, IChunk {
+    public class NetworkedChunk : NetworkIdentity, IGeoChunk {
         [SerializeField] DataFactory dataFactory;
 
         [SerializeField] BoundaryOverrides boundaryOverrides;
@@ -30,11 +30,11 @@ namespace GeoForge.Sample4 {
         
         [SerializeField] private VoxelSyncModule syncModule = new();
 
-        public BaseChunk BaseChunk { get; private set; }
+        public GeoChunk GeoChunk { get; private set; }
 
         #region PurrNet Lifecycles, Events and Callbacks
 
-        protected override void OnEarlySpawn() => BaseChunk = new BaseChunk(this, this);
+        protected override void OnEarlySpawn() => GeoChunk = new GeoChunk(this, this);
 
         protected override void OnSpawned() => syncModule.onVoxelsChanged += ApplyEditsToBaseChunk;
 
@@ -42,7 +42,7 @@ namespace GeoForge.Sample4 {
 
         protected override void OnDestroy() {
             base.OnDestroy();
-            BaseChunk?.Dispose();
+            GeoChunk?.Dispose();
         }
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace GeoForge.Sample4 {
             if (isServer)
                 Debug.Log($"[Server] {player.id} is running in observer added");
             
-            SendToNewObserver(player, BaseChunk.ChunkCoord);
+            SendToNewObserver(player, GeoChunk.ChunkCoord);
 
             // If this chunks observer count is less than or equal to 1 OR doesn't have an owner get out.
             if (observers.Count <= 1 || !hasOwner)
@@ -66,7 +66,7 @@ namespace GeoForge.Sample4 {
             RemoveOwnership();
 
             Debug.Log(
-                $"[Server] Chunk {BaseChunk?.ChunkCoord} - Multiple observers ({observers.Count}), server taking authority");
+                $"[Server] Chunk {GeoChunk?.ChunkCoord} - Multiple observers ({observers.Count}), server taking authority");
         }
 
         /// <summary>
@@ -94,7 +94,7 @@ namespace GeoForge.Sample4 {
             GiveOwnership(isolatedPlayer);
 
             Debug.Log(
-                $"[Server] Chunk {BaseChunk?.ChunkCoord} - Single observer remaining, giving ownership to {isolatedPlayer}");
+                $"[Server] Chunk {GeoChunk?.ChunkCoord} - Single observer remaining, giving ownership to {isolatedPlayer}");
         }
 
         /// <summary>
@@ -103,22 +103,22 @@ namespace GeoForge.Sample4 {
         protected override void OnOwnerChanged(PlayerID? oldOwner, PlayerID? newOwner, bool asServer) {
             // Only print this if there is a new owner, I'm the owner, and I'm a client (avoid double prints).
             if (newOwner.HasValue && isOwner && isClient)
-                Debug.Log($"[Client] I now own chunk {BaseChunk?.ChunkCoord} - lag-free editing enabled!");
+                Debug.Log($"[Client] I now own chunk {GeoChunk?.ChunkCoord} - lag-free editing enabled!");
         }
 
         [TargetRpc(bufferLast: true)]
         private void SendToNewObserver(PlayerID target, Vector3Int chunkCoord) {
             // Lets error handle properly. If you're following this example then it should fit into the PurrNet
             // lifecycle properly. However, if you're not and doing your own thing it's important to make sure it exists!
-            if (BaseChunk == null) {
-                Debug.LogError("[Client] BaseChunk is null. Please ensure BaseChunk is created.", this);
+            if (GeoChunk == null) {
+                Debug.LogError("[Client] GeoChunk is null. Please ensure GeoChunk is created.", this);
 
                 return;
             }
             
-            BaseChunk.SetCoordAndFields(chunkCoord);
+            GeoChunk.SetCoordAndFields(chunkCoord);
             
-            Debug.Log($"[Client] Initializing chunk at {BaseChunk?.ChunkCoord}");
+            Debug.Log($"[Client] Initializing chunk at {GeoChunk?.ChunkCoord}");
             
             InitializeChunk();
         }
@@ -128,20 +128,20 @@ namespace GeoForge.Sample4 {
         #region IChunk Implementation
         
         public void InitializeChunk(NativeArray<VoxelData> voxels = default) {
-            BaseChunk.ParentVolume.BaseVolume.RegisterChunk(BaseChunk.ChunkCoord, this);
+            GeoChunk.ParentGeoVolume.GeoVolume.RegisterChunk(GeoChunk.ChunkCoord, this);
             
             if (boundaryOverrides != null) {
                 var overrides = boundaryOverrides.BuildChunkOverrides(
-                    BaseChunk.ChunkCoord, BaseChunk.ParentVolume.ConfigBlob);
-                BaseChunk.SetOverrides(overrides);
+                    GeoChunk.ChunkCoord, GeoChunk.ParentGeoVolume.ConfigBlob);
+                GeoChunk.SetOverrides(overrides);
             }
 
             if (voxels == default)
                 voxels = new NativeArray<VoxelData>(
-                    BaseChunk.ParentVolume.ConfigBlob.Value.ChunkDataVolumeSize, Allocator.Persistent);
+                    GeoChunk.ParentGeoVolume.ConfigBlob.Value.ChunkDataVolumeSize, Allocator.Persistent);
             
-            dataFactory.FillDataArray(BaseChunk.ChunkCoord, BaseChunk.ParentVolume.ConfigBlob, voxels);
-            BaseChunk.InitializeVoxels(voxels);
+            dataFactory.FillDataArray(GeoChunk.ChunkCoord, GeoChunk.ParentGeoVolume.ConfigBlob, voxels);
+            GeoChunk.InitializeVoxels(voxels);
 
             if (voxels.IsCreated) 
                 voxels.Dispose();
@@ -158,8 +158,8 @@ namespace GeoForge.Sample4 {
         #region Local Methods
 
         private void ApplyEditsToBaseChunk(List<VoxelEdit> edits) {
-            if (BaseChunk.ApplyVoxelEdits(edits, out var editBounds))
-                BaseChunk.ValidateOctreeEdits(editBounds);
+            if (GeoChunk.ApplyVoxelEdits(edits, out var editBounds))
+                GeoChunk.ValidateOctreeEdits(editBounds);
         }
 
         #endregion

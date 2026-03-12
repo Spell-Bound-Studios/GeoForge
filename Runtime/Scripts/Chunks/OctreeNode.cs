@@ -11,7 +11,7 @@ using Object = UnityEngine.Object;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Recursively Subdividing OctreeNode to subdivide a chunk at varying LODs.
+    /// Recursively Subdividing OctreeNode to subdivide a geoChunk at varying LODs.
     /// Either it has 8 children, or it has an Octree leaf (representing actual terrain).
     /// </summary>
     public class OctreeNode : IDisposable {
@@ -28,9 +28,9 @@ namespace Spellbound.GeoForge {
         private Vector3Int _localPosition;
         private readonly int _lod;
         private BoundsInt _boundsVoxel;
-        private readonly IChunk _chunk;
+        private readonly IGeoChunk _geoChunk;
         private readonly GeoForgeManager _gfManager;
-        private readonly IVolume _parentVolume;
+        private readonly IGeoVolume _parentGeoVolume;
         private Vector3Int[] _cachedNeighborPositions;
         private MaterialPropertyBlock _materialPropertyBlock;
 
@@ -38,14 +38,14 @@ namespace Spellbound.GeoForge {
 
         private bool IsLeaf => _children == null;
 
-        public OctreeNode(Vector3Int localPosition, int lod, IChunk chunk, IVolume parentVolume) {
-            _parentVolume = parentVolume;
+        public OctreeNode(Vector3Int localPosition, int lod, IGeoChunk geoChunk, IGeoVolume parentGeoVolume) {
+            _parentGeoVolume = parentGeoVolume;
             _localPosition = localPosition;
             _lod = lod;
-            _chunk = chunk;
+            _geoChunk = geoChunk;
 
             _gfManager = SingletonManager.GetSingletonInstance<GeoForgeManager>();
-            var octreeSizeVoxels = 3 + (_parentVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod);
+            var octreeSizeVoxels = 3 + (_parentGeoVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod);
             _boundsVoxel = new BoundsInt(_localPosition, Vector3Int.one * octreeSizeVoxels);
         }
 
@@ -92,7 +92,7 @@ namespace Spellbound.GeoForge {
 
             _children = new OctreeNode[8];
             var childLod = _lod - 1;
-            var childSize = _parentVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << childLod;
+            var childSize = _parentGeoVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << childLod;
 
             for (var i = 0; i < 8; i++) {
                 var offset = new Vector3Int(
@@ -101,7 +101,7 @@ namespace Spellbound.GeoForge {
                     (i & 4) == 0 ? 0 : childSize
                 );
 
-                _children[i] = new OctreeNode(_localPosition + offset, childLod, _chunk, _parentVolume);
+                _children[i] = new OctreeNode(_localPosition + offset, childLod, _geoChunk, _parentGeoVolume);
             }
         }
 
@@ -120,7 +120,7 @@ namespace Spellbound.GeoForge {
         private void SetMaterialOrigin() {
             var meshRenderer = _leafGo.GetComponent<MeshRenderer>();
             var materialPropertyBlock = new MaterialPropertyBlock();
-            materialPropertyBlock.SetMatrix("_WorldToLocal", _parentVolume.VolumeTransform.worldToLocalMatrix);
+            materialPropertyBlock.SetMatrix("_WorldToLocal", _parentGeoVolume.VolumeTransform.worldToLocalMatrix);
             meshRenderer.SetPropertyBlock(materialPropertyBlock);
 
             if (_transitionGo != null) {
@@ -130,9 +130,9 @@ namespace Spellbound.GeoForge {
         }
 
         public void ValidateOctreeLods(Vector3 playerPosition, NativeArray<VoxelData> voxelArray) {
-            var targetLod = GetLodRange(Center, playerPosition, _parentVolume.ConfigBlob.Value.Resolution);
+            var targetLod = GetLodRange(Center, playerPosition, _parentGeoVolume.ConfigBlob.Value.Resolution);
 
-            if (_chunk.DensityRange.IsSkippable()) return;
+            if (_geoChunk.DensityRange.IsSkippable()) return;
 
             if (_lod <= targetLod) {
                 if (_leafGo == null)
@@ -204,20 +204,20 @@ namespace Spellbound.GeoForge {
         private int GetLodRange(Vector3 octreePos, Vector3 playerPos, float resolution) {
             var distance = Vector3.Distance(octreePos, playerPos) * resolution;
 
-            for (var i = 0; i < _parentVolume.ViewDistanceLodRanges.Length; i++) {
-                if (distance <= _parentVolume.ViewDistanceLodRanges[i].y)
+            for (var i = 0; i < _parentGeoVolume.ViewDistanceLodRanges.Length; i++) {
+                if (distance <= _parentGeoVolume.ViewDistanceLodRanges[i].y)
                     return i;
             }
 
             // If distance is beyond all ranges, return -1
             // return - 1;
-            return _parentVolume.ViewDistanceLodRanges.Length - 1;
+            return _parentGeoVolume.ViewDistanceLodRanges.Length - 1;
         }
 
         private void MarchAndMesh(NativeArray<VoxelData> voxelArray) {
             var marchingCubeJob = new MarchingCubeJob {
                 TablesBlob = _gfManager.McTablesBlob,
-                ConfigBlob = _parentVolume.ConfigBlob,
+                ConfigBlob = _parentGeoVolume.ConfigBlob,
                 VoxelArray = voxelArray,
 
                 Vertices = new NativeList<MeshingVertexData>(Allocator.Persistent),
@@ -228,12 +228,12 @@ namespace Spellbound.GeoForge {
             var jobHandle = marchingCubeJob.Schedule();
 
             _gfManager.RegisterMarchJob(this, jobHandle, marchingCubeJob.Vertices, marchingCubeJob.Triangles,
-                _chunk.ChunkCoord);
+                _geoChunk.ChunkCoord);
 
             if (_lod != 0) {
                 var transitionMarchingCubeJob = new TransitionMarchingCubeJob {
                     TablesBlob = _gfManager.McTablesBlob,
-                    ConfigBlob = _parentVolume.ConfigBlob,
+                    ConfigBlob = _parentGeoVolume.ConfigBlob,
                     VoxelArray = voxelArray,
 
                     TransitionMeshingVertexData = new NativeList<MeshingVertexData>(Allocator.Persistent),
@@ -251,7 +251,7 @@ namespace Spellbound.GeoForge {
                     transitionMarchingCubeJob.TransitionMeshingVertexData,
                     transitionMarchingCubeJob.TransitionTriangles,
                     transitionMarchingCubeJob.TransitionRanges,
-                    _chunk.ChunkCoord);
+                    _geoChunk.ChunkCoord);
             }
         }
 
@@ -269,7 +269,7 @@ namespace Spellbound.GeoForge {
         }
 
         private void BuildLeaf() {
-            _leafGo = _gfManager.GetPooledObject(_chunk.Transform);
+            _leafGo = _gfManager.GetPooledObject(_geoChunk.Transform);
             _leafGo.transform.localPosition = Vector3.zero;
             _leafGo.transform.localRotation = Quaternion.identity;
 
@@ -277,7 +277,7 @@ namespace Spellbound.GeoForge {
             _mesh.MarkDynamic();
             _leafGo.GetComponent<MeshFilter>().mesh = _mesh;
 
-            _leafGo.name = $"LeafSize {_parentVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod} " +
+            _leafGo.name = $"LeafSize {_parentGeoVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod} " +
                            $"at {_localPosition.x}, {_localPosition.y}, {_localPosition.z}";
         }
 
@@ -430,7 +430,7 @@ namespace Spellbound.GeoForge {
             var neighborVoxelPositions = GetNeighborPositions();
 
             for (var i = 0; i < 6; i++)
-                _chunk.BroadcastNewLeafAcrossChunks(this, neighborVoxelPositions[i], i);
+                _geoChunk.BroadcastNewLeafAcrossChunks(this, neighborVoxelPositions[i], i);
         }
 
         private Vector3Int[] GetNeighborPositions() {

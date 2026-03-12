@@ -13,7 +13,7 @@ namespace Spellbound.GeoForge {
 
         public NativeArray<VoxelData> GetOrUnpackVoxelArray(
             int dataSizeKey,
-            BaseChunk chunk,
+            GeoChunk chunk,
             NativeList<SparseVoxelData> sparseData) {
             if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var denseVoxelData)) {
                 Debug.LogError(
@@ -22,7 +22,7 @@ namespace Spellbound.GeoForge {
                 return new DenseVoxelData().DenseVoxelArray;
             }
 
-            ref var config = ref chunk.ParentVolume.ConfigBlob.Value;
+            ref var config = ref chunk.ParentGeoVolume.ConfigBlob.Value;
 
             if (denseVoxelData.IsArrayInUse) {
                 if (chunk != denseVoxelData.CurrentChunk) {
@@ -33,7 +33,7 @@ namespace Spellbound.GeoForge {
                 }
 
                 Debug.LogError(
-                    $"GetOrUnpackVoxelArray - Trying to unpack voxel array but array is in use for the same chunk. This is unexpected and bad.");
+                    $"GetOrUnpackVoxelArray - Trying to unpack voxel array but array is in use for the same geoChunk. This is unexpected and bad.");
 
                 return denseVoxelData.DenseVoxelArray;
             }
@@ -52,7 +52,7 @@ namespace Spellbound.GeoForge {
             denseVoxelData.DensityRange[0] = new DensityRange(byte.MaxValue, byte.MinValue, config.DensityThreshold);
 
             var unpackJob = new SparseToDenseVoxelDataJob {
-                ConfigBlob = chunk.ParentVolume.ConfigBlob,
+                ConfigBlob = chunk.ParentGeoVolume.ConfigBlob,
                 Voxels = denseVoxelData.DenseVoxelArray,
                 SparseVoxels = sparseData,
                 DensityRange = denseVoxelData.DensityRange
@@ -112,10 +112,10 @@ namespace Spellbound.GeoForge {
             public NativeArray<DensityRange> DensityRange;
             public Dictionary<int, List<Vector3Int>> SharedIndicesAcrossChunks;
             public bool IsArrayInUse;
-            public BaseChunk CurrentChunk;
+            public GeoChunk CurrentChunk;
 
             public DenseVoxelData(
-                int chunkSize, BaseChunk currentChunk = null, Allocator allocator = Allocator.Persistent) {
+                int chunkSize, GeoChunk currentChunk = null, Allocator allocator = Allocator.Persistent) {
                 var cs = chunkSize + 3;
                 DenseVoxelArray = new NativeArray<VoxelData>(cs * cs * cs, allocator);
                 DensityRange = new NativeArray<DensityRange>(1, allocator);

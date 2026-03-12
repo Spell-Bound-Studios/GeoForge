@@ -7,7 +7,7 @@ using Spellbound.GeoForge;
 using UnityEngine;
 
 namespace GeoForge.Sample4 {
-    public class NetworkedVolume : NetworkIdentity, IVolume {
+    public class NetworkedVolume : NetworkIdentity, IGeoVolume {
         [Header("Volume Settings"), Tooltip("Config for ChunkSize, VolumeSize, etc"), SerializeField]
         protected VoxelVolumeConfig config;
 
@@ -25,9 +25,9 @@ namespace GeoForge.Sample4 {
         [Tooltip("Prefab for the Chunk the Volume will build itself from. Must Implement IChunk"), SerializeField]
         private GameObject chunkPrefab;
 
-        private BaseVolume _baseVolume;
+        private GeoVolume _geoVolume;
 
-        public BaseVolume BaseVolume => _baseVolume;
+        public GeoVolume GeoVolume => _geoVolume;
 
 #if UNITY_EDITOR
         /// <summary>
@@ -41,7 +41,7 @@ namespace GeoForge.Sample4 {
                 return;
             }
 
-            viewDistanceLodRanges = BaseVolume.ValidateLodRanges(viewDistanceLodRanges, config);
+            viewDistanceLodRanges = GeoVolume.ValidateLodRanges(viewDistanceLodRanges, config);
         }
 #endif
 
@@ -50,17 +50,17 @@ namespace GeoForge.Sample4 {
         /// All IVolumes should create VoxelCoreLogic on Awake.
         /// </summary>
         protected override void OnEarlySpawn() {
-            if (chunkPrefab == null || !chunkPrefab.TryGetComponent<IChunk>(out _)) {
+            if (chunkPrefab == null || !chunkPrefab.TryGetComponent<IGeoChunk>(out _)) {
                 Debug.LogError($"{name}: _chunkPrefab is null or does not have IChunk Component", this);
 
                 return;
             }
 
-            _baseVolume = new BaseVolume(this, this, config);
+            _geoVolume = new GeoVolume(this, this, config);
         }
 
         protected override void OnSpawned() {
-            BaseVolume.RegisterVolume();
+            GeoVolume.RegisterVolume();
             
             if (!isServer)
                 return;
@@ -77,13 +77,13 @@ namespace GeoForge.Sample4 {
         /// One NativeArray of Voxels is maintained for all the chunks and simply overriden with new data.
         /// </summary>
         protected virtual IEnumerator InitializeChunks() {
-            var size = _baseVolume.ConfigBlob.Value.SizeInChunks;
+            var size = _geoVolume.ConfigBlob.Value.SizeInChunks;
             var offset = new Vector3Int(size.x / 2, size.y / 2, size.z / 2);
             for (var x = 0; x < size.x; x++) {
                 for (var y = 0; y < size.y; y++) {
                     for (var z = 0; z < size.z; z++) {
                         var chunkCoord = new Vector3Int(x, y, z) - offset;
-                        _baseVolume.CreateChunk<IChunk>(chunkCoord, chunkPrefab);
+                        _geoVolume.CreateChunk<IGeoChunk>(chunkCoord, chunkPrefab);
                         yield return null;
                     }
                 }
@@ -99,15 +99,15 @@ namespace GeoForge.Sample4 {
             if (!isMoving)
                 return;
 
-            _baseVolume.UpdateVolumeOrigin();
+            _geoVolume.UpdateVolumeOrigin();
         }
 
         /// <summary>
-        /// BaseVolume implements IDisposable to dispose it's BlobAssets. 
+        /// GeoVolume implements IDisposable to dispose it's BlobAssets. 
         /// </summary>
-        protected override void OnDestroy() => _baseVolume?.Dispose();
+        protected override void OnDestroy() => _geoVolume?.Dispose();
 
-        // IVolume implementations
+        // IGeoVolume implementations
         public Vector2[] ViewDistanceLodRanges => viewDistanceLodRanges;
 
         public Transform VolumeTransform => transform;

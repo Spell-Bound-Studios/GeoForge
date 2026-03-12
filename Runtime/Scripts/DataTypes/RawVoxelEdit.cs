@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// VoxelEdit relative to IVolume position and scale.
+    /// VoxelEdit relative to IGeoVolume position and scale.
     /// </summary>
     public readonly struct RawVoxelEdit {
         public Vector3Int voxelSpacePosition { get; }
