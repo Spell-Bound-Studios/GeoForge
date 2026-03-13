@@ -131,7 +131,7 @@ namespace Spellbound.GeoForge {
                 chunk.OnVolumeMovement();
         }
 
-        public Vector2[] ValidateLodRanges(Vector2[] lodRanges, VoxelVolumeConfig config) {
+        public static Vector2[] ValidateLodRanges(Vector2[] lodRanges, VoxelVolumeConfig config) {
             // Ensure correct array length
             if (lodRanges == null || lodRanges.Length != config.levelsOfDetail)
                 lodRanges = new Vector2[config.levelsOfDetail];

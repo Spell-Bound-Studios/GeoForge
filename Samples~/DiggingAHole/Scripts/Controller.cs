@@ -6,9 +6,9 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 #endif
 
-namespace Spellbound.GeoForge.Sample3 {
+namespace Spellbound.GeoForge.Sample1 {
     /// <summary>
-    /// Controller for Sample Three, Orbiting Planets.
+    /// Controller for Sample One, Digging a Hole.
     /// Not recommended as a real controller.
     /// Fields and settings are controlled from the UI, which is created on Start(), and why some fields are public.
     /// </summary>
@@ -25,7 +25,7 @@ namespace Spellbound.GeoForge.Sample3 {
         [SerializeField, Range(1, byte.MaxValue)]
         public int terraformStrength = byte.MaxValue;
 
-        [SerializeField] public List<byte> diggableMaterialList = new();
+        [SerializeField] public List<byte> diggableMaterialList = new() { 0, 1, 2, 3 };
         [SerializeField] public byte addableMaterial;
 
         // Config
@@ -38,20 +38,12 @@ namespace Spellbound.GeoForge.Sample3 {
         [HideInInspector] public bool freezeUpdate;
         [SerializeField] private Ui uiPrefab;
 
-        // Effects
-        [SerializeField] private LineRenderer lineRenderer;
-        [SerializeField] private float lineRendererStartOffset;
-
         /// <summary>
-        /// Start method initializes the controller, and creates and initializes it's UI. 
+        /// Start method initializes the controller and Projection Object, and creates and initializes it's UI. 
         /// </summary>
         private void Start() {
             _rb = GetComponent<Rigidbody>();
             playerCollider = GetComponent<Collider>();
-
-            _projectionObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-            Destroy(_projectionObj.transform.GetComponent<Collider>());
-            _projectionObj.GetComponent<Renderer>().material = projectionMaterial;
 
             if (_rb == null) {
                 Debug.LogError("No Rigidbody component found!");
@@ -68,18 +60,21 @@ namespace Spellbound.GeoForge.Sample3 {
             }
 
             _rb.freezeRotation = true;
+
+            _projectionObj = GameObject.CreatePrimitive(PrimitiveType.Sphere);
+            Destroy(_projectionObj.transform.GetComponent<Collider>());
+            _projectionObj.GetComponent<Renderer>().material = projectionMaterial;
+
             var ui = Instantiate(uiPrefab).GetComponent<Ui>();
             ui.SetController(this);
-
-            lineRenderer.enabled = false;
         }
 
         /// <summary>
         /// freezeUpdate is true when utilizing the UI.
-        /// Projection continues to be updated to reflect whats being tweaked in the UI.
+        /// Projection continues to be updated to reflect what's being tweaked in the UI.
         /// Movement and Terraforming are disabled while utilizing the UI.
         /// </summary>
-        private void FixedUpdate() {
+        private void Update() {
             HandleProjection();
 
             if (freezeUpdate)
@@ -97,34 +92,23 @@ namespace Spellbound.GeoForge.Sample3 {
             var keyboard = Keyboard.current;
 
             if (keyboard != null) {
-                if (keyboard.digit1Key.isPressed
+                if (keyboard.digit1Key.wasPressedThisFrame
                     && Physics.Raycast(
                         transform.position,
                         transform.forward,
                         out var hit,
                         terraformRange,
-                        ~0)) {
+                        ~0))
                     GeoForgeStatic.RemoveSphereAll(hit, terraformSize, terraformStrength, diggableMaterialList);
-                    lineRenderer.enabled = true;
-                    lineRenderer.SetPosition(0, transform.position - transform.up * lineRendererStartOffset);
-                    lineRenderer.SetPosition(1, hit.point);
-                }
 
-                else if (keyboard.digit2Key.isPressed
+                else if (keyboard.digit2Key.wasPressedThisFrame
                          && Physics.Raycast(
                              transform.position,
                              transform.forward,
                              out hit,
                              terraformRange,
-                             ~0)) {
+                             ~0))
                     GeoForgeStatic.AddSphere(hit, terraformSize, terraformStrength, addableMaterial);
-                    lineRenderer.enabled = true;
-                    lineRenderer.SetPosition(0, transform.position - transform.up * lineRendererStartOffset);
-                    lineRenderer.SetPosition(1, hit.point);
-                }
-
-                else
-                    lineRenderer.enabled = false;
             }
 #else
             if (Input.GetKeyDown(KeyCode.Alpha1)
@@ -134,13 +118,10 @@ namespace Spellbound.GeoForge.Sample3 {
                         out var hit,
                         terraformRange,
                         ~0)){
-               GeoForgeStatic.RemoveSphereAll(hit, terraformSize, terraformStrength, diggableMaterialList);
-                    lineRenderer.enabled = true;
-                    lineRenderer.SetPosition(0, transform.position - transform.up * lineRendererStartOffset);
-                    lineRenderer.SetPosition(1, hit.point);
+                GeoForgeStatic.RemoveSphereAll(hit, terraformSize, terraformStrength, diggableMaterialList);
             }
                     
-                else if (Input.GetKeyDown(KeyCode.Alpha2)
+                else if (Input.GetKeyDown(KeyCode.Alpha2
                          && Physics.Raycast(
                         transform.position,
                         transform.forward,
@@ -148,13 +129,8 @@ namespace Spellbound.GeoForge.Sample3 {
                         terraformRange,
                         ~0)){
                 GeoForgeStatic.AddSphere(hit, terraformSize, terraformStrength, addableMaterial);
-                    lineRenderer.enabled = true;
-                    lineRenderer.SetPosition(0, transform.position - transform.up * lineRendererStartOffset);
-                    lineRenderer.SetPosition(1, hit.point);
                 }
-                 else {
-                    lineRenderer.enabled = false;
-                }
+
 #endif
         }
 
@@ -168,7 +144,7 @@ namespace Spellbound.GeoForge.Sample3 {
                     out var hit,
                     terraformRange,
                     ~0)) {
-                var volume = hit.transform.GetComponentInParent<IVolume>();
+                var volume = hit.transform.GetComponentInParent<IGeoVolume>();
 
                 if (volume == null) {
                     _projectionObj.SetActive(false);

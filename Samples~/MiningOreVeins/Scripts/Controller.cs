@@ -6,9 +6,9 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 #endif
 
-namespace Spellbound.GeoForge.Sample1 {
+namespace Spellbound.GeoForge.Sample2 {
     /// <summary>
-    /// Controller for Sample One, Digging a Hole.
+    /// Controller for Sample Two, Mining Ore Veins.
     /// Not recommended as a real controller.
     /// Fields and settings are controlled from the UI, which is created on Start(), and why some fields are public.
     /// </summary>
@@ -25,8 +25,7 @@ namespace Spellbound.GeoForge.Sample1 {
         [SerializeField, Range(1, byte.MaxValue)]
         public int terraformStrength = byte.MaxValue;
 
-        [SerializeField] public List<byte> diggableMaterialList = new() { 0, 1, 2, 3 };
-        [SerializeField] public byte addableMaterial;
+        private readonly List<byte> _diggableMaterialList = new() { 0, 1, 2, 3 };
 
         // Config
         [SerializeField] private Color lowStrengthColor;
@@ -37,6 +36,10 @@ namespace Spellbound.GeoForge.Sample1 {
         [HideInInspector] public Collider playerCollider;
         [HideInInspector] public bool freezeUpdate;
         [SerializeField] private Ui uiPrefab;
+
+        // Effects
+        [SerializeField] private AudioClip miningAudioClip;
+        [SerializeField] private ParticleSystem miningParticle;
 
         /// <summary>
         /// Start method initializes the controller and Projection Object, and creates and initializes it's UI. 
@@ -71,7 +74,7 @@ namespace Spellbound.GeoForge.Sample1 {
 
         /// <summary>
         /// freezeUpdate is true when utilizing the UI.
-        /// Projection continues to be updated to reflect what's being tweaked in the UI.
+        /// Projection continues to be updated to reflect whats being tweaked in the UI.
         /// Movement and Terraforming are disabled while utilizing the UI.
         /// </summary>
         private void Update() {
@@ -98,17 +101,17 @@ namespace Spellbound.GeoForge.Sample1 {
                         transform.forward,
                         out var hit,
                         terraformRange,
-                        ~0))
-                    GeoForgeStatic.RemoveSphereAll(hit, terraformSize, terraformStrength, diggableMaterialList);
+                        ~0)) {
+                    GeoForgeStatic.RemoveSphereAll(hit, terraformSize, terraformStrength, _diggableMaterialList);
+                    AudioSource.PlayClipAtPoint(miningAudioClip, hit.point);
+                    var direction = Vector3.Slerp(-transform.forward, hit.normal, 0.5f);
+                    var geoVolume = hit.collider.gameObject.GetComponentInParent<IGeoVolume>();
 
-                else if (keyboard.digit2Key.wasPressedThisFrame
-                         && Physics.Raycast(
-                             transform.position,
-                             transform.forward,
-                             out hit,
-                             terraformRange,
-                             ~0))
-                    GeoForgeStatic.AddSphere(hit, terraformSize, terraformStrength, addableMaterial);
+                    if (geoVolume != null) {
+                        var ps = Instantiate(miningParticle, hit.point, Quaternion.LookRotation(direction, Vector3.up));
+                        Destroy(ps.gameObject, ps.main.duration);
+                    }
+                }
             }
 #else
             if (Input.GetKeyDown(KeyCode.Alpha1)
@@ -118,19 +121,16 @@ namespace Spellbound.GeoForge.Sample1 {
                         out var hit,
                         terraformRange,
                         ~0)){
-                GeoForgeStatic.RemoveSphereAll(hit, terraformSize, terraformStrength, diggableMaterialList);
-            }
-                    
-                else if (Input.GetKeyDown(KeyCode.Alpha2
-                         && Physics.Raycast(
-                        transform.position,
-                        transform.forward,
-                        out hit,
-                        terraformRange,
-                        ~0)){
-                GeoForgeStatic.AddSphere(hit, terraformSize, terraformStrength, addableMaterial);
-                }
+                GeoForgeStatic.RemoveSphereAll(hit, terraformSize, terraformStrength, _diggableMaterialList);
+                    AudioSource.PlayClipAtPoint(miningAudioClip, hit.point);
+                    var direction = Vector3.Slerp(-transform.forward, hit.normal, 0.5f);
+                    var geoVolume = hit.collider.gameObject.GetComponentInParent<IVolume>();
 
+                    if (geoVolume != null) {
+                        var ps = Instantiate(miningParticle, hit.point, Quaternion.LookRotation(direction, Vector3.up));
+                        Destroy(ps.gameObject, ps.main.duration);
+                    }
+            }
 #endif
         }
 
@@ -144,7 +144,7 @@ namespace Spellbound.GeoForge.Sample1 {
                     out var hit,
                     terraformRange,
                     ~0)) {
-                var volume = hit.transform.GetComponentInParent<IVolume>();
+                var volume = hit.transform.GetComponentInParent<IGeoVolume>();
 
                 if (volume == null) {
                     _projectionObj.SetActive(false);

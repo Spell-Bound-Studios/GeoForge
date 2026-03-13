@@ -51,7 +51,7 @@ namespace Spellbound.GeoForge {
 
                 return;
             }
-
+            
             viewDistanceLodRanges = GeoVolume.ValidateLodRanges(viewDistanceLodRanges, config);
         }
 #endif
