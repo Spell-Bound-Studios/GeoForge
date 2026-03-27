@@ -16,32 +16,31 @@ namespace Spellbound.GeoForge {
         private DensityRange _densityRange;
         private readonly GeoForgeManager _mcManager;
         private IGeoVolume _parentGeoVolume;
-        private readonly MonoBehaviour _owner;
-        private readonly IGeoChunk _ownerAsIGeoChunk;
+        private Transform _transform;
+        private readonly IGeoChunk _implementer;
         private VoxelOverrides _voxelOverrides;
 
         public Vector3Int ChunkCoord => _chunkCoord;
         public DensityRange DensityRange => _densityRange;
         public BoundsInt Bounds => _bounds;
+        
+        public Transform Transform => _transform;
         public OctreeNode RootNode => _rootNode;
-        public Transform Transform => _owner.transform;
 
         public IGeoVolume ParentGeoVolume => _parentGeoVolume;
 
-        public GeoChunk(MonoBehaviour owner, IGeoChunk ownerAsIGeoChunk) {
-            _owner = owner;
-            _ownerAsIGeoChunk = ownerAsIGeoChunk;
+        public GeoChunk(IGeoChunk implementer, Transform transform, Vector3Int chunkCoord) {
+            _implementer = implementer;
+            _transform = transform;
+            _chunkCoord = chunkCoord;
+            _parentGeoVolume = _transform.GetComponentInParent<IGeoVolume>();
+            ref var config = ref ParentGeoVolume.ConfigBlob.Value;
+            _chunkCoord = chunkCoord;
+            var voxelMin = chunkCoord * config.ChunkSize;
+            _bounds = new BoundsInt(voxelMin, config.ChunkSize * Vector3Int.one);
+            _transform.gameObject.name = chunkCoord.ToString();
             _mcManager = SingletonManager.GetSingletonInstance<GeoForgeManager>();
             _voxelOverrides = new VoxelOverrides();
-        }
-
-        public void SetCoordAndFields(Vector3Int coord) {
-            _parentGeoVolume = _owner.GetComponentInParent<IGeoVolume>();
-            ref var config = ref ParentGeoVolume.ConfigBlob.Value;
-            _chunkCoord = coord;
-            var voxelMin = coord * config.ChunkSize;
-            _bounds = new BoundsInt(voxelMin, config.ChunkSize * Vector3Int.one);
-            _owner.gameObject.name = coord.ToString();
         }
 
         public void SetOverrides(VoxelOverrides overrides) => _voxelOverrides = overrides;
@@ -148,7 +147,7 @@ namespace Spellbound.GeoForge {
         }
         
         public void InitializeChunk(NativeArray<VoxelData> voxels = default) {
-            ParentGeoVolume.GeoVolume.RegisterChunk(ChunkCoord, _ownerAsIGeoChunk);
+            ParentGeoVolume.GeoVolume.RegisterChunk(ChunkCoord, _implementer);
             if (voxels == default)
                 voxels = new NativeArray<VoxelData>(
                     ParentGeoVolume.ConfigBlob.Value.ChunkDataVolumeSize, 
@@ -187,7 +186,7 @@ namespace Spellbound.GeoForge {
             _densityRange = new DensityRange(byte.MinValue, byte.MaxValue,
                 _parentGeoVolume.ConfigBlob.Value.DensityThreshold);
 
-            _rootNode = new OctreeNode(Vector3Int.zero, _parentGeoVolume.ConfigBlob.Value.LevelsOfDetail, _ownerAsIGeoChunk,
+            _rootNode = new OctreeNode(Vector3Int.zero, _parentGeoVolume.ConfigBlob.Value.LevelsOfDetail, _implementer,
                 _parentGeoVolume);
         }
 

@@ -121,7 +121,7 @@ namespace Spellbound.GeoForge {
                 return null;
             }
 
-            chunk.SetCoordAndFields(chunkCoord);
+            chunk.InitializeGeoChunk(chunkCoord);
 
             return chunk;
         }

@@ -21,8 +21,6 @@ namespace Spellbound.GeoForge {
         #region Default Implementations
 
         Vector3Int ChunkCoord => GeoChunk.ChunkCoord;
-
-        Transform Transform => GeoChunk.Transform;
         
         /// <summary>
         /// Contains the smallest and largest Density. Used as a shortcut to read whether a geoChunk has any mesh at all.
@@ -39,7 +37,9 @@ namespace Spellbound.GeoForge {
         /// Method to kick-off the Chunk being an actively managed Marching Cubes Chunk.
         /// </summary>
         /// <param name="voxels"></param> Can be called with voxels, or can generate voxels in the implementation.
-        void InitializeChunk(NativeArray<VoxelData> voxels = default) => GeoChunk.InitializeChunk(voxels);
+        void ActivateChunk(NativeArray<VoxelData> voxels = default) => GeoChunk.InitializeChunk(voxels);
+        
+        void InitializeGeoChunk(Vector3Int coord);
 
         VoxelData GetVoxelData(int index) => GeoChunk.GetVoxelData(index);
 
@@ -52,9 +52,7 @@ namespace Spellbound.GeoForge {
                 GeoChunk.BroadcastNewLeafAcrossChunks(newLeaf, pos, index);
 
         void ValidateOctreeLods(Vector3 playerPosition) => GeoChunk.ValidateOctreeLods(playerPosition);
-
-        void SetCoordAndFields(Vector3Int coord) => GeoChunk.SetCoordAndFields(coord);
-
+        
         void OnVolumeMovement() => GeoChunk.OnVolumeMovement();
 
         void SetOverrides(VoxelOverrides overrides) => GeoChunk.SetOverrides(overrides);
