@@ -12,9 +12,7 @@ namespace Spellbound.GeoForge {
 
         protected GeoChunk _geoChunk;
         public GeoChunk GeoChunk => _geoChunk;
-
-        private void Awake() => _geoChunk = new GeoChunk(this, this);
-
+        
         public void SetDataFactory(DataFactory factory) => dataFactory = factory;
 
         public void SetBoundaryOverrides(BoundaryOverrides overrides) => boundaryOverrides = overrides;

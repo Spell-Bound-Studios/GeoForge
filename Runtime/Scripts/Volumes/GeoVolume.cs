@@ -115,7 +115,7 @@ namespace Spellbound.GeoForge {
             );
 
             if (!chunkObj.TryGetComponent(out T chunk)) {
-                Debug.LogError($"Chunk prefab missing component of type {typeof(T).Name}");
+                Debug.LogError($"Chunk bakePrefab missing component of type {typeof(T).Name}");
                 Object.Destroy(chunkObj); // Clean up failed instantiation
 
                 return null;

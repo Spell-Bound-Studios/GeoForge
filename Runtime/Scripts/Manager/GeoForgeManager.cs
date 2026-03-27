@@ -66,7 +66,7 @@ namespace Spellbound.GeoForge {
 
         private void InitializeVoxelMaterial() {
             if (octreePrefab == null) {
-                Debug.LogError("Octree prefab not assigned!");
+                Debug.LogError("Octree bakePrefab not assigned!");
 
                 return;
             }
@@ -74,12 +74,12 @@ namespace Spellbound.GeoForge {
             var renderer = octreePrefab.GetComponent<MeshRenderer>();
 
             if (renderer == null || renderer.sharedMaterial == null) {
-                Debug.LogError("Octree prefab has no MeshRenderer or Material!");
+                Debug.LogError("Octree bakePrefab has no MeshRenderer or Material!");
 
                 return;
             }
 
-            // Create runtime instance from prefab's material
+            // Create runtime instance from bakePrefab's material
             _runtimeVoxelMaterial = new Material(renderer.sharedMaterial);
 
             // Apply texture arrays from database
