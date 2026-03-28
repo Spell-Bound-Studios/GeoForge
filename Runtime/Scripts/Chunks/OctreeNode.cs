@@ -269,7 +269,7 @@ namespace Spellbound.GeoForge {
         }
 
         private void BuildLeaf() {
-            _leafGo = _gfManager.GetPooledObject(_geoChunk.Transform);
+            _leafGo = _gfManager.GetPooledObject(_geoChunk.GeoChunk.Transform);
             _leafGo.transform.localPosition = Vector3.zero;
             _leafGo.transform.localRotation = Quaternion.identity;
 
