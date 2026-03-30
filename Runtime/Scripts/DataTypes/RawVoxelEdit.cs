@@ -11,7 +11,7 @@ namespace Spellbound.GeoForge {
         public short DensityDelta { get; }
         public byte NewMatIndex { get; }
 
-        public RawVoxelEdit(Vector3Int voxelSpacePosition, byte densityDelta, byte newMatIndex) {
+        public RawVoxelEdit(Vector3Int voxelSpacePosition, short densityDelta, byte newMatIndex) {
             this.VoxelSpacePosition = voxelSpacePosition;
             this.DensityDelta = densityDelta;
             NewMatIndex = newMatIndex;

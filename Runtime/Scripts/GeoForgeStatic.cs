@@ -51,7 +51,7 @@ namespace Spellbound.GeoForge {
                 return;
 
             var matHashSet = materials == null ? gfManager.GetAllMaterials() : materials.ToHashSet();
-            var results = TerraformCommands.TerraformSphere(iVolume, hit.point, radius, -delta, matHashSet);
+            var results = TerraformCommands.TerraformSphere(iVolume, hit.point, radius, (short)-delta, matHashSet);
             gfManager.DistributeVoxelEdits(iVolume, results.edits);
         }
 
@@ -59,7 +59,7 @@ namespace Spellbound.GeoForge {
         /// Public method to Remove or "Dig-into" a spherical region for ALL GeoForge volumes in the region.
         /// </summary>
         public static void RemoveSphereAll(
-            RaycastHit hit, float radius, int delta, List<byte> materials = null) {
+            RaycastHit hit, float radius, short delta, List<byte> materials = null) {
             if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager)) {
                 Debug.LogError("GeoForgeManager not found. Ensure it's in the current scene.");
 
@@ -72,10 +72,9 @@ namespace Spellbound.GeoForge {
                 return;
 
             var matHashSet = materials == null ? gfManager.GetAllMaterials() : materials.ToHashSet();
-            var results = TerraformCommands.TerraformSphere(iVolume, hit.point, radius, -delta, matHashSet);
 
             gfManager.ExecuteTerraformAll(volume =>
-                    TerraformCommands.TerraformSphere(volume, hit.point, radius, -delta, matHashSet)
+                    TerraformCommands.TerraformSphere(volume, hit.point, radius, (short)-delta, matHashSet)
             );
         }
         
@@ -83,7 +82,7 @@ namespace Spellbound.GeoForge {
         /// Public method to Add or "Deposit-onto" a spherical region for one specific GeoForge geoVolume. 
         /// </summary>
         public static void AddSphere(
-            RaycastHit hit, float radius, int delta, byte material) {
+            RaycastHit hit, float radius, short delta, byte material) {
             if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager)) {
                 Debug.LogError("GeoForgeManager not found. Ensure it's in the current scene.");
 
