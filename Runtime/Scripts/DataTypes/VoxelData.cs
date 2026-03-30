@@ -1,22 +1,33 @@
 // Copyright 2025 Spellbound Studio Inc.
 
 using System;
+using Spellbound.Core.Packing;
 using Unity.Burst;
 
 namespace Spellbound.GeoForge {
     /// <summary>
     /// Represents a single cubic dimension in the game world. It is a discrete cube that characterizes
-    /// a geoVolume in the game world with a material and density.
+    /// a geoVolume in the game world with a material and DensityDelta.
     /// This doesn't get sent on the network or saved.
     /// </summary>
     [Serializable]
-    public struct VoxelData : IEquatable<VoxelData> {
+    public struct VoxelData : IEquatable<VoxelData>, IPacker{
         public byte Density;
         public byte MaterialIndex;
 
         public VoxelData(byte density, byte matIndex) {
             Density = density;
             MaterialIndex = matIndex;
+        }
+        
+        public void Pack(ref Span<byte> buffer) {
+            Packer.WriteByte(ref buffer, Density);
+            Packer.WriteByte(ref buffer, MaterialIndex);
+        }
+
+        public void Unpack(ref ReadOnlySpan<byte> buffer) {
+            Density = Packer.ReadByte(ref buffer);
+            MaterialIndex = Packer.ReadByte(ref buffer);
         }
 
         // Implement IEquatable<VoxelData>. This enables checking if structA == structB, etc.

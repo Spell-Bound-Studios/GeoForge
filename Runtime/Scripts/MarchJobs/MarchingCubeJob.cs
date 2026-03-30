@@ -176,7 +176,7 @@ namespace Spellbound.GeoForge {
                                 // Cache these for the subdivision loop
                                 var isVert0DensityAboveThreshold = voxel0.Density >= densityThreshold;
 
-                                // This consecutively subdivides the coarser LOD to find the exact place the density crosses the threshold.
+                                // This consecutively subdivides the coarser LOD to find the exact place the DensityDelta crosses the threshold.
                                 for (var j = 0; j < Lod; ++j) {
                                     var mid = (p0 + p1) * 0.5f;
                                     var samplePos = (int3)math.round(mid);
@@ -391,7 +391,7 @@ namespace Spellbound.GeoForge {
             float baseWeight,
             ref NativeList<byte> uniqueMaterials,
             ref NativeList<float> materialWeights) {
-            // Skip voxels with zero density (air)
+            // Skip voxels with zero DensityDelta (air)
             if (voxel.Density == 0) return;
 
             var matIndex = voxel.MaterialIndex;

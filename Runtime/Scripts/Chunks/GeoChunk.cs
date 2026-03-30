@@ -216,11 +216,11 @@ namespace Spellbound.GeoForge {
 
                 var existingVoxel = voxelArray[index];
 
-                if (voxelEdit.density == existingVoxel.Density &&
-                    voxelEdit.MaterialType == existingVoxel.MaterialIndex)
+                if (voxelEdit.densityDelta == existingVoxel.Density &&
+                    voxelEdit.materialType == existingVoxel.MaterialIndex)
                     continue;
 
-                voxelArray[index] = new VoxelData(voxelEdit.density, voxelEdit.MaterialType);
+                voxelArray[index] = new VoxelData(voxelEdit.densityDelta, voxelEdit.materialType);
 
                 if (!hasEdits) {
                     editBounds = new BoundsInt(voxelPos, Vector3Int.one);
@@ -232,7 +232,7 @@ namespace Spellbound.GeoForge {
                     editBounds = new BoundsInt(min, max - min);
                 }
 
-                DensityRange.Encapsulate(voxelEdit.density);
+                DensityRange.Encapsulate(voxelEdit.densityDelta);
             }
 
             if (hasEdits)
