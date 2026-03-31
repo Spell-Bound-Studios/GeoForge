@@ -26,12 +26,12 @@ namespace Spellbound.GeoForge {
         /// Contains the smallest and largest Density. Used as a shortcut to read whether a geoChunk has any mesh at all.
         /// </summary>
         DensityRange DensityRange => GeoChunk.DensityRange;
-        
+
         /// <summary>
         /// Method for Chunk to receive voxel edits.
         /// </summary>
         /// <param name="newVoxelEdits"></param>
-        void PassVoxelEdits(List<VoxelEdit> newVoxelEdits) => GeoChunk.PassVoxelEdits(newVoxelEdits);
+        void PassVoxelEdits(List<VoxelEdit> newVoxelEdits) => GeoChunk.IGeoEditStore.Delta(newVoxelEdits);
         
         /// <summary>
         /// Method to kick-off the Chunk being an actively managed Marching Cubes Chunk.

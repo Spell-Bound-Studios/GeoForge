@@ -13,7 +13,7 @@ namespace Spellbound.GeoForge {
             IGeoVolume iGeoVoxelVolume,
             Vector3 worldPosition,
             float size,
-            int delta,
+            short delta,
             HashSet<byte> materials) {
             var voxelCenter = iGeoVoxelVolume.WorldToVoxelSpace(worldPosition);
             var halfSizeVoxels = size * 0.5f / iGeoVoxelVolume.ConfigBlob.Value.Resolution;
@@ -27,32 +27,12 @@ namespace Spellbound.GeoForge {
             for (var z = -r; z <= r; z++) {
                 var dist = Mathf.Sqrt(x * x + y * y + z * z);
                 var voxelPos = voxelCenter + new Vector3Int(x, y, z);
-                var chunk = iGeoVoxelVolume.GetChunkByVoxelPosition(voxelPos);
-
-                if (chunk == null)
-                    continue;
-
-                var voxelData = chunk.GetVoxelDataFromVoxelPosition(voxelPos);
-
-                if (delta < 0 && !materials.Contains(voxelData.MaterialIndex))
-                    continue;
 
                 var normalizedDist = dist - (halfSizeVoxels - 1f); 
                 var falloff = 1f - Mathf.Clamp01(normalizedDist);
                 var scaledDelta = Mathf.RoundToInt(delta * falloff);
-                var newDensity = (byte)Mathf.Clamp(voxelData.Density + scaledDelta, byte.MinValue, byte.MaxValue);
-
-                byte newMaterial;
-                if (delta > 0) {
-                    var belowHalfFull = voxelData.Density < byte.MaxValue / 2;
-                    var significantAdd = scaledDelta > byte.MaxValue / 3;
-                    newMaterial = (belowHalfFull && significantAdd)
-                            ? materials.FirstOrDefault()
-                            : voxelData.MaterialIndex;
-                } else {
-                    newMaterial = voxelData.MaterialIndex;
-                }
-                rawVoxelEdits.Add(new RawVoxelEdit(voxelPos, newDensity, newMaterial));
+                
+                rawVoxelEdits.Add(new RawVoxelEdit(voxelPos, (short)scaledDelta, materials.FirstOrDefault()));
             }
 
             var voxelBounds = new Bounds(voxelCenter, Vector3.one * halfSizeVoxels * 2f);

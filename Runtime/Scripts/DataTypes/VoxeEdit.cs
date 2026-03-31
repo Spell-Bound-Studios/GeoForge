@@ -10,25 +10,25 @@ namespace Spellbound.GeoForge {
     [Serializable]
     public struct VoxelEdit : IPacker {
         public int index;
-        public byte density;
-        public byte MaterialType;
+        public short densityDelta;
+        public byte materialType;
 
-        public VoxelEdit(int index, byte density, byte matIndex) {
+        public VoxelEdit(int index, short densityDelta, byte matIndex) {
             this.index = index;
-            this.density = density;
-            MaterialType = matIndex;
+            this.densityDelta = densityDelta;
+            materialType = matIndex;
         }
 
         public void Pack(ref Span<byte> buffer) {
             Packer.WriteInt(ref buffer, index);
-            Packer.WriteByte(ref buffer, density);
-            Packer.WriteByte(ref buffer, (byte)MaterialType);
+            Packer.WriteShort(ref buffer, densityDelta);
+            Packer.WriteByte(ref buffer, materialType);
         }
 
         public void Unpack(ref ReadOnlySpan<byte> buffer) {
             index = Packer.ReadInt(ref buffer);
-            density = Packer.ReadByte(ref buffer);
-            MaterialType = Packer.ReadByte(ref buffer);
+            densityDelta = Packer.ReadShort(ref buffer);
+            materialType = Packer.ReadByte(ref buffer);
         }
     }
 }

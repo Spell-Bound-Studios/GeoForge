@@ -413,7 +413,7 @@ namespace Spellbound.GeoForge {
             float baseWeight,
             ref NativeList<byte> uniqueMaterials,
             ref NativeList<float> materialWeights) {
-            // Skip voxels with zero density (air)
+            // Skip voxels with zero DensityDelta (air)
             if (voxel.Density == 0) return;
 
             var matIndex = voxel.MaterialIndex;

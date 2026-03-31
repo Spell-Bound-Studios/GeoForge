@@ -181,8 +181,8 @@ namespace Spellbound.GeoForge {
             ref var config = ref geoVolume.ConfigBlob.Value;
 
             foreach (var rawEdit in rawVoxelEdits) {
-                var centralCoord = geoVolume.GetCoordByVoxelPosition(rawEdit.voxelSpacePosition);
-                var centralLocalPos = rawEdit.voxelSpacePosition - centralCoord * config.ChunkSize;
+                var centralCoord = geoVolume.GetCoordByVoxelPosition(rawEdit.VoxelSpacePosition);
+                var centralLocalPos = rawEdit.VoxelSpacePosition - centralCoord * config.ChunkSize;
 
                 var index = GfStaticHelper.Coord3DToIndex(centralLocalPos.x, centralLocalPos.y, centralLocalPos.z,
                     config.ChunkDataAreaSize, config.ChunkDataWidthSize);
@@ -201,13 +201,13 @@ namespace Spellbound.GeoForge {
                     editsByChunkCoord[centralCoord] = localEdits;
                 }
 
-                var localEdit = new VoxelEdit(index, rawEdit.NewDensity, rawEdit.NewMatIndex);
+                var localEdit = new VoxelEdit(index, rawEdit.DensityDelta, rawEdit.NewMatIndex);
                 localEdits.Add(localEdit);
 
                 if (denseVoxelData.SharedIndicesAcrossChunks.TryGetValue(index, out var neighborCoords)) {
                     foreach (var neighborCoord in neighborCoords) {
                         var trueNeighborCoord = neighborCoord + centralCoord;
-                        var neighborLocalPos = rawEdit.voxelSpacePosition - trueNeighborCoord * config.ChunkSize;
+                        var neighborLocalPos = rawEdit.VoxelSpacePosition - trueNeighborCoord * config.ChunkSize;
 
                         var neighborIndex = GfStaticHelper.Coord3DToIndex(neighborLocalPos.x, neighborLocalPos.y,
                             neighborLocalPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
@@ -217,7 +217,7 @@ namespace Spellbound.GeoForge {
                             editsByChunkCoord[trueNeighborCoord] = localNeighborEdits;
                         }
 
-                        var localNeighborEdit = new VoxelEdit(neighborIndex, rawEdit.NewDensity, rawEdit.NewMatIndex);
+                        var localNeighborEdit = new VoxelEdit(neighborIndex, rawEdit.DensityDelta, rawEdit.NewMatIndex);
                         localNeighborEdits.Add(localNeighborEdit);
                     }
                 }

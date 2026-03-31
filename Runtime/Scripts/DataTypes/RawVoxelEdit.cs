@@ -7,13 +7,13 @@ namespace Spellbound.GeoForge {
     /// VoxelEdit relative to IGeoVolume position and scale.
     /// </summary>
     public readonly struct RawVoxelEdit {
-        public Vector3Int voxelSpacePosition { get; }
-        public byte NewDensity { get; }
+        public Vector3Int VoxelSpacePosition { get; }
+        public short DensityDelta { get; }
         public byte NewMatIndex { get; }
 
-        public RawVoxelEdit(Vector3Int voxelSpacePosition, byte newDensity, byte newMatIndex) {
-            this.voxelSpacePosition = voxelSpacePosition;
-            NewDensity = newDensity;
+        public RawVoxelEdit(Vector3Int voxelSpacePosition, short densityDelta, byte newMatIndex) {
+            this.VoxelSpacePosition = voxelSpacePosition;
+            this.DensityDelta = densityDelta;
             NewMatIndex = newMatIndex;
         }
     }

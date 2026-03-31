@@ -10,6 +10,8 @@ using UnityEngine;
 namespace Spellbound.GeoForge {
     public class GeoChunk : IDisposable {
         private Vector3Int _chunkCoord;
+        public IGeoEditStore IGeoEditStore { get; private set; }
+
         private BoundsInt _bounds;
         private NativeList<SparseVoxelData> _sparseVoxels;
         private OctreeNode _rootNode;
@@ -29,9 +31,11 @@ namespace Spellbound.GeoForge {
 
         public IGeoVolume ParentGeoVolume => _parentGeoVolume;
 
-        public GeoChunk(IGeoChunk implementer, Transform transform, Vector3Int chunkCoord) {
+        public GeoChunk(IGeoChunk implementer, Transform transform, IGeoEditStore iGeoEditStore, Vector3Int chunkCoord) {
             _implementer = implementer;
             _transform = transform;
+            IGeoEditStore = iGeoEditStore;
+            IGeoEditStore.OnGeoEditChanged += PassVoxelEdits;
             _chunkCoord = chunkCoord;
             _parentGeoVolume = _transform.GetComponentInParent<IGeoVolume>();
             ref var config = ref ParentGeoVolume.ConfigBlob.Value;
@@ -42,6 +46,7 @@ namespace Spellbound.GeoForge {
             _mcManager = SingletonManager.GetSingletonInstance<GeoForgeManager>();
             _voxelOverrides = new VoxelOverrides();
         }
+        
 
         public void SetOverrides(VoxelOverrides overrides) => _voxelOverrides = overrides;
 
@@ -141,8 +146,8 @@ namespace Spellbound.GeoForge {
             return hasOverriddenVoxels;
         }
         
-        public virtual void PassVoxelEdits(List<VoxelEdit> newVoxelEdits) {
-            if (ApplyVoxelEdits(newVoxelEdits, out var editBounds))
+        public virtual void PassVoxelEdits(List<(int, VoxelData)> newVoxelChanges) {
+            if (ApplyVoxelEdits(newVoxelChanges, out var editBounds))
                 ValidateOctreeEdits(editBounds);
         }
         
@@ -191,7 +196,7 @@ namespace Spellbound.GeoForge {
         }
 
         public bool ApplyVoxelEdits(
-            List<VoxelEdit> voxelEdits, out BoundsInt editBounds, BoundsInt existingEditBounds = default) {
+            List<(int, VoxelData)> voxelChanges, out BoundsInt editBounds, BoundsInt existingEditBounds = default) {
             if (!_sparseVoxels.IsCreated) {
                 editBounds = existingEditBounds;
 
@@ -204,8 +209,8 @@ namespace Spellbound.GeoForge {
             var hasEdits = false;
             editBounds = existingEditBounds;
 
-            foreach (var voxelEdit in voxelEdits) {
-                var index = voxelEdit.index;
+            foreach (var voxelChange in voxelChanges) {
+                var index = voxelChange.Item1;
 
                 GfStaticHelper.IndexToInt3(index, config.ChunkDataAreaSize, config.ChunkDataWidthSize, out var x,
                     out var y, out var z);
@@ -216,11 +221,11 @@ namespace Spellbound.GeoForge {
 
                 var existingVoxel = voxelArray[index];
 
-                if (voxelEdit.density == existingVoxel.Density &&
-                    voxelEdit.MaterialType == existingVoxel.MaterialIndex)
+                if (voxelChange.Item2.Density == existingVoxel.Density &&
+                    voxelChange.Item2.MaterialIndex == existingVoxel.MaterialIndex)
                     continue;
 
-                voxelArray[index] = new VoxelData(voxelEdit.density, voxelEdit.MaterialType);
+                voxelArray[index] = new VoxelData(voxelChange.Item2.Density, voxelChange.Item2.MaterialIndex);
 
                 if (!hasEdits) {
                     editBounds = new BoundsInt(voxelPos, Vector3Int.one);
@@ -232,7 +237,7 @@ namespace Spellbound.GeoForge {
                     editBounds = new BoundsInt(min, max - min);
                 }
 
-                DensityRange.Encapsulate(voxelEdit.density);
+                DensityRange.Encapsulate(voxelChange.Item2.Density);
             }
 
             if (hasEdits)
@@ -323,6 +328,7 @@ namespace Spellbound.GeoForge {
         }
 
         public void Dispose() {
+            IGeoEditStore.OnGeoEditChanged -= PassVoxelEdits;
             _rootNode?.Dispose();
 
             if (_sparseVoxels.IsCreated)
