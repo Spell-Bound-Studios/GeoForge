@@ -8,12 +8,12 @@ namespace Spellbound.GeoForge {
     /// Represents a saved modification to a voxel at an index
     /// </summary>
     [Serializable]
-    public struct VoxelEdit : IPacker {
+    public struct VoxelDelta : IPacker {
         public int index;
         public short densityDelta;
         public byte materialType;
 
-        public VoxelEdit(int index, short densityDelta, byte matIndex) {
+        public VoxelDelta(int index, short densityDelta, byte matIndex) {
             this.index = index;
             this.densityDelta = densityDelta;
             materialType = matIndex;

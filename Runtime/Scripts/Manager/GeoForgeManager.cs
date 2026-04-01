@@ -176,7 +176,7 @@ namespace Spellbound.GeoForge {
         /// </summary>
         public void DistributeVoxelEdits(
             IGeoVolume geoVolume, List<RawVoxelEdit> rawVoxelEdits) {
-            var editsByChunkCoord = new Dictionary<Vector3Int, List<VoxelEdit>>();
+            var editsByChunkCoord = new Dictionary<Vector3Int, List<VoxelDelta>>();
 
             ref var config = ref geoVolume.ConfigBlob.Value;
 
@@ -197,11 +197,11 @@ namespace Spellbound.GeoForge {
                     return;
 
                 if (!editsByChunkCoord.TryGetValue(centralCoord, out var localEdits)) {
-                    localEdits = new List<VoxelEdit>();
+                    localEdits = new List<VoxelDelta>();
                     editsByChunkCoord[centralCoord] = localEdits;
                 }
 
-                var localEdit = new VoxelEdit(index, rawEdit.DensityDelta, rawEdit.NewMatIndex);
+                var localEdit = new VoxelDelta(index, rawEdit.DensityDelta, rawEdit.NewMatIndex);
                 localEdits.Add(localEdit);
 
                 if (denseVoxelData.SharedIndicesAcrossChunks.TryGetValue(index, out var neighborCoords)) {
@@ -213,11 +213,11 @@ namespace Spellbound.GeoForge {
                             neighborLocalPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
 
                         if (!editsByChunkCoord.TryGetValue(trueNeighborCoord, out var localNeighborEdits)) {
-                            localNeighborEdits = new List<VoxelEdit>();
+                            localNeighborEdits = new List<VoxelDelta>();
                             editsByChunkCoord[trueNeighborCoord] = localNeighborEdits;
                         }
 
-                        var localNeighborEdit = new VoxelEdit(neighborIndex, rawEdit.DensityDelta, rawEdit.NewMatIndex);
+                        var localNeighborEdit = new VoxelDelta(neighborIndex, rawEdit.DensityDelta, rawEdit.NewMatIndex);
                         localNeighborEdits.Add(localNeighborEdit);
                     }
                 }

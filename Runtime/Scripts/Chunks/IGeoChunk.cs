@@ -31,7 +31,7 @@ namespace Spellbound.GeoForge {
         /// Method for Chunk to receive voxel edits.
         /// </summary>
         /// <param name="newVoxelEdits"></param>
-        void PassVoxelEdits(List<VoxelEdit> newVoxelEdits) => GeoChunk.IGeoEditStore.Delta(newVoxelEdits);
+        void PassVoxelEdits(List<VoxelDelta> newVoxelEdits) => GeoChunk.IGeoEditStore.Delta(newVoxelEdits);
         
         /// <summary>
         /// Method to kick-off the Chunk being an actively managed Marching Cubes Chunk.
