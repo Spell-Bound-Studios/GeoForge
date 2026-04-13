@@ -158,19 +158,14 @@ namespace Spellbound.GeoForge {
                     ParentGeoVolume.ConfigBlob.Value.ChunkDataVolumeSize, 
                     Allocator.Persistent);
 
-            InitializeVoxels(voxels);
+            SetVoxels(voxels);
 
             if (voxels.IsCreated)
                 voxels.Dispose();
         }
 
-        public void InitializeVoxels(NativeArray<VoxelData> voxels) {
-            if (_sparseVoxels.IsCreated) {
-                Debug.LogError($"_sparseVoxels is already created for this chunkCoord {_chunkCoord}.");
-
-                return;
-            }
-
+        public void SetVoxels(NativeArray<VoxelData> voxels) {
+            Debug.Log($"{_chunkCoord} SetVoxels");
             if (!voxels.IsCreated) {
                 Debug.LogError(
                     $"_sparseVoxels being initialized with native array that has not been created for chunkCoord {_chunkCoord}.");
@@ -178,10 +173,16 @@ namespace Spellbound.GeoForge {
                 return;
             }
 
+            if (_sparseVoxels.IsCreated) {
+                //Debug.LogError($"_sparseVoxels is already created for this chunkCoord {_chunkCoord}.");
+                _sparseVoxels.Clear();
+            }
+            else {
+                _sparseVoxels = new NativeList<SparseVoxelData>(Allocator.Persistent);
+            }
+            
             if (HasOverrides())
                 ApplyOverrides(voxels);
-
-            _sparseVoxels = new NativeList<SparseVoxelData>(Allocator.Persistent);
 
             new DenseToSparseVoxelDataJob {
                 Voxels = voxels,
@@ -329,6 +330,7 @@ namespace Spellbound.GeoForge {
 
         public void Dispose() {
             IGeoEditStore.OnGeoEditChanged -= PassVoxelEdits;
+            _parentGeoVolume.GeoVolume.ChunkDict.Remove(_chunkCoord);
             _rootNode?.Dispose();
 
             if (_sparseVoxels.IsCreated)
