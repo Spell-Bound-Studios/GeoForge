@@ -165,7 +165,6 @@ namespace Spellbound.GeoForge {
         }
 
         public void SetVoxels(NativeArray<VoxelData> voxels) {
-            Debug.Log($"{_chunkCoord} SetVoxels");
             if (!voxels.IsCreated) {
                 Debug.LogError(
                     $"_sparseVoxels being initialized with native array that has not been created for chunkCoord {_chunkCoord}.");

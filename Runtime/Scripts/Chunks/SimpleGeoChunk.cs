@@ -38,7 +38,7 @@ namespace Spellbound.GeoForge {
             }
 
             dataFactory.FillDataArray(_geoChunk.ChunkCoord, _geoChunk.ParentGeoVolume.ConfigBlob, voxels);
-            _geoChunk.InitializeVoxels(voxels);
+            _geoChunk.SetVoxels(voxels);
 
             if (voxels.IsCreated)
                 voxels.Dispose();
