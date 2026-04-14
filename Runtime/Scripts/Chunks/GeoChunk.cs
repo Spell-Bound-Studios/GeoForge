@@ -172,13 +172,8 @@ namespace Spellbound.GeoForge {
                 return;
             }
 
-            if (_sparseVoxels.IsCreated) {
-                //Debug.LogError($"_sparseVoxels is already created for this chunkCoord {_chunkCoord}.");
-                _sparseVoxels.Clear();
-            }
-            else {
-                _sparseVoxels = new NativeList<SparseVoxelData>(Allocator.Persistent);
-            }
+            if (_sparseVoxels.IsCreated) _sparseVoxels.Dispose();
+            _sparseVoxels = new NativeList<SparseVoxelData>(Allocator.Persistent);
             
             if (HasOverrides())
                 ApplyOverrides(voxels);
