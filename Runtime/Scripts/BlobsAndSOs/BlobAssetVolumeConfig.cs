@@ -15,6 +15,7 @@ namespace Spellbound.GeoForge {
         public int ChunkDataAreaSize;
         public int ChunkDataVolumeSize;
         public float Resolution;
+        public float UnitsPerChunk;
         public Vector3Int SizeInChunks;
         public Vector3Int Offset;
         public float3 OffsetBurst;
@@ -34,7 +35,7 @@ namespace Spellbound.GeoForge {
             config.ChunkDataVolumeSize = config.ChunkDataAreaSize * config.ChunkDataWidthSize;
             config.Resolution = voxelVolumeConfig.resolution;
             config.SizeInChunks = voxelVolumeConfig.sizeInChunks;
-            var chunkWorldSize = config.ChunkSize * config.Resolution;
+            config.UnitsPerChunk = config.ChunkSize * config.Resolution;
 
             config.Offset = new Vector3Int(
                 config.SizeInChunks.x % 2 == 0 ? -1 : -(1 + config.ChunkSize / 2),
