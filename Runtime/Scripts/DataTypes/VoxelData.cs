@@ -11,7 +11,7 @@ namespace Spellbound.GeoForge {
     /// This doesn't get sent on the network or saved.
     /// </summary>
     [Serializable]
-    public struct VoxelData : IEquatable<VoxelData>, IPacker{
+    public struct VoxelData : IEquatable<VoxelData>, IPacker {
         public byte Density;
         public byte MaterialIndex;
 
@@ -19,7 +19,7 @@ namespace Spellbound.GeoForge {
             Density = density;
             MaterialIndex = matIndex;
         }
-        
+
         public void Pack(ref Span<byte> buffer) {
             Packer.WriteByte(ref buffer, Density);
             Packer.WriteByte(ref buffer, MaterialIndex);

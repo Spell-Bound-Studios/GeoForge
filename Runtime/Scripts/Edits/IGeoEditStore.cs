@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
@@ -11,9 +10,9 @@ namespace Spellbound.GeoForge {
     public interface IGeoEditStore {
         event Action<List<(int, VoxelData)>> OnGeoEditChanged;
         Func<int, VoxelData> DefaultVoxelDataFunc { get; set; }
-        
+
         bool TryRead(int index, out VoxelData voxelData);
-        
+
         void Write(List<(int, VoxelData)> voxelDatas);
 
         void Delta(List<VoxelDelta> voxelEdits);
@@ -21,6 +20,5 @@ namespace Spellbound.GeoForge {
         IEnumerable<(int, VoxelData)> ReadAllEdits();
 
         void ClearAllEdits();
-
     }
 }

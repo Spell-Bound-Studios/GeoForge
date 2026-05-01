@@ -28,10 +28,10 @@ namespace Spellbound.GeoForge {
                 var dist = Mathf.Sqrt(x * x + y * y + z * z);
                 var voxelPos = voxelCenter + new Vector3Int(x, y, z);
 
-                var normalizedDist = dist - (halfSizeVoxels - 1f); 
+                var normalizedDist = dist - (halfSizeVoxels - 1f);
                 var falloff = 1f - Mathf.Clamp01(normalizedDist);
                 var scaledDelta = Mathf.RoundToInt(delta * falloff);
-                
+
                 rawVoxelEdits.Add(new RawVoxelEdit(voxelPos, (short)scaledDelta, materials.FirstOrDefault()));
             }
 

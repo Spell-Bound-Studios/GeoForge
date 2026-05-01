@@ -31,7 +31,7 @@ namespace Spellbound.GeoForge {
         /// Indication of if the Volume is the primary Terrain, making it the default Volume to Query.
         /// </summary>
         bool IsPrimaryTerrain { get; set; }
-        
+
         #endregion
 
         #region Default Implmentations

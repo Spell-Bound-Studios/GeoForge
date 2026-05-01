@@ -1,8 +1,9 @@
 # GeoForge
 
-GeoForge is our solution for a dynamic 3-Dimensional world. Destructible Re-Forge-Able Terrain, Caves and Tunnels, Large and Complex Landscapes. Almost anything is possible with this technology based on the "Marching Cubes" algorithm.
+GeoForge is our solution for a dynamic 3-Dimensional world. Destructible Re-Forge-Able Terrain, Caves and Tunnels, Large
+and Complex Landscapes. Almost anything is possible with this technology based on the "Marching Cubes" algorithm.
 
-All systems are free, but some convenient additional assets may be provided in a forthcoming package at modest cost. 
+All systems are free, but some convenient additional assets may be provided in a forthcoming package at modest cost.
 
 [Documentation](https://spell-bound-studios.gitbook.io/spellbound-docs/marching-cubes)
 
