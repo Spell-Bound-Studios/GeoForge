@@ -25,13 +25,14 @@ namespace Spellbound.GeoForge {
         public Vector3Int ChunkCoord => _chunkCoord;
         public DensityRange DensityRange => _densityRange;
         public BoundsInt Bounds => _bounds;
-        
+
         public Transform Transform => _transform;
         public OctreeNode RootNode => _rootNode;
 
         public IGeoVolume ParentGeoVolume => _parentGeoVolume;
 
-        public GeoChunk(IGeoChunk implementer, Transform transform, IGeoEditStore iGeoEditStore, Vector3Int chunkCoord) {
+        public GeoChunk(
+            IGeoChunk implementer, Transform transform, IGeoEditStore iGeoEditStore, Vector3Int chunkCoord) {
             _implementer = implementer;
             _transform = transform;
             IGeoEditStore = iGeoEditStore;
@@ -46,7 +47,6 @@ namespace Spellbound.GeoForge {
             _mcManager = SingletonManager.GetSingletonInstance<GeoForgeManager>();
             _voxelOverrides = new VoxelOverrides();
         }
-        
 
         public void SetOverrides(VoxelOverrides overrides) => _voxelOverrides = overrides;
 
@@ -145,18 +145,20 @@ namespace Spellbound.GeoForge {
 
             return hasOverriddenVoxels;
         }
-        
+
         public virtual void PassVoxelEdits(List<(int, VoxelData)> newVoxelChanges) {
             if (ApplyVoxelEdits(newVoxelChanges, out var editBounds))
                 ValidateOctreeEdits(editBounds);
         }
-        
+
         public void InitializeChunk(NativeArray<VoxelData> voxels = default) {
             ParentGeoVolume.GeoVolume.RegisterChunk(ChunkCoord, _implementer);
-            if (voxels == default)
+
+            if (voxels == default) {
                 voxels = new NativeArray<VoxelData>(
-                    ParentGeoVolume.ConfigBlob.Value.ChunkDataVolumeSize, 
+                    ParentGeoVolume.ConfigBlob.Value.ChunkDataVolumeSize,
                     Allocator.Persistent);
+            }
 
             SetVoxels(voxels);
 
@@ -174,7 +176,7 @@ namespace Spellbound.GeoForge {
 
             if (_sparseVoxels.IsCreated) _sparseVoxels.Dispose();
             _sparseVoxels = new NativeList<SparseVoxelData>(Allocator.Persistent);
-            
+
             if (HasOverrides())
                 ApplyOverrides(voxels);
 

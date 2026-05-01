@@ -77,7 +77,7 @@ namespace Spellbound.GeoForge {
                     TerraformCommands.TerraformSphere(volume, hit.point, radius, (short)-delta, matHashSet)
             );
         }
-        
+
         /// <summary>
         /// Public method to Add or "Deposit-onto" a spherical region for one specific GeoForge geoVolume. 
         /// </summary>

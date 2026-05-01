@@ -38,7 +38,8 @@ namespace Spellbound.GeoForge {
         [Tooltip("For a finite geoVolume, how many chunks it is in each axis")]
         public Vector3Int sizeInChunks;
 
-        [Tooltip("This dimension is derived from your other settings. Indicates actual size of geoVolume, if its finite."),
+        [Tooltip(
+             "This dimension is derived from your other settings. Indicates actual size of geoVolume, if its finite."),
          SerializeField, Immutable]
         private Vector3 volumeSize;
 

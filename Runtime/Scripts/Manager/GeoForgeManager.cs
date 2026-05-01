@@ -120,8 +120,6 @@ namespace Spellbound.GeoForge {
 
         public GameObject GetPooledObject(Transform parent) {
             GameObject go;
-            
-            
 
             if (_objectPool.Count > 0) {
                 go = _objectPool.Pop();
@@ -137,9 +135,7 @@ namespace Spellbound.GeoForge {
 
             go.transform.SetParent(parent, false);
 
-            if (go.transform.parent == null) {
-                Debug.LogError("Pooled object is being provided with no parent");
-            }
+            if (go.transform.parent == null) Debug.LogError("Pooled object is being provided with no parent");
 
             return go;
         }
@@ -223,7 +219,8 @@ namespace Spellbound.GeoForge {
                             editsByChunkCoord[trueNeighborCoord] = localNeighborEdits;
                         }
 
-                        var localNeighborEdit = new VoxelDelta(neighborIndex, rawEdit.DensityDelta, rawEdit.NewMatIndex);
+                        var localNeighborEdit =
+                                new VoxelDelta(neighborIndex, rawEdit.DensityDelta, rawEdit.NewMatIndex);
                         localNeighborEdits.Add(localNeighborEdit);
                     }
                 }

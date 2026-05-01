@@ -51,7 +51,7 @@ namespace Spellbound.GeoForge {
 
                 return;
             }
-            
+
             viewDistanceLodRanges = GeoVolume.ValidateLodRanges(viewDistanceLodRanges, config);
         }
 #endif
@@ -70,7 +70,6 @@ namespace Spellbound.GeoForge {
         }
 
         protected virtual void Start() => StartCoroutine(InitializeChunks());
-        
 
         /// <summary>
         /// Initializes Chunks one per frame, centered on the Volume's transform

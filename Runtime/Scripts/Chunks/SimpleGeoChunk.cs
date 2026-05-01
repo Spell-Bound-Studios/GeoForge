@@ -1,6 +1,5 @@
 // Copyright 2025 Spellbound Studio Inc.
 
-using System.Collections.Generic;
 using Unity.Collections;
 using UnityEngine;
 
@@ -13,7 +12,9 @@ namespace Spellbound.GeoForge {
         protected GeoChunk _geoChunk;
         public GeoChunk GeoChunk => _geoChunk;
 
-        public void InitializeGeoChunk(Vector3Int coord) => _geoChunk = new GeoChunk(this, transform, new SimpleGeoEditStore(), coord);
+        public void InitializeGeoChunk(Vector3Int coord) =>
+                _geoChunk = new GeoChunk(this, transform, new SimpleGeoEditStore(), coord);
+
         public void SetDataFactory(DataFactory factory) => dataFactory = factory;
 
         public void SetBoundaryOverrides(BoundaryOverrides overrides) => boundaryOverrides = overrides;
@@ -43,7 +44,7 @@ namespace Spellbound.GeoForge {
             if (voxels.IsCreated)
                 voxels.Dispose();
         }
-        
+
         /// <summary>
         /// This must be done on ALL IGeoChunk implementers to prevent memory leaks.
         /// </summary>
