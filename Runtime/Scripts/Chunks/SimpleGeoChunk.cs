@@ -22,7 +22,7 @@ namespace Spellbound.GeoForge {
         /// Generates voxels with the datafactory.
         /// </summary>
         /// <param name="voxels"></param>
-        public void ActivateChunk(NativeArray<VoxelData> voxels = default) {
+        public void ActivateGeoChunk(NativeArray<VoxelData> voxels = default) {
             _geoChunk.ParentGeoVolume.GeoVolume.RegisterChunk(_geoChunk.ChunkCoord, this);
 
             if (boundaryOverrides != null) {

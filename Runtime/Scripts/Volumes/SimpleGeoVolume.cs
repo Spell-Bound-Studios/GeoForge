@@ -91,7 +91,7 @@ namespace Spellbound.GeoForge {
                             simpleChunk.SetBoundaryOverrides(boundaryOverrides);
                         }
 
-                        chunk.ActivateChunk();
+                        chunk.ActivateGeoChunk();
 
                         yield return null;
                     }

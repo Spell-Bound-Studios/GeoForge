@@ -37,7 +37,7 @@ namespace Spellbound.GeoForge {
         /// Method to kick-off the Chunk being an actively managed Marching Cubes Chunk.
         /// </summary>
         /// <param name="voxels"></param> Can be called with voxels, or can generate voxels in the implementation.
-        void ActivateChunk(NativeArray<VoxelData> voxels = default) => GeoChunk.InitializeChunk(voxels);
+        void ActivateGeoChunk(NativeArray<VoxelData> voxels = default) => GeoChunk.InitializeChunk(voxels);
         
         void InitializeGeoChunk(Vector3Int coord);
 
