@@ -1,6 +1,7 @@
 // Copyright 2025 Spellbound Studio Inc.
 
 using Spellbound.Core;
+using Spellbound.Core.Tooling;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {

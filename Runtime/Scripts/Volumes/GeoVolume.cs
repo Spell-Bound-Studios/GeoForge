@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using Spellbound.Core;
+using Spellbound.Core.Tooling;
 using Unity.Entities;
 using UnityEngine;
 using Object = UnityEngine.Object;

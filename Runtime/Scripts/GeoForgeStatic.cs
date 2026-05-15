@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Spellbound.Core;
+using Spellbound.Core.Tooling;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
