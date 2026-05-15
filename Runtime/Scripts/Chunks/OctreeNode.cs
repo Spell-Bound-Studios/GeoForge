@@ -1,7 +1,7 @@
-// Copyright 2025 Spellbound Studio Inc.
+// Copyright 2026 Spellbound Studio Inc.
 
 using System;
-using Spellbound.Core;
+using Spellbound.Core.Tooling;
 using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;

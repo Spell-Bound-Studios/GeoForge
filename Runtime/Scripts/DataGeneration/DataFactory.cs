@@ -1,4 +1,4 @@
-// Copyright 2025 Spellbound Studio Inc.
+// Copyright 2026 Spellbound Studio Inc.
 
 using Unity.Collections;
 using Unity.Entities;
