@@ -37,11 +37,15 @@ namespace Spellbound.GeoForge {
 
         [Tooltip("For a finite geoVolume, how many chunks it is in each axis")]
         public Vector3Int sizeInChunks;
+        
+        [Tooltip("For a finite geoVolume, how many chunks it is in each axis"), Range(1, 10)]
+        public int validatesPerFrame = 1;
 
         [Tooltip(
              "This dimension is derived from your other settings. Indicates actual size of geoVolume, if its finite."),
          SerializeField, Immutable]
         private Vector3 volumeSize;
+        
 
         public Vector3 VolumeSize => volumeSize;
 
