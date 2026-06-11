@@ -19,6 +19,7 @@ namespace Spellbound.GeoForge {
         public Vector3Int SizeInChunks;
         public Vector3Int Offset;
         public float3 OffsetBurst;
+        public int GeneratesPerFrame;
         public int ValidatesPerFrame;
     }
 
@@ -37,6 +38,7 @@ namespace Spellbound.GeoForge {
             config.Resolution = voxelVolumeConfig.resolution;
             config.SizeInChunks = voxelVolumeConfig.sizeInChunks;
             config.UnitsPerChunk = config.ChunkSize * config.Resolution;
+            config.GeneratesPerFrame = voxelVolumeConfig.generatesPerFrame;
             config.ValidatesPerFrame = voxelVolumeConfig.validatesPerFrame;
 
             config.Offset = new Vector3Int(
