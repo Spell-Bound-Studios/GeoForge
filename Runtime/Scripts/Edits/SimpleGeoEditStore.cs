@@ -7,7 +7,7 @@ namespace Spellbound.GeoForge {
     public class SimpleGeoEditStore : IGeoEditStore {
         public event Action<List<(int, VoxelData)>> OnGeoEditChanged;
         public Func<int, VoxelData> DefaultVoxelDataFunc { get; set; }
-        public bool TryRead(int index, out VoxelData voxelData) => throw new NotImplementedException();
+        public bool TryRead(int idx, out VoxelData voxelData) => throw new NotImplementedException();
 
         public void Write(List<(int, VoxelData)> voxelDatas) => throw new NotImplementedException();
 

@@ -11,7 +11,7 @@ namespace Spellbound.GeoForge {
         event Action<List<(int, VoxelData)>> OnGeoEditChanged;
         Func<int, VoxelData> DefaultVoxelDataFunc { get; set; }
 
-        bool TryRead(int index, out VoxelData voxelData);
+        bool TryRead(int idx, out VoxelData voxelData);
 
         void Write(List<(int, VoxelData)> voxelDatas);
 
