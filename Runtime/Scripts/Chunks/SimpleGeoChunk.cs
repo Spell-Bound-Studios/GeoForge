@@ -1,5 +1,6 @@
 // Copyright 2026 Spellbound Studio Inc.
 
+using Spellbound.Core.Logging;
 using Unity.Collections;
 using UnityEngine;
 
@@ -12,8 +13,11 @@ namespace Spellbound.GeoForge {
         protected GeoChunk _geoChunk;
         public GeoChunk GeoChunk => _geoChunk;
 
-        public void InitializeGeoChunk(Vector3Int coord) =>
-                _geoChunk = new GeoChunk(this, transform, new SimpleGeoEditStore(), coord);
+        public void InitializeGeoChunk(Vector3Int coord) {
+            _geoChunk = new GeoChunk(this, transform, new SimpleGeoEditStore(), coord);
+            GeoChunk.IGeoEditStore.DefaultVoxelDataFunc = GeoChunk.GetVoxelData;
+        }
+                
 
         public void SetDataFactory(DataFactory factory) => dataFactory = factory;
 
@@ -39,10 +43,12 @@ namespace Spellbound.GeoForge {
             }
 
             dataFactory.FillDataArray(_geoChunk.ChunkCoord, _geoChunk.ParentGeoVolume.ConfigBlob, voxels);
-            _geoChunk.SetVoxels(voxels);
+            _geoChunk.InitializeChunk(voxels);
+            
+        }
 
-            if (voxels.IsCreated)
-                voxels.Dispose();
+        public void ValidateOctreeLods(Vector3 playerPosition) {
+            GeoChunk.ValidateOctreeLods(playerPosition);
         }
 
         /// <summary>
