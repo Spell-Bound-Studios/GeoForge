@@ -1,5 +1,6 @@
 // Copyright 2026 Spellbound Studio Inc.
 
+using System.Collections.Generic;
 using Spellbound.Core.Logging;
 using Unity.Collections;
 using UnityEngine;
@@ -17,6 +18,10 @@ namespace Spellbound.GeoForge {
             _geoChunk = new GeoChunk(this, transform, new SimpleGeoEditStore(), coord);
             GeoChunk.IGeoEditStore.DefaultVoxelDataFunc = GeoChunk.GetVoxelData;
         }
+
+        public virtual void PassVoxelEdits(List<VoxelDelta> newVoxelEdits) {
+            GeoChunk.IGeoEditStore.Delta(newVoxelEdits); 
+        } 
                 
 
         public void SetDataFactory(DataFactory factory) => dataFactory = factory;

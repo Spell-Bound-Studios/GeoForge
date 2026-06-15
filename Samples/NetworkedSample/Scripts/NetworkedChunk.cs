@@ -156,7 +156,6 @@ namespace GeoForge.Sample4 {
             
             dataFactory.FillDataArray(GeoChunk.ChunkCoord, GeoChunk.ParentGeoVolume.ConfigBlob, voxels);
             GeoChunk.SetVoxels(voxels);
-            GeoChunk.ValidateOctreeLods(transform.position);
 
             if (voxels.IsCreated) 
                 voxels.Dispose();

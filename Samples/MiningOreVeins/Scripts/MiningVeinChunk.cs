@@ -13,15 +13,15 @@ namespace Spellbound.GeoForge.Sample2 {
         [SerializeField] private int oreHealth;
         private Dictionary<int, int> _damagedVoxels = new();
 
-        public void PassVoxelEdits(List<VoxelDelta> newVoxelDeltas) {
+        public override void PassVoxelEdits(List<VoxelDelta> newVoxelEdits) {
             var trueEdits = new List<(int, VoxelData)>();
 
-            foreach (var voxelDelta in newVoxelDeltas) {
-                _damagedVoxels.TryGetValue(voxelDelta.index, out var existing);
-                var delta = _geoChunk.GetVoxelData(voxelDelta.index).Density - voxelDelta.densityDelta;
-                _damagedVoxels[voxelDelta.index] = existing + delta;
+            foreach (var newVoxelEdit in newVoxelEdits) {
+                _damagedVoxels.TryGetValue(newVoxelEdit.index, out var existing);
+                var delta = _geoChunk.GetVoxelData(newVoxelEdit.index).Density - newVoxelEdit.densityDelta;
+                _damagedVoxels[newVoxelEdit.index] = existing + delta;
 
-                if (_damagedVoxels[voxelDelta.index] > oreHealth) trueEdits.Add((voxelDelta.index, new VoxelData(0,0)));
+                if (_damagedVoxels[newVoxelEdit.index] > oreHealth) trueEdits.Add((newVoxelEdit.index, new VoxelData(0,0)));
             }
 
             if (_geoChunk.ApplyVoxelEdits(trueEdits, out var editBounds))

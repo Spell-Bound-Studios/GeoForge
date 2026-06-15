@@ -59,7 +59,8 @@ namespace GeoForge.Sample4 {
             _geoVolume = new GeoVolume(this, this, config);
         }
 
-        protected override void OnSpawned() {
+        protected override void OnSpawned(bool asServer) {
+            Debug.Log("NetworkedVolume.Spawned");
             GeoVolume.RegisterVolume();
             
             if (!isServer)
