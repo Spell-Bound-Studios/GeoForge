@@ -129,6 +129,7 @@ namespace GeoForge.Sample4 {
             
             _chunkCoord = chunkCoord;
             gameObject.name = chunkCoord.ToString();
+            InitializeGeoChunk(_chunkCoord); // THIS LINE
             
             Debug.Log($"[Client] Initializing chunk at {GeoChunk?.ChunkCoord}");
             
