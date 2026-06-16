@@ -39,7 +39,10 @@ namespace Spellbound.GeoForge.Sample4 {
         /// This is a server only method.
         /// </summary>
         /// <param name="chunkData"></param>
-        public void SetChunkData(GeoForgeChunkData chunkData) => _chunkData = chunkData;
+        public void SetChunkData(GeoForgeChunkData chunkData = null) {
+            chunkData ??= new GeoForgeChunkData();
+            _chunkData = chunkData;
+        }
 
         #endregion Initialization
 
@@ -50,8 +53,6 @@ namespace Spellbound.GeoForge.Sample4 {
 
             if (isHost)
                 return;
-
-            _chunkData ??= new GeoForgeChunkData();
         }
 
         public override void OnObserverAdded(PlayerID player) {
@@ -110,6 +111,8 @@ namespace Spellbound.GeoForge.Sample4 {
         private void SendFullStateTargetRpc(PlayerID player, byte[] payload) {
             if (isHost)
                 return;
+
+            _chunkData ??= new GeoForgeChunkData();
 
             ReadFullStateFrom(payload);
         }

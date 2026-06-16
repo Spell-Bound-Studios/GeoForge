@@ -42,7 +42,10 @@ namespace GeoForge.Sample4 {
 
         #region PurrNet Lifecycles, Events and Callbacks
 
-        protected override void OnEarlySpawn() => GeoChunk = new GeoChunk(this, transform, _syncModule, _chunkCoord);
+        protected override void OnEarlySpawn() {
+            _syncModule.SetChunkData();
+            GeoChunk = new GeoChunk(this, transform, _syncModule, _chunkCoord);
+        } 
 
         protected override void OnSpawned() => _syncModule.OnGeoEditChanged += ApplyEditsToBaseChunk;
 
