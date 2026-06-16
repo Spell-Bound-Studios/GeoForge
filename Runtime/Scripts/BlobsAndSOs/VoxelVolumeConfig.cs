@@ -1,6 +1,6 @@
-// Copyright 2025 Spellbound Studio Inc.
+// Copyright 2026 Spellbound Studio Inc.
 
-using Spellbound.Core;
+using Spellbound.Core.Tooling;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
@@ -18,11 +18,11 @@ namespace Spellbound.GeoForge {
          Range(1, 5)]
         public int levelsOfDetail = 3;
 
-        [Tooltip("Size in voxels of one chunk of data. Higher number may affect performance."),
+        [Tooltip("Size in voxels of one geoChunk of data. Higher number may affect performance."),
          Range(8, 128)]
         public int maxChunkSize = 128;
 
-        [Tooltip("Actual chunk size, generated from maxChunkSize and Levels of Detail"),
+        [Tooltip("Actual geoChunk size, generated from maxChunkSize and Levels of Detail"),
          SerializeField, Immutable]
         private int chunkSize;
 
@@ -32,13 +32,20 @@ namespace Spellbound.GeoForge {
          Range(0.1f, 10f)]
         public float resolution = 1;
 
-        [Tooltip("Indicates if the volume is finite, rather than like an endless terrain")]
+        [Tooltip("Indicates if the geoVolume is finite, rather than like an endless terrain")]
         public bool isFiniteSize = true;
 
-        [Tooltip("For a finite volume, how many chunks it is in each axis")]
+        [Tooltip("For a finite geoVolume, how many chunks it is in each axis")]
         public Vector3Int sizeInChunks;
 
-        [Tooltip("This dimension is derived from your other settings. Indicates actual size of volume, if its finite."),
+        [Tooltip("How many chunks are procedurally generated per frame"), Range(1, 10)]
+        public int generatesPerFrame = 1;
+
+        [Tooltip("How many chunks have their LODs validated per frame"), Range(1, 10)]
+        public int validatesPerFrame = 1;
+
+        [Tooltip(
+             "This dimension is derived from your other settings. Indicates actual size of geoVolume, if its finite."),
          SerializeField, Immutable]
         private Vector3 volumeSize;
 
@@ -56,7 +63,7 @@ namespace Spellbound.GeoForge {
             // Keep doubling until we reach maxChunkSize
             while (chunkSize * 2 <= maxChunkSize) chunkSize *= 2;
 
-            // Now calculate LOD levels based on resulting chunk size
+            // Now calculate LOD levels based on resulting geoChunk size
             // LOD levels = log2(chunkSize / cubesPerMarch)
             var calculatedLod = 0;
             var tempSize = cubesPerMarch;

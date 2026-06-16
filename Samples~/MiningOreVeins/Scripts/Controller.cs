@@ -23,7 +23,7 @@ namespace Spellbound.GeoForge.Sample2 {
         [SerializeField] public float terraformSize = 1f;
 
         [SerializeField, Range(1, byte.MaxValue)]
-        public int terraformStrength = byte.MaxValue;
+        public short terraformStrength = byte.MaxValue;
 
         private readonly List<byte> _diggableMaterialList = new() { 0, 1, 2, 3 };
 
@@ -105,7 +105,7 @@ namespace Spellbound.GeoForge.Sample2 {
                     GeoForgeStatic.RemoveSphereAll(hit, terraformSize, terraformStrength, _diggableMaterialList);
                     AudioSource.PlayClipAtPoint(miningAudioClip, hit.point);
                     var direction = Vector3.Slerp(-transform.forward, hit.normal, 0.5f);
-                    var geoVolume = hit.collider.gameObject.GetComponentInParent<IVolume>();
+                    var geoVolume = hit.collider.gameObject.GetComponentInParent<IGeoVolume>();
 
                     if (geoVolume != null) {
                         var ps = Instantiate(miningParticle, hit.point, Quaternion.LookRotation(direction, Vector3.up));
@@ -144,7 +144,7 @@ namespace Spellbound.GeoForge.Sample2 {
                     out var hit,
                     terraformRange,
                     ~0)) {
-                var volume = hit.transform.GetComponentInParent<IVolume>();
+                var volume = hit.transform.GetComponentInParent<IGeoVolume>();
 
                 if (volume == null) {
                     _projectionObj.SetActive(false);

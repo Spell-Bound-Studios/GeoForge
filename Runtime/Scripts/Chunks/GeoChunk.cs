@@ -1,47 +1,51 @@
-// Copyright 2025 Spellbound Studio Inc.
+// Copyright 2026 Spellbound Studio Inc.
 
 using System;
 using System.Collections.Generic;
-using Spellbound.Core;
+using Spellbound.Core.Tooling;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
-    public class BaseChunk : IDisposable {
+    public class GeoChunk : IDisposable {
         private Vector3Int _chunkCoord;
+        public IGeoEditStore IGeoEditStore { get; private set; }
+
         private BoundsInt _bounds;
         private NativeList<SparseVoxelData> _sparseVoxels;
         private OctreeNode _rootNode;
         private DensityRange _densityRange;
         private readonly GeoForgeManager _mcManager;
-        private IVolume _parentVolume;
-        private readonly MonoBehaviour _owner;
-        private readonly IChunk _ownerAsIChunk;
+        private IGeoVolume _parentGeoVolume;
+        private Transform _transform;
+        private readonly IGeoChunk _implementer;
         private VoxelOverrides _voxelOverrides;
 
         public Vector3Int ChunkCoord => _chunkCoord;
         public DensityRange DensityRange => _densityRange;
         public BoundsInt Bounds => _bounds;
+
+        public Transform Transform => _transform;
         public OctreeNode RootNode => _rootNode;
-        public Transform Transform => _owner.transform;
 
-        public IVolume ParentVolume => _parentVolume;
+        public IGeoVolume ParentGeoVolume => _parentGeoVolume;
 
-        public BaseChunk(MonoBehaviour owner, IChunk ownerAsIChunk) {
-            _owner = owner;
-            _ownerAsIChunk = ownerAsIChunk;
+        public GeoChunk(
+            IGeoChunk implementer, Transform transform, IGeoEditStore iGeoEditStore, Vector3Int chunkCoord) {
+            _implementer = implementer;
+            _transform = transform;
+            IGeoEditStore = iGeoEditStore;
+            IGeoEditStore.OnGeoEditChanged += PassVoxelEdits;
+            _chunkCoord = chunkCoord;
+            _parentGeoVolume = _transform.GetComponentInParent<IGeoVolume>();
+            ref var config = ref ParentGeoVolume.ConfigBlob.Value;
+            _chunkCoord = chunkCoord;
+            var voxelMin = chunkCoord * config.ChunkSize;
+            _bounds = new BoundsInt(voxelMin, config.ChunkSize * Vector3Int.one);
+            _transform.gameObject.name = chunkCoord.ToString();
             _mcManager = SingletonManager.GetSingletonInstance<GeoForgeManager>();
             _voxelOverrides = new VoxelOverrides();
-        }
-
-        public void SetCoordAndFields(Vector3Int coord) {
-            _parentVolume = _owner.GetComponentInParent<IVolume>();
-            ref var config = ref ParentVolume.ConfigBlob.Value;
-            _chunkCoord = coord;
-            var voxelMin = coord * config.ChunkSize;
-            _bounds = new BoundsInt(voxelMin, config.ChunkSize * Vector3Int.one);
-            _owner.gameObject.name = coord.ToString();
         }
 
         public void SetOverrides(VoxelOverrides overrides) => _voxelOverrides = overrides;
@@ -54,7 +58,7 @@ namespace Spellbound.GeoForge {
         }
 
         private bool ApplyOverrides(NativeArray<VoxelData> voxels) {
-            ref var config = ref ParentVolume.ConfigBlob.Value;
+            ref var config = ref ParentGeoVolume.ConfigBlob.Value;
 
             _voxelOverrides.CopyToNativeHashMaps(
                 out var xOverrides,
@@ -95,7 +99,7 @@ namespace Spellbound.GeoForge {
             if (_voxelOverrides == null || !_voxelOverrides.HasAnyOverrides)
                 return false;
 
-            ref var config = ref ParentVolume.ConfigBlob.Value;
+            ref var config = ref ParentGeoVolume.ConfigBlob.Value;
 
             var hasCheckedOutDenseArray = false;
 
@@ -142,13 +146,27 @@ namespace Spellbound.GeoForge {
             return hasOverriddenVoxels;
         }
 
-        public void InitializeVoxels(NativeArray<VoxelData> voxels) {
-            if (_sparseVoxels.IsCreated) {
-                Debug.LogError($"_sparseVoxels is already created for this chunkCoord {_chunkCoord}.");
+        public virtual void PassVoxelEdits(List<(int, VoxelData)> newVoxelChanges) {
+            if (ApplyVoxelEdits(newVoxelChanges, out var editBounds))
+                ValidateOctreeEdits(editBounds);
+        }
 
-                return;
+        public void InitializeChunk(NativeArray<VoxelData> voxels = default) {
+            ParentGeoVolume.GeoVolume.RegisterChunk(ChunkCoord, _implementer);
+
+            if (voxels == default) {
+                voxels = new NativeArray<VoxelData>(
+                    ParentGeoVolume.ConfigBlob.Value.ChunkDataVolumeSize,
+                    Allocator.Persistent);
             }
 
+            SetVoxels(voxels);
+
+            if (voxels.IsCreated)
+                voxels.Dispose();
+        }
+
+        public void SetVoxels(NativeArray<VoxelData> voxels) {
             if (!voxels.IsCreated) {
                 Debug.LogError(
                     $"_sparseVoxels being initialized with native array that has not been created for chunkCoord {_chunkCoord}.");
@@ -156,10 +174,11 @@ namespace Spellbound.GeoForge {
                 return;
             }
 
+            if (_sparseVoxels.IsCreated) _sparseVoxels.Dispose();
+            _sparseVoxels = new NativeList<SparseVoxelData>(Allocator.Persistent);
+
             if (HasOverrides())
                 ApplyOverrides(voxels);
-
-            _sparseVoxels = new NativeList<SparseVoxelData>(Allocator.Persistent);
 
             new DenseToSparseVoxelDataJob {
                 Voxels = voxels,
@@ -167,28 +186,28 @@ namespace Spellbound.GeoForge {
             }.Schedule().Complete();
 
             _densityRange = new DensityRange(byte.MinValue, byte.MaxValue,
-                _parentVolume.ConfigBlob.Value.DensityThreshold);
+                _parentGeoVolume.ConfigBlob.Value.DensityThreshold);
 
-            _rootNode = new OctreeNode(Vector3Int.zero, _parentVolume.ConfigBlob.Value.LevelsOfDetail, _ownerAsIChunk,
-                _parentVolume);
+            _rootNode = new OctreeNode(Vector3Int.zero, _parentGeoVolume.ConfigBlob.Value.LevelsOfDetail, _implementer,
+                _parentGeoVolume);
         }
 
         public bool ApplyVoxelEdits(
-            List<VoxelEdit> voxelEdits, out BoundsInt editBounds, BoundsInt existingEditBounds = default) {
+            List<(int, VoxelData)> voxelChanges, out BoundsInt editBounds, BoundsInt existingEditBounds = default) {
             if (!_sparseVoxels.IsCreated) {
                 editBounds = existingEditBounds;
 
                 return false;
             }
 
-            ref var config = ref ParentVolume.ConfigBlob.Value;
+            ref var config = ref ParentGeoVolume.ConfigBlob.Value;
             var voxelArray = GetVoxelDataArray();
 
             var hasEdits = false;
             editBounds = existingEditBounds;
 
-            foreach (var voxelEdit in voxelEdits) {
-                var index = voxelEdit.index;
+            foreach (var voxelChange in voxelChanges) {
+                var index = voxelChange.Item1;
 
                 GfStaticHelper.IndexToInt3(index, config.ChunkDataAreaSize, config.ChunkDataWidthSize, out var x,
                     out var y, out var z);
@@ -199,11 +218,11 @@ namespace Spellbound.GeoForge {
 
                 var existingVoxel = voxelArray[index];
 
-                if (voxelEdit.density == existingVoxel.Density &&
-                    voxelEdit.MaterialType == existingVoxel.MaterialIndex)
+                if (voxelChange.Item2.Density == existingVoxel.Density &&
+                    voxelChange.Item2.MaterialIndex == existingVoxel.MaterialIndex)
                     continue;
 
-                voxelArray[index] = new VoxelData(voxelEdit.density, voxelEdit.MaterialType);
+                voxelArray[index] = new VoxelData(voxelChange.Item2.Density, voxelChange.Item2.MaterialIndex);
 
                 if (!hasEdits) {
                     editBounds = new BoundsInt(voxelPos, Vector3Int.one);
@@ -215,7 +234,7 @@ namespace Spellbound.GeoForge {
                     editBounds = new BoundsInt(min, max - min);
                 }
 
-                DensityRange.Encapsulate(voxelEdit.density);
+                DensityRange.Encapsulate(voxelChange.Item2.Density);
             }
 
             if (hasEdits)
@@ -229,7 +248,7 @@ namespace Spellbound.GeoForge {
         public void OnVolumeMovement() => RootNode?.ValidateMaterial();
 
         public NativeArray<VoxelData> GetVoxelDataArray() =>
-                _mcManager.GetOrUnpackVoxelArray(ParentVolume.ConfigBlob.Value.ChunkSize, this,
+                _mcManager.GetOrUnpackVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this,
                     _sparseVoxels);
 
         public void UpdateVoxelData(NativeList<SparseVoxelData> voxels, DensityRange densityRange) {
@@ -242,7 +261,7 @@ namespace Spellbound.GeoForge {
         }
 
         public void BroadcastNewLeafAcrossChunks(OctreeNode newLeaf, Vector3Int pos, int index) {
-            ref var config = ref ParentVolume.ConfigBlob.Value;
+            ref var config = ref ParentGeoVolume.ConfigBlob.Value;
 
             var worldVoxelPos = pos + _chunkCoord * config.ChunkSize;
 
@@ -253,7 +272,7 @@ namespace Spellbound.GeoForge {
             }
 
             var neighborCoord = GfStaticHelper.GetNeighborCoord(index, _chunkCoord);
-            var neighborChunk = _parentVolume.GetChunkByCoord(neighborCoord);
+            var neighborChunk = _parentGeoVolume.GetChunkByCoord(neighborCoord);
 
             if (neighborChunk == null)
                 return;
@@ -263,14 +282,14 @@ namespace Spellbound.GeoForge {
         }
 
         public VoxelData GetVoxelData(int index) {
-            ref var config = ref ParentVolume.ConfigBlob.Value;
+            ref var config = ref ParentGeoVolume.ConfigBlob.Value;
             var sparseIndex = GfStaticHelper.BinarySearchVoxelData(index, config.ChunkDataVolumeSize, _sparseVoxels);
 
             return _sparseVoxels[sparseIndex].Voxel;
         }
 
         public VoxelData GetVoxelDataFromVoxelPosition(Vector3Int position) {
-            ref var config = ref ParentVolume.ConfigBlob.Value;
+            ref var config = ref ParentGeoVolume.ConfigBlob.Value;
             var chunkSpacePosition = position - _chunkCoord * config.ChunkSize;
 
             var index = GfStaticHelper.Coord3DToIndex(
@@ -292,7 +311,7 @@ namespace Spellbound.GeoForge {
 
             _rootNode?.ValidateOctreeEdits(bounds, GetVoxelDataArray());
             _mcManager.CompleteAndApplyMarchingCubesJobs();
-            _mcManager.ReleaseVoxelArray(ParentVolume.ConfigBlob.Value.ChunkSize);
+            _mcManager.ReleaseVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize);
         }
 
         public void ValidateOctreeLods(Vector3 playerPosition) {
@@ -302,10 +321,12 @@ namespace Spellbound.GeoForge {
             var playerPositionChunkSpace = playerPosition - _bounds.min;
             _rootNode.ValidateOctreeLods(playerPositionChunkSpace, GetVoxelDataArray());
             _mcManager.CompleteAndApplyMarchingCubesJobs();
-            _mcManager.ReleaseVoxelArray(ParentVolume.ConfigBlob.Value.ChunkSize);
+            _mcManager.ReleaseVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize);
         }
 
         public void Dispose() {
+            IGeoEditStore.OnGeoEditChanged -= PassVoxelEdits;
+            _parentGeoVolume.GeoVolume.ChunkDict.Remove(_chunkCoord);
             _rootNode?.Dispose();
 
             if (_sparseVoxels.IsCreated)

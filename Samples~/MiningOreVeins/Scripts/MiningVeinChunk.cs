@@ -9,23 +9,23 @@ namespace Spellbound.GeoForge.Sample2 {
     /// Aggregates requested changes as if the voxels have a "Health Pool".
     /// Makes no changes until voxel runs out of health, at which point it empties the voxel entirely. 
     /// </summary>
-    public class MiningVeinChunk : SimpleChunk {
+    public class MiningVeinChunk : SimpleGeoChunk {
         [SerializeField] private int oreHealth;
         private Dictionary<int, int> _damagedVoxels = new();
 
-        public override void PassVoxelEdits(List<VoxelEdit> newVoxelEdits) {
-            var trueEdits = new List<VoxelEdit>();
+        public override void PassVoxelEdits(List<VoxelDelta> newVoxelEdits) {
+            var trueEdits = new List<(int, VoxelData)>();
 
-            foreach (var voxelEdit in newVoxelEdits) {
-                _damagedVoxels.TryGetValue(voxelEdit.index, out var existing);
-                var delta = _baseChunk.GetVoxelData(voxelEdit.index).Density - voxelEdit.density;
-                _damagedVoxels[voxelEdit.index] = existing + delta;
+            foreach (var newVoxelEdit in newVoxelEdits) {
+                _damagedVoxels.TryGetValue(newVoxelEdit.index, out var existing);
+                var delta = _geoChunk.GetVoxelData(newVoxelEdit.index).Density - newVoxelEdit.densityDelta;
+                _damagedVoxels[newVoxelEdit.index] = existing + delta;
 
-                if (_damagedVoxels[voxelEdit.index] > oreHealth) trueEdits.Add(new VoxelEdit(voxelEdit.index, 0, 0));
+                if (_damagedVoxels[newVoxelEdit.index] > oreHealth) trueEdits.Add((newVoxelEdit.index, new VoxelData(0,0)));
             }
 
-            if (_baseChunk.ApplyVoxelEdits(trueEdits, out var editBounds))
-                _baseChunk.ValidateOctreeEdits(editBounds);
+            if (_geoChunk.ApplyVoxelEdits(trueEdits, out var editBounds))
+                _geoChunk.ValidateOctreeEdits(editBounds);
         }
     }
 }

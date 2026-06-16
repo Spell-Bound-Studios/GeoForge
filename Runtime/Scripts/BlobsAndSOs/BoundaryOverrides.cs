@@ -1,4 +1,4 @@
-// Copyright 2025 Spellbound Studio Inc.
+// Copyright 2026 Spellbound Studio Inc.
 
 using System.Collections.Generic;
 using Unity.Entities;
@@ -7,7 +7,8 @@ using UnityEngine;
 namespace Spellbound.GeoForge {
     [CreateAssetMenu(menuName = "Spellbound/GeoForge/BoundaryOverrides")]
     public class BoundaryOverrides : ScriptableObject {
-        [Tooltip("Full list of boundaries. Note 6 of them one on each face will fully constrain the volume boundaries"),
+        [Tooltip(
+             "Full list of boundaries. Note 6 of them one on each face will fully constrain the geoVolume boundaries"),
          SerializeField]
         private List<BoundaryOverride> BoundaryOverridesList = new();
 

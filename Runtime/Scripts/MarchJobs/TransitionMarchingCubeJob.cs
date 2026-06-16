@@ -1,4 +1,4 @@
-// Copyright 2025 Spellbound Studio Inc.
+// Copyright 2026 Spellbound Studio Inc.
 
 using System.Runtime.CompilerServices;
 using Unity.Burst;
@@ -413,7 +413,7 @@ namespace Spellbound.GeoForge {
             float baseWeight,
             ref NativeList<byte> uniqueMaterials,
             ref NativeList<float> materialWeights) {
-            // Skip voxels with zero density (air)
+            // Skip voxels with zero DensityDelta (air)
             if (voxel.Density == 0) return;
 
             var matIndex = voxel.MaterialIndex;

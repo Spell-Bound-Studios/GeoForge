@@ -1,4 +1,4 @@
-// Copyright 2025 Spellbound Studio Inc.
+// Copyright 2026 Spellbound Studio Inc.
 
 using Unity.Collections;
 using Unity.Entities;
@@ -15,9 +15,12 @@ namespace Spellbound.GeoForge {
         public int ChunkDataAreaSize;
         public int ChunkDataVolumeSize;
         public float Resolution;
+        public float UnitsPerChunk;
         public Vector3Int SizeInChunks;
         public Vector3Int Offset;
         public float3 OffsetBurst;
+        public int GeneratesPerFrame;
+        public int ValidatesPerFrame;
     }
 
     public static class VolumeConfigBlobCreator {
@@ -34,7 +37,9 @@ namespace Spellbound.GeoForge {
             config.ChunkDataVolumeSize = config.ChunkDataAreaSize * config.ChunkDataWidthSize;
             config.Resolution = voxelVolumeConfig.resolution;
             config.SizeInChunks = voxelVolumeConfig.sizeInChunks;
-            var chunkWorldSize = config.ChunkSize * config.Resolution;
+            config.UnitsPerChunk = config.ChunkSize * config.Resolution;
+            config.GeneratesPerFrame = voxelVolumeConfig.generatesPerFrame;
+            config.ValidatesPerFrame = voxelVolumeConfig.validatesPerFrame;
 
             config.Offset = new Vector3Int(
                 config.SizeInChunks.x % 2 == 0 ? -1 : -(1 + config.ChunkSize / 2),

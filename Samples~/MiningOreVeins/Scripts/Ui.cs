@@ -97,7 +97,7 @@ namespace Spellbound.GeoForge.Sample2 {
 
         private void HandleStrengthSliderChanged(float value) {
             terraformingStrengthValue.text = value.ToString("F2");
-            _controller.terraformStrength = (int)value;
+            _controller.terraformStrength = (short)value;
         }
 
         private void HandleCollisionToggle(bool value) => _controller.GetComponent<Collider>().enabled = value;

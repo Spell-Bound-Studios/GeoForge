@@ -2,7 +2,7 @@
 
 using System;
 using System.Collections.Generic;
-using Spellbound.Core;
+using Spellbound.Core.Tooling;
 using Unity.Entities;
 using UnityEngine;
 
@@ -20,7 +20,7 @@ namespace Spellbound.GeoForge {
 
         private readonly Stack<GameObject> _objectPool = new();
         private bool _isActive;
-        private HashSet<IVolume> _voxelVolumes = new();
+        private HashSet<IGeoVolume> _voxelVolumes = new();
 
         public bool IsActive() => _isActive;
         private bool _isShuttingDown;
@@ -66,7 +66,7 @@ namespace Spellbound.GeoForge {
 
         private void InitializeVoxelMaterial() {
             if (octreePrefab == null) {
-                Debug.LogError("Octree prefab not assigned!");
+                Debug.LogError("Octree bakePrefab not assigned!");
 
                 return;
             }
@@ -74,12 +74,12 @@ namespace Spellbound.GeoForge {
             var renderer = octreePrefab.GetComponent<MeshRenderer>();
 
             if (renderer == null || renderer.sharedMaterial == null) {
-                Debug.LogError("Octree prefab has no MeshRenderer or Material!");
+                Debug.LogError("Octree bakePrefab has no MeshRenderer or Material!");
 
                 return;
             }
 
-            // Create runtime instance from prefab's material
+            // Create runtime instance from bakePrefab's material
             _runtimeVoxelMaterial = new Material(renderer.sharedMaterial);
 
             // Apply texture arrays from database
@@ -108,9 +108,10 @@ namespace Spellbound.GeoForge {
             foreach (var kvp in _denseVoxelDataDict) kvp.Value.Dispose();
         }
 
-        public void RegisterVoxelVolume(IVolume volume) {
-            _voxelVolumes.Add(volume);
-            var chunkSize = volume.ConfigBlob.Value.ChunkSize;
+        public void RegisterVoxelVolume(IGeoVolume geoVolume) {
+            Debug.Log("RegisterVoxelVolume called");
+            _voxelVolumes.Add(geoVolume);
+            var chunkSize = geoVolume.ConfigBlob.Value.ChunkSize;
 
             if (!_denseVoxelDataDict.ContainsKey(chunkSize)) {
                 var denseData = new DenseVoxelData(chunkSize);
@@ -135,6 +136,8 @@ namespace Spellbound.GeoForge {
 
             go.transform.SetParent(parent, false);
 
+            if (go.transform.parent == null) Debug.LogError("Pooled object is being provided with no parent");
+
             return go;
         }
 
@@ -158,7 +161,7 @@ namespace Spellbound.GeoForge {
         /// For Terraforming Commands that might affect multiple volumes.
         /// </summary>
         public void ExecuteTerraformAll(
-            Func<IVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction) {
+            Func<IGeoVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction) {
             foreach (var iVolume in _voxelVolumes) {
                 var result = terraformAction(iVolume);
 
@@ -171,60 +174,61 @@ namespace Spellbound.GeoForge {
 
         /// <summary>
         /// Expected to run on server only.
-        /// Maps "raw" (world space) voxel edit to Chunks and Lists of local changes in each chunk.
+        /// Maps "raw" (world space) voxel edit to Chunks and Lists of local changes in each geoChunk.
         /// This is required because there's data overlap between the chunks. 
         /// </summary>
         public void DistributeVoxelEdits(
-            IVolume volume, List<RawVoxelEdit> rawVoxelEdits) {
-            var editsByChunkCoord = new Dictionary<Vector3Int, List<VoxelEdit>>();
+            IGeoVolume geoVolume, List<RawVoxelEdit> rawVoxelEdits) {
+            var editsByChunkCoord = new Dictionary<Vector3Int, List<VoxelDelta>>();
 
-            ref var config = ref volume.ConfigBlob.Value;
+            ref var config = ref geoVolume.ConfigBlob.Value;
 
             foreach (var rawEdit in rawVoxelEdits) {
-                var centralCoord = volume.GetCoordByVoxelPosition(rawEdit.voxelSpacePosition);
-                var centralLocalPos = rawEdit.voxelSpacePosition - centralCoord * config.ChunkSize;
+                var centralCoord = geoVolume.GetCoordByVoxelPosition(rawEdit.VoxelSpacePosition);
+                var centralLocalPos = rawEdit.VoxelSpacePosition - centralCoord * config.ChunkSize;
 
                 var index = GfStaticHelper.Coord3DToIndex(centralLocalPos.x, centralLocalPos.y, centralLocalPos.z,
                     config.ChunkDataAreaSize, config.ChunkDataWidthSize);
 
-                var chunk = volume.GetChunkByCoord(centralCoord);
+                var chunk = geoVolume.GetChunkByCoord(centralCoord);
 
                 if (chunk == null)
                     continue;
 
-                if (!_denseVoxelDataDict.TryGetValue(volume.ConfigBlob.Value.ChunkSize,
+                if (!_denseVoxelDataDict.TryGetValue(geoVolume.ConfigBlob.Value.ChunkSize,
                         out var denseVoxelData))
                     return;
 
                 if (!editsByChunkCoord.TryGetValue(centralCoord, out var localEdits)) {
-                    localEdits = new List<VoxelEdit>();
+                    localEdits = new List<VoxelDelta>();
                     editsByChunkCoord[centralCoord] = localEdits;
                 }
 
-                var localEdit = new VoxelEdit(index, rawEdit.NewDensity, rawEdit.NewMatIndex);
+                var localEdit = new VoxelDelta(index, rawEdit.DensityDelta, rawEdit.NewMatIndex);
                 localEdits.Add(localEdit);
 
                 if (denseVoxelData.SharedIndicesAcrossChunks.TryGetValue(index, out var neighborCoords)) {
                     foreach (var neighborCoord in neighborCoords) {
                         var trueNeighborCoord = neighborCoord + centralCoord;
-                        var neighborLocalPos = rawEdit.voxelSpacePosition - trueNeighborCoord * config.ChunkSize;
+                        var neighborLocalPos = rawEdit.VoxelSpacePosition - trueNeighborCoord * config.ChunkSize;
 
                         var neighborIndex = GfStaticHelper.Coord3DToIndex(neighborLocalPos.x, neighborLocalPos.y,
                             neighborLocalPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
 
                         if (!editsByChunkCoord.TryGetValue(trueNeighborCoord, out var localNeighborEdits)) {
-                            localNeighborEdits = new List<VoxelEdit>();
+                            localNeighborEdits = new List<VoxelDelta>();
                             editsByChunkCoord[trueNeighborCoord] = localNeighborEdits;
                         }
 
-                        var localNeighborEdit = new VoxelEdit(neighborIndex, rawEdit.NewDensity, rawEdit.NewMatIndex);
+                        var localNeighborEdit =
+                                new VoxelDelta(neighborIndex, rawEdit.DensityDelta, rawEdit.NewMatIndex);
                         localNeighborEdits.Add(localNeighborEdit);
                     }
                 }
             }
 
             foreach (var kvp in editsByChunkCoord) {
-                var chunk = volume.GetChunkByCoord(kvp.Key);
+                var chunk = geoVolume.GetChunkByCoord(kvp.Key);
 
                 if (chunk == null)
                     continue;
@@ -233,7 +237,7 @@ namespace Spellbound.GeoForge {
             }
         }
 
-        public VoxelData QueryVoxel(Vector3 position, out IVolume queryvolume) {
+        public VoxelData QueryVoxel(Vector3 position, out IGeoVolume queryvolume) {
             queryvolume = null;
 
             foreach (var voxelVolume in _voxelVolumes) {

@@ -1,9 +1,9 @@
-// Copyright 2025 Spellbound Studio Inc.
+// Copyright 2026 Spellbound Studio Inc.
 
 namespace Spellbound.GeoForge {
     /// <summary>
     /// Represents a run of the same voxels.
-    /// A NativeList of these structs can represent the full voxel data of a chunk within less memory.
+    /// A NativeList of these structs can represent the full voxel data of a geoChunk within less memory.
     /// The Marching Cubes Algorithm CANNOT operate on this representation of voxel data.
     /// It must be unpacked for marching.
     /// </summary>

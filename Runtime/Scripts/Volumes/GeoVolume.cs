@@ -1,27 +1,27 @@
-// Copyright 2025 Spellbound Studio Inc.
+// Copyright 2026 Spellbound Studio Inc.
 
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using Spellbound.Core;
+using Spellbound.Core.Tooling;
 using Unity.Entities;
 using UnityEngine;
 using Object = UnityEngine.Object;
 
 namespace Spellbound.GeoForge {
-    public class BaseVolume : IDisposable {
+    public class GeoVolume : IDisposable {
         private readonly MonoBehaviour _owner;
-        private readonly IVolume _ownerAsIVolume;
-        private Dictionary<Vector3Int, IChunk> _chunkDict = new();
+        private readonly IGeoVolume _ownerAsIGeoVolume;
+        private Dictionary<Vector3Int, IGeoChunk> _chunkDict = new();
         private Bounds _bounds;
         public BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob { get; private set; }
 
         public Transform Transform => _owner.transform;
-        public Dictionary<Vector3Int, IChunk> ChunkDict => _chunkDict;
+        public Dictionary<Vector3Int, IGeoChunk> ChunkDict => _chunkDict;
 
-        public BaseVolume(MonoBehaviour owner, IVolume ownerAsIVolume, VoxelVolumeConfig config) {
+        public GeoVolume(MonoBehaviour owner, IGeoVolume ownerAsIGeoVolume, VoxelVolumeConfig config) {
             _owner = owner;
-            _ownerAsIVolume = ownerAsIVolume;
+            _ownerAsIGeoVolume = ownerAsIGeoVolume;
             ConfigBlob = VolumeConfigBlobCreator.CreateVolumeConfigBlobAsset(config);
             _bounds = CalculateVolumeBounds();
         }
@@ -44,18 +44,18 @@ namespace Spellbound.GeoForge {
                 return;
             }
 
-            mcManager.RegisterVoxelVolume(_ownerAsIVolume);
+            mcManager.RegisterVoxelVolume(_ownerAsIGeoVolume);
         }
 
-        public IChunk GetChunkByCoord(Vector3Int coord) => _chunkDict.GetValueOrDefault(coord);
+        public IGeoChunk GetChunkByCoord(Vector3Int coord) => _chunkDict.GetValueOrDefault(coord);
 
-        public IChunk GetChunkByWorldPosition(Vector3 worldPos) {
+        public IGeoChunk GetChunkByWorldPosition(Vector3 worldPos) {
             var voxelPos = WorldToVoxelSpace(worldPos);
 
             return GetChunkByVoxelPosition(voxelPos);
         }
 
-        public IChunk GetChunkByVoxelPosition(Vector3Int voxelPos) {
+        public IGeoChunk GetChunkByVoxelPosition(Vector3Int voxelPos) {
             var coord = GetCoordByVoxelPosition(voxelPos);
 
             return GetChunkByCoord(coord);
@@ -73,6 +73,7 @@ namespace Spellbound.GeoForge {
 
         public async Awaitable ValidateChunkLodsAsync() {
             var chunkList = new List<Vector3Int>(_chunkDict.Keys.ToList());
+            var count = 0;
 
             foreach (var coord in chunkList) {
                 if (!_chunkDict.TryGetValue(coord, out var chunk))
@@ -84,24 +85,28 @@ namespace Spellbound.GeoForge {
                 if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out _))
                     continue;
 
-                var lodDistanceTargetVoxelSpace = WorldToVoxelSpace(_ownerAsIVolume.LodTarget.position);
+                var lodDistanceTargetVoxelSpace = WorldToVoxelSpace(_ownerAsIGeoVolume.LodTarget.position);
                 chunk.ValidateOctreeLods(lodDistanceTargetVoxelSpace);
 
+                if (++count <= ConfigBlob.Value.ValidatesPerFrame)
+                    continue;
+
+                count = 0;
                 await Awaitable.NextFrameAsync();
             }
         }
 
-        public bool RegisterChunk(Vector3Int chunkCoord, IChunk chunk) {
-            if (chunk == null)
+        public bool RegisterChunk(Vector3Int chunkCoord, IGeoChunk geoChunk) {
+            if (geoChunk == null)
                 return false;
 
-            if (_chunkDict.TryAdd(chunkCoord, chunk))
+            if (_chunkDict.TryAdd(chunkCoord, geoChunk))
                 return true;
 
             return false;
         }
 
-        public T CreateChunk<T>(Vector3Int chunkCoord, GameObject chunkPrefab) where T : class, IChunk {
+        public T CreateChunk<T>(Vector3Int chunkCoord, GameObject chunkPrefab) where T : class, IGeoChunk {
             ref var config = ref ConfigBlob.Value;
 
             var localChunkPos = (Vector3)chunkCoord * (config.ChunkSize * config.Resolution);
@@ -115,13 +120,13 @@ namespace Spellbound.GeoForge {
             );
 
             if (!chunkObj.TryGetComponent(out T chunk)) {
-                Debug.LogError($"Chunk prefab missing component of type {typeof(T).Name}");
+                Debug.LogError($"Chunk bakePrefab missing component of type {typeof(T).Name}");
                 Object.Destroy(chunkObj); // Clean up failed instantiation
 
                 return null;
             }
 
-            chunk.SetCoordAndFields(chunkCoord);
+            chunk.InitializeGeoChunk(chunkCoord);
 
             return chunk;
         }

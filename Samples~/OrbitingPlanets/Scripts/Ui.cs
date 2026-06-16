@@ -114,7 +114,7 @@ namespace Spellbound.GeoForge.Sample3 {
 
         private void HandleStrengthSliderChanged(float value) {
             terraformingStrengthValue.text = value.ToString("F2");
-            _controller.terraformStrength = (int)value;
+            _controller.terraformStrength = (short)value;
         }
 
         private void HandleCollisionToggle(bool value) => _controller.playerCollider.enabled = value;

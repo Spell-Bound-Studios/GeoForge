@@ -23,7 +23,7 @@ namespace Spellbound.GeoForge.Sample3 {
         [SerializeField] public float terraformSize = 1f;
 
         [SerializeField, Range(1, byte.MaxValue)]
-        public int terraformStrength = byte.MaxValue;
+        public short terraformStrength = byte.MaxValue;
 
         [SerializeField] public List<byte> diggableMaterialList = new();
         [SerializeField] public byte addableMaterial;
@@ -168,7 +168,7 @@ namespace Spellbound.GeoForge.Sample3 {
                     out var hit,
                     terraformRange,
                     ~0)) {
-                var volume = hit.transform.GetComponentInParent<IVolume>();
+                var volume = hit.transform.GetComponentInParent<IGeoVolume>();
 
                 if (volume == null) {
                     _projectionObj.SetActive(false);

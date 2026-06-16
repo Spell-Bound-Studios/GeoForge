@@ -1,4 +1,4 @@
-// Copyright 2025 Spellbound Studio Inc.
+// Copyright 2026 Spellbound Studio Inc.
 
 using Unity.Burst;
 using Unity.Collections;
@@ -97,7 +97,7 @@ namespace Spellbound.GeoForge {
                         // or "full" caseCode = 255.
                         if ((caseCode ^ ((cellValues[7].Density >> 7) & 0xFF)) == 0) continue;
 
-                        // Cache validator is a bitwise mask to see if the cube is on any minimal edge of the chunk
+                        // Cache validator is a bitwise mask to see if the cube is on any minimal edge of the geoChunk
                         // where some data does not exist.
                         var cacheValidator = (x != 0 ? 0x01 : 0)
                                              | (z != 0 ? 0x02 : 0)
@@ -126,7 +126,7 @@ namespace Spellbound.GeoForge {
                                     ((cacheDir >> 2) & 1) == 1 ? previousCache : currentCache;
 
                             // IsVertexCache-able indicates of an existing vertex exists.
-                            // It synthesizes where in the cube the vertex is, and where in the chunk the cube is.
+                            // It synthesizes where in the cube the vertex is, and where in the geoChunk the cube is.
                             var isVertexCacheable = (cacheDir & cacheValidator) == cacheDir;
 
                             // VertexIndex indicates what vertex will go into the triangle array to wind the triangle
@@ -148,7 +148,7 @@ namespace Spellbound.GeoForge {
 
                                 // This is caching the vertexIndex for cubes marched later in the loop. 
                                 // Could be optimized to also cache more stuff when the cache validator is non-zero
-                                // (aka on an edge of the chunk).
+                                // (aka on an edge of the geoChunk).
                                 if (cornerIdx1 == 7) {
                                     currentCache[x * cubesMarchedPerLeaf * 4 + z * 4 + cacheIdx] =
                                             vertexIndex;
@@ -176,7 +176,7 @@ namespace Spellbound.GeoForge {
                                 // Cache these for the subdivision loop
                                 var isVert0DensityAboveThreshold = voxel0.Density >= densityThreshold;
 
-                                // This consecutively subdivides the coarser LOD to find the exact place the density crosses the threshold.
+                                // This consecutively subdivides the coarser LOD to find the exact place the DensityDelta crosses the threshold.
                                 for (var j = 0; j < Lod; ++j) {
                                     var mid = (p0 + p1) * 0.5f;
                                     var samplePos = (int3)math.round(mid);
@@ -391,7 +391,7 @@ namespace Spellbound.GeoForge {
             float baseWeight,
             ref NativeList<byte> uniqueMaterials,
             ref NativeList<float> materialWeights) {
-            // Skip voxels with zero density (air)
+            // Skip voxels with zero DensityDelta (air)
             if (voxel.Density == 0) return;
 
             var matIndex = voxel.MaterialIndex;

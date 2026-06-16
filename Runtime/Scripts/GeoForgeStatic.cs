@@ -1,8 +1,8 @@
-// Copyright 2025 Spellbound Studio Inc.
+// Copyright 2026 Spellbound Studio Inc.
 
 using System.Collections.Generic;
 using System.Linq;
-using Spellbound.Core;
+using Spellbound.Core.Tooling;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
@@ -45,13 +45,13 @@ namespace Spellbound.GeoForge {
                 return;
             }
 
-            var iVolume = hit.collider.transform.GetComponentInParent<IVolume>();
+            var iVolume = hit.collider.transform.GetComponentInParent<IGeoVolume>();
 
             if (iVolume == null)
                 return;
 
             var matHashSet = materials == null ? gfManager.GetAllMaterials() : materials.ToHashSet();
-            var results = TerraformCommands.TerraformSphere(iVolume, hit.point, radius, -delta, matHashSet);
+            var results = TerraformCommands.TerraformSphere(iVolume, hit.point, radius, (short)-delta, matHashSet);
             gfManager.DistributeVoxelEdits(iVolume, results.edits);
         }
 
@@ -59,38 +59,37 @@ namespace Spellbound.GeoForge {
         /// Public method to Remove or "Dig-into" a spherical region for ALL GeoForge volumes in the region.
         /// </summary>
         public static void RemoveSphereAll(
-            RaycastHit hit, float radius, int delta, List<byte> materials = null) {
+            RaycastHit hit, float radius, short delta, List<byte> materials = null) {
             if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager)) {
                 Debug.LogError("GeoForgeManager not found. Ensure it's in the current scene.");
 
                 return;
             }
 
-            var iVolume = hit.collider.transform.GetComponentInParent<IVolume>();
+            var iVolume = hit.collider.transform.GetComponentInParent<IGeoVolume>();
 
             if (iVolume == null)
                 return;
 
             var matHashSet = materials == null ? gfManager.GetAllMaterials() : materials.ToHashSet();
-            var results = TerraformCommands.TerraformSphere(iVolume, hit.point, radius, -delta, matHashSet);
 
             gfManager.ExecuteTerraformAll(volume =>
-                    TerraformCommands.TerraformSphere(volume, hit.point, radius, -delta, matHashSet)
+                    TerraformCommands.TerraformSphere(volume, hit.point, radius, (short)-delta, matHashSet)
             );
         }
-        
+
         /// <summary>
-        /// Public method to Add or "Deposit-onto" a spherical region for one specific GeoForge volume. 
+        /// Public method to Add or "Deposit-onto" a spherical region for one specific GeoForge geoVolume. 
         /// </summary>
         public static void AddSphere(
-            RaycastHit hit, float radius, int delta, byte material) {
+            RaycastHit hit, float radius, short delta, byte material) {
             if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager)) {
                 Debug.LogError("GeoForgeManager not found. Ensure it's in the current scene.");
 
                 return;
             }
 
-            var iVolume = hit.collider.transform.GetComponentInParent<IVolume>();
+            var iVolume = hit.collider.transform.GetComponentInParent<IGeoVolume>();
 
             if (iVolume == null)
                 return;
