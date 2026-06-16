@@ -6,15 +6,16 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     public class SimpleGeoEditStore : IGeoEditStore {
-        
         private GeoForgeChunkData _chunkData;
 
         public SimpleGeoEditStore(GeoForgeChunkData chunkData = null) {
-            chunkData ??=  new GeoForgeChunkData();
+            chunkData ??= new GeoForgeChunkData();
             _chunkData = chunkData;
         }
+
         public event Action<List<(int, VoxelData)>> OnGeoEditChanged;
         public Func<int, VoxelData> DefaultVoxelDataFunc { get; set; }
+
         public bool TryRead(int idx, out VoxelData voxelData) {
             if (_chunkData.TryReadEdit(idx, out voxelData))
                 return true;
@@ -24,7 +25,7 @@ namespace Spellbound.GeoForge {
             return false;
         }
 
-        public void Write(List<(int, VoxelData)> voxelDatas)  {
+        public void Write(List<(int, VoxelData)> voxelDatas) {
             var changes = new List<(int, VoxelData)>(voxelDatas.Count);
 
             foreach (var (idx, voxelData) in voxelDatas) {
@@ -72,7 +73,7 @@ namespace Spellbound.GeoForge {
             foreach (var (idx, voxelData) in _chunkData.Edits)
                 yield return (idx, voxelData);
         }
-        
+
         #region Notify Helpers
 
         private void NotifyGeoEditsChanged(List<(int, VoxelData)> changes) {

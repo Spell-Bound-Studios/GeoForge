@@ -54,9 +54,7 @@ namespace Spellbound.GeoForge {
         public async void ValidateAllVolumesLodsAsync() {
             try {
                 while (true) {
-                    foreach (var volume in _voxelVolumes) {
-                        await volume.ValidateChunkLods();
-                    }
+                    foreach (var volume in _voxelVolumes) await volume.ValidateChunkLods();
 
                     await Awaitable.NextFrameAsync();
                 }

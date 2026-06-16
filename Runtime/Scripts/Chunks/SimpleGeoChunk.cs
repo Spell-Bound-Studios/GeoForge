@@ -1,7 +1,6 @@
 // Copyright 2026 Spellbound Studio Inc.
 
 using System.Collections.Generic;
-using Spellbound.Core.Logging;
 using Unity.Collections;
 using UnityEngine;
 
@@ -19,10 +18,8 @@ namespace Spellbound.GeoForge {
             GeoChunk.IGeoEditStore.DefaultVoxelDataFunc = GeoChunk.GetVoxelData;
         }
 
-        public virtual void PassVoxelEdits(List<VoxelDelta> newVoxelEdits) {
-            GeoChunk.IGeoEditStore.Delta(newVoxelEdits); 
-        } 
-                
+        public virtual void PassVoxelEdits(List<VoxelDelta> newVoxelEdits) =>
+                GeoChunk.IGeoEditStore.Delta(newVoxelEdits);
 
         public void SetDataFactory(DataFactory factory) => dataFactory = factory;
 
@@ -49,12 +46,9 @@ namespace Spellbound.GeoForge {
 
             dataFactory.FillDataArray(_geoChunk.ChunkCoord, _geoChunk.ParentGeoVolume.ConfigBlob, voxels);
             _geoChunk.InitializeChunk(voxels);
-            
         }
 
-        public void ValidateOctreeLods(Vector3 playerPosition) {
-            GeoChunk.ValidateOctreeLods(playerPosition);
-        }
+        public void ValidateOctreeLods(Vector3 playerPosition) => GeoChunk.ValidateOctreeLods(playerPosition);
 
         /// <summary>
         /// This must be done on ALL IGeoChunk implementers to prevent memory leaks.

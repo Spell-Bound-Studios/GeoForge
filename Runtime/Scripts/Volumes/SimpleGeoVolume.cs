@@ -110,8 +110,6 @@ namespace Spellbound.GeoForge {
 
             _geoVolume.UpdateVolumeOrigin();
         }
-        
-        
 
         /// <summary>
         /// This must be done on ALL IGeoVolume implementers to prevent memory leaks.

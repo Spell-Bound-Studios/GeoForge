@@ -43,6 +43,7 @@ namespace Spellbound.GeoForge {
 
                 return;
             }
+
             mcManager.RegisterVoxelVolume(_ownerAsIGeoVolume);
         }
 
@@ -73,6 +74,7 @@ namespace Spellbound.GeoForge {
         public async Awaitable ValidateChunkLodsAsync() {
             var chunkList = new List<Vector3Int>(_chunkDict.Keys.ToList());
             var count = 0;
+
             foreach (var coord in chunkList) {
                 if (!_chunkDict.TryGetValue(coord, out var chunk))
                     continue;
@@ -85,13 +87,12 @@ namespace Spellbound.GeoForge {
 
                 var lodDistanceTargetVoxelSpace = WorldToVoxelSpace(_ownerAsIGeoVolume.LodTarget.position);
                 chunk.ValidateOctreeLods(lodDistanceTargetVoxelSpace);
-                
-                if (++count <= ConfigBlob.Value.ValidatesPerFrame) 
+
+                if (++count <= ConfigBlob.Value.ValidatesPerFrame)
                     continue;
 
                 count = 0;
                 await Awaitable.NextFrameAsync();
-
             }
         }
 
