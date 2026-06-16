@@ -127,18 +127,14 @@ namespace GeoForge.Sample4 {
                 return;
             }
             
-            InitializeTargetRpc(target, chunkCoord);
+            _chunkCoord = chunkCoord;
+            gameObject.name = chunkCoord.ToString();
             
             Debug.Log($"[Client] Initializing chunk at {GeoChunk?.ChunkCoord}");
             
             InitializeChunk();
         }
         
-        [TargetRpc]
-        private void InitializeTargetRpc(PlayerID player, Vector3Int coord) {
-            _chunkCoord = coord;
-            gameObject.name = coord.ToString();
-        }
 
         #endregion
 
