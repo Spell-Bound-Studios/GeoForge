@@ -130,7 +130,8 @@ namespace Spellbound.GeoForge {
         }
 
         public void ValidateOctreeLods(Vector3 playerPosition, NativeArray<VoxelData> voxelArray) {
-            var targetLod = GetLodRange(Center, playerPosition, _parentGeoVolume.ConfigBlob.Value.Resolution);
+            //var targetLod = GetLodRange(Center, playerPosition, _parentGeoVolume.ConfigBlob.Value.Resolution);
+            var targetLod = 0;
 
             if (_geoChunk.DensityRange.IsSkippable()) return;
 

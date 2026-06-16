@@ -55,7 +55,6 @@ namespace Spellbound.GeoForge {
             try {
                 while (true) {
                     foreach (var volume in _voxelVolumes) {
-                        Debug.Log("ValidateChunkLods about to run");
                         await volume.ValidateChunkLods();
                     }
 

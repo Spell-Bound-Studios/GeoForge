@@ -43,8 +43,6 @@ namespace Spellbound.GeoForge {
 
                 return;
             }
-
-            Debug.Log("Registering volume");
             mcManager.RegisterVoxelVolume(_ownerAsIGeoVolume);
         }
 

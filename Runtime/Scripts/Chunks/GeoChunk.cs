@@ -315,11 +315,8 @@ namespace Spellbound.GeoForge {
         }
 
         public void ValidateOctreeLods(Vector3 playerPosition) {
-            Debug.Log("ValidateOctreeLods is running in POCO GeoChunk");
             if (!_sparseVoxels.IsCreated)
                 return;
-            
-            Debug.Log("ValidateOctreeLods is running in POCO GeoChunk and passed the sparseVoxelsCheck");
 
             var playerPositionChunkSpace = playerPosition - _bounds.min;
             _rootNode.ValidateOctreeLods(playerPositionChunkSpace, GetVoxelDataArray());
