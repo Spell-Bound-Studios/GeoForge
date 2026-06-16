@@ -72,16 +72,6 @@ namespace Spellbound.GeoForge {
             foreach (var (idx, voxelData) in _chunkData.Edits)
                 yield return (idx, voxelData);
         }
-
-        public void ClearAllEdits() {
-            var changes = new List<(int, VoxelData)>();
-
-            foreach (var (idx, voxelData) in ReadAllEdits()) {
-                changes.Add((idx, DefaultVoxelDataFunc(idx)));
-            }
-            _chunkData.ClearEdits();
-            NotifyGeoEditsChanged(changes);
-        }
         
         #region Notify Helpers
 

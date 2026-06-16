@@ -25,7 +25,7 @@ namespace Spellbound.GeoForge.Sample4 {
 
         #region Changes This Tick
         
-        private HashSet<int> _dirty;
+        private HashSet<int> _dirty = new();
 
         #endregion Changes This Tick
 
@@ -220,16 +220,6 @@ namespace Spellbound.GeoForge.Sample4 {
         public IEnumerable<(int, VoxelData)> ReadAllEdits() {
             foreach (var (idx, voxelData) in _chunkData.Edits)
                 yield return (idx, voxelData);
-        }
-
-        public void ClearAllEdits() {
-            if (!IsController(ownerAuth))
-                return;
-
-            _chunkData.ClearEdits();
-            _dirty.Clear();
-            NotifyGeoEditsChanged(new List<(int, VoxelData)>());
-            ClearAllEditsObserversRpc();
         }
 
         #endregion IGeoEditStore Implementation
