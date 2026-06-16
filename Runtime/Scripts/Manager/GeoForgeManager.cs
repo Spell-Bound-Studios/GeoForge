@@ -54,7 +54,9 @@ namespace Spellbound.GeoForge {
         public async void ValidateAllVolumesLodsAsync() {
             try {
                 while (true) {
-                    foreach (var volume in _voxelVolumes) await volume.ValidateChunkLods();
+                    foreach (var volume in _voxelVolumes) {
+                        await volume.ValidateChunkLods();
+                    }
 
                     await Awaitable.NextFrameAsync();
                 }
@@ -109,6 +111,7 @@ namespace Spellbound.GeoForge {
         }
 
         public void RegisterVoxelVolume(IGeoVolume geoVolume) {
+            Debug.Log("RegisterVoxelVolume called");
             _voxelVolumes.Add(geoVolume);
             var chunkSize = geoVolume.ConfigBlob.Value.ChunkSize;
 
