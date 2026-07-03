@@ -25,15 +25,15 @@ Material:
     serializedVersion: 3
     m_TexEnvs:
     - _TerrainAlbedoArray:
-        m_Texture: {fileID: -5196375866992033476, guid: 57003694a5eae8a4c8baaa49bdc18abe, type: 2}
+        m_Texture: {fileID: -8485858540279609692, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _TerrainMetalSmoothArray:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 7821240383847147627, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _TerrainNormalArray:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 4525816841744273673, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _TerrainTextureArray:
@@ -70,7 +70,7 @@ Material:
     - _Blend: 1
     - _Index: 1
     - _Metallic: 0
-    - _Normal_Power: 0
+    - _Normal_Power: 1
     - _QueueControl: 0
     - _QueueOffset: 0
     - _Scale: 0.07

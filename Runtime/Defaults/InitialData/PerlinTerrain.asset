@@ -15,8 +15,8 @@ MonoBehaviour:
   offset: {x: 0, y: 0, z: 0}
   sdfGradientSteepness: 16
   materialIndex: 0
-  amplitude: 10
-  baseNoiseScale: 0.05
+  amplitude: 50
+  baseNoiseScale: 0.01
   octaves: 3
   lacunarity: 2
   persistence: 0.5
