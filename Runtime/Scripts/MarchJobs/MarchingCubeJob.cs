@@ -10,11 +10,15 @@ using UnityEngine;
 namespace Spellbound.GeoForge {
     /// <summary>
     /// Job to March the Cubes (generate vertices and triangles from voxels) for the main region of a leaf of terrain.
+    /// Produces a mixed flat/smooth shaded mesh. Triangles whose dominant material appears in flatShadedLookUp get
+    /// exclusive vertex ownership and face normals ("any flat material wins" rule). All other triangles share
+    /// vertices and use gradient normals, identical to the smooth-shaded job.
     /// </summary>
     [BurstCompile]
     internal struct MarchingCubeJob : IJob {
         [ReadOnly] public BlobAssetReference<McTablesBlobAsset> TablesBlob;
         [ReadOnly] public BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob;
+        [ReadOnly] public NativeArray<bool> IsFlatShadedLookUp;
 
         [NativeDisableParallelForRestriction, ReadOnly]
         public NativeArray<VoxelData> VoxelArray;
@@ -43,6 +47,8 @@ namespace Spellbound.GeoForge {
 
             // Caches hold vertex indices from previous cubes. 2 "decks" in y-axis, and 4 positions on the leading
             // corner/edges of each cube.
+            // In the mixed shading job the cache always stores the original computed vertex index, identical to
+            // the smooth job. Whether to reuse or clone that index is decided later in the triangle loop.
             var currentCache = new NativeArray<int>(
                 cubesMarchedPerLeaf * cubesMarchedPerLeaf * 4,
                 Allocator.Temp,
@@ -111,7 +117,9 @@ namespace Spellbound.GeoForge {
                         // CellVertCount indicates how many vertices are in the cube.
                         var cellVertCount = tables.VertexCount[cellClass];
 
-                        // Inside this loop we are solving for a particular vertex of the cube
+                        // Inside this loop we are solving for a particular vertex of the cube.
+                        // This is identical to the smooth job: cache hits reuse the existing index, new vertices
+                        // are computed and cached. The flat/smooth decision is deferred to the triangle loop.
                         for (var i = 0; i < cellVertCount; ++i) {
                             // The following code extracts the bitwise information from the edgeCode
                             var edgeCode = edgeCodes[i];
@@ -125,19 +133,18 @@ namespace Spellbound.GeoForge {
                             var selectedCacheDock =
                                     ((cacheDir >> 2) & 1) == 1 ? previousCache : currentCache;
 
-                            // IsVertexCache-able indicates of an existing vertex exists.
+                            // IsVertexCache-able indicates if an existing vertex exists.
                             // It synthesizes where in the cube the vertex is, and where in the geoChunk the cube is.
                             var isVertexCacheable = (cacheDir & cacheValidator) == cacheDir;
 
-                            // VertexIndex indicates what vertex will go into the triangle array to wind the triangle
+                            // VertexIndex indicates what vertex will go into the triangle array to wind the triangle.
                             int vertexIndex;
 
-                            // This is the case where the vertex is available from a previous cube
+                            // Cache hit: reuse the existing vertex index. If the triangle loop later determines this
+                            // triangle is flat-shaded, it will clone these vertices at that point instead.
                             if (isVertexCacheable) {
-                                vertexIndex =
-                                        selectedCacheDock[
-                                            cachePosX * cubesMarchedPerLeaf * 4 + cachePosZ * 4 +
-                                            cacheIdx];
+                                vertexIndex = selectedCacheDock[
+                                    cachePosX * cubesMarchedPerLeaf * 4 + cachePosZ * 4 + cacheIdx];
                             }
 
                             // This is the case where a new vertex must be created.
@@ -146,7 +153,7 @@ namespace Spellbound.GeoForge {
                                 // triangle array).
                                 vertexIndex = Vertices.Length;
 
-                                // This is caching the vertexIndex for cubes marched later in the loop. 
+                                // This is caching the vertexIndex for cubes marched later in the loop.
                                 // Could be optimized to also cache more stuff when the cache validator is non-zero
                                 // (aka on an edge of the geoChunk).
                                 if (cornerIdx1 == 7) {
@@ -289,7 +296,8 @@ namespace Spellbound.GeoForge {
                                 );
 
                                 // The normal is a weighted average of the normals at the ends of the edges, same as
-                                // the vertex position.
+                                // the vertex position. For smooth triangles this is the final normal. For flat
+                                // triangles it will be overwritten with the face normal in the triangle loop.
                                 var normal = math.lerp(normal0, normal1, t);
                                 normal = math.normalize(normal);
 
@@ -344,8 +352,7 @@ namespace Spellbound.GeoForge {
                                     colorInterp));
                             }
 
-                            // For both new vertices and vertices re-used from previous cubes, the vertex index is
-                            // stored in the _vertexIndices Array.
+                            // For both new and cached vertices, the vertex index is stored in the vertexIndices array.
                             vertexIndices[i] = vertexIndex;
                         }
 
@@ -353,14 +360,58 @@ namespace Spellbound.GeoForge {
                         var indexCount = tables.TriangleCount[cellClass];
                         ref var cellIndices = ref tables.Indices[cellClass];
 
-                        // Inside this loop we are looping through the triangles
+                        // Inside this loop we are looping through the triangles.
+                        // "Any flat material wins": if matA of any vertex is in flatShadedLookUp, the whole
+                        // triangle is flat-shaded. Its three vertices are cloned so each triangle owns them
+                        // exclusively, and the normal is overwritten with the face normal. Otherwise the original
+                        // shared vertices and gradient normals are used unchanged (smooth shading).
                         for (var i = 0; i < indexCount; i += 3) {
                             var ia = vertexIndices[cellIndices[i + 0]];
                             var ib = vertexIndices[cellIndices[i + 1]];
                             var ic = vertexIndices[cellIndices[i + 2]];
 
-                            if (!IsDegenerateTriangle(Vertices[ia].Position, Vertices[ib].Position,
-                                    Vertices[ic].Position)) {
+                            var posA = Vertices[ia].Position;
+                            var posB = Vertices[ib].Position;
+                            var posC = Vertices[ic].Position;
+
+                            if (IsDegenerateTriangle(posA, posB, posC)) continue;
+
+                            // Check if any of the three vertices carries a flat-shaded material.
+                            var isFlatShaded = IsFlatShadedLookUp[Vertices[ia].FixedColor.r]
+                                               || IsFlatShadedLookUp[Vertices[ib].FixedColor.r]
+                                               || IsFlatShadedLookUp[Vertices[ic].FixedColor.r];
+
+                            if (isFlatShaded) {
+                                // Clone all three vertices so this triangle owns them exclusively.
+                                // The clones are never written to the cache; they exist only for this triangle.
+                                var newIa = Vertices.Length;
+                                Vertices.Add(Vertices[ia]);
+                                var newIb = Vertices.Length;
+                                Vertices.Add(Vertices[ib]);
+                                var newIc = Vertices.Length;
+                                Vertices.Add(Vertices[ic]);
+
+                                // Compute the face normal matching the (ic, ib, ia) winding order.
+                                var faceNormal = math.normalize(math.cross(posB - posC, posA - posC));
+
+                                var vertA = Vertices[newIa];
+                                var vertB = Vertices[newIb];
+                                var vertC = Vertices[newIc];
+
+                                vertA.Normal = faceNormal;
+                                vertB.Normal = faceNormal;
+                                vertC.Normal = faceNormal;
+
+                                Vertices[newIa] = vertA;
+                                Vertices[newIb] = vertB;
+                                Vertices[newIc] = vertC;
+
+                                Triangles.Add(newIc);
+                                Triangles.Add(newIb);
+                                Triangles.Add(newIa);
+                            }
+                            else {
+                                // Smooth shading: reuse the shared vertices and their gradient normals as-is.
                                 Triangles.Add(ic);
                                 Triangles.Add(ib);
                                 Triangles.Add(ia);
@@ -387,7 +438,7 @@ namespace Spellbound.GeoForge {
 
         [BurstCompile]
         private static void AddMaterialWeight(
-            in VoxelData voxel, // Changed from 'VoxelData voxel' to 'in VoxelData voxel'
+            in VoxelData voxel,
             float baseWeight,
             ref NativeList<byte> uniqueMaterials,
             ref NativeList<float> materialWeights) {

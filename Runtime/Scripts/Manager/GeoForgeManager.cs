@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using Spellbound.Core.Tooling;
+using Unity.Collections;
 using Unity.Entities;
 using UnityEngine;
 
@@ -27,6 +28,7 @@ namespace Spellbound.GeoForge {
         private Transform _objectPoolParent;
 
         private HashSet<byte> _allMaterials;
+        public NativeArray<bool> FlatShadedLookUp { get; private set; }
         [SerializeField] private byte defaultMaterial;
 
         public HashSet<byte> GetAllMaterials() {
@@ -49,6 +51,10 @@ namespace Spellbound.GeoForge {
             _objectPoolParent.SetParent(transform);
             InitializeVoxelMaterial();
             ValidateAllVolumesLodsAsync();
+            FlatShadedLookUp = new NativeArray<bool>(256, Allocator.Persistent);
+            var lookUp = FlatShadedLookUp;
+            for (var i = 0; i < materialDatabase.materials.Count; i++)
+                lookUp[i] = materialDatabase.materials[i].isFlatShaded;
         }
 
         public async void ValidateAllVolumesLodsAsync() {
@@ -102,6 +108,9 @@ namespace Spellbound.GeoForge {
 
             if (McTablesBlob.IsCreated)
                 McTablesBlob.Dispose();
+            
+            if (FlatShadedLookUp.IsCreated)
+                FlatShadedLookUp.Dispose();
 
             ClearPool();
 

@@ -218,6 +218,7 @@ namespace Spellbound.GeoForge {
             var marchingCubeJob = new MarchingCubeJob {
                 TablesBlob = _gfManager.McTablesBlob,
                 ConfigBlob = _parentGeoVolume.ConfigBlob,
+                IsFlatShadedLookUp = _gfManager.FlatShadedLookUp,
                 VoxelArray = voxelArray,
 
                 Vertices = new NativeList<MeshingVertexData>(Allocator.Persistent),

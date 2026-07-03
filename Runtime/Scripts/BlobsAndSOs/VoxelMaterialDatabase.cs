@@ -17,6 +17,9 @@ namespace Spellbound.GeoForge {
 
             [Tooltip("Normal map texture")] public Texture2D normalTexture;
 
+            [Tooltip("if you want every part of a given mesh triangle to share the same normal. Gives a 'crystalline' kind of look")]
+            public bool isFlatShaded;
+            
             public MaterialEntry(string name = "New Material") {
                 materialName = name;
             }

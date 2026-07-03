@@ -8,3 +8,9 @@
 * Improved compatibility with saving/loading
 * Updated per Spellbound.Core 1.0.x
 
+## \[0.3.0] - 7/02/2026
+
+* Added Per-Material FlatShading Option
+
+
+
