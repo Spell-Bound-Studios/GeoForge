@@ -215,9 +215,10 @@ namespace Spellbound.GeoForge {
         }
 
         private void MarchAndMesh(NativeArray<VoxelData> voxelArray) {
-            var marchingCubeJob = new FlatShadedMarchingCubeJob() {
+            var marchingCubeJob = new MarchingCubeJob() {
                 TablesBlob = _gfManager.McTablesBlob,
                 ConfigBlob = _parentGeoVolume.ConfigBlob,
+                IsFlatShadedLookUp = _gfManager.FlatShadedLookUp,
                 VoxelArray = voxelArray,
 
                 Vertices = new NativeList<MeshingVertexData>(Allocator.Persistent),
