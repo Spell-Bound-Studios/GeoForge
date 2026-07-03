@@ -40,7 +40,6 @@ namespace Spellbound.GeoForge {
             var cubesMarchedPerLeaf = config.CubesMarchedPerOctreeLeaf;
             var resolution = config.Resolution;
             var offsetBurst = config.OffsetBurst;
-            
 
             // Padding is the offset between the index in the voxel array and the local position of the voxel.
             const int padding = 1;
