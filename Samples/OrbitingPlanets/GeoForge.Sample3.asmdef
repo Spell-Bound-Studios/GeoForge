@@ -1,0 +1,19 @@
+{
+    "name": "GeoForge.Sample3",
+    "rootNamespace": "",
+    "references": [
+        "GUID:c49e79d3649f1e842b7aed076afb4291",
+        "GUID:c14a5db03514b8d4ba10b621ed3627d5",
+        "GUID:6055be8ebefd69e48b49212b09b47b2f",
+        "GUID:75469ad4d38634e559750d17036d5f7c"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}

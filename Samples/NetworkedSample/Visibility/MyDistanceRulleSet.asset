@@ -1,0 +1,17 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 82fc41c1f0645d946a33c8668909ca23, type: 3}
+  m_Name: MyDistanceRulleSet
+  m_EditorClassIdentifier: PurrNet.Runtime::PurrNet.NetworkVisibilityRuleSet
+  _childrenInherit: 1
+  _rules:
+  - {fileID: 11400000, guid: a13e804d5ac2b6643af0fa9e41586937, type: 2}

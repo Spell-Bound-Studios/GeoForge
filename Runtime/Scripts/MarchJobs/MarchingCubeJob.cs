@@ -345,7 +345,7 @@ namespace Spellbound.GeoForge {
 
                                 var colorInterp = new float2((float)matA / byte.MaxValue, 0);
 
-                                var color = new Color32((byte)matA, (byte)matB, 0, 0);
+                                var color = new Color32(matA, matB, 0, 0);
                                 var centeredVertex = (vertex + offsetBurst) * resolution;
 
                                 Vertices.Add(new MeshingVertexData(centeredVertex, normal, color,
