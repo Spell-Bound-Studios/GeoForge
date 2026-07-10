@@ -17,6 +17,10 @@ namespace Spellbound.GeoForge {
                  "Refer to MarchingCubeManager for what index corresponds to what material"),
          SerializeField]
         private byte materialIndex = 0;
+        
+        [Tooltip("Whether the terrain is mature or not, rendering alternate textures on it's upwards-facing surfaces"),
+         SerializeField]
+        private bool isMature = true;
 
         [Header("Perlin Noise Settings"), Tooltip("Amplitude of Noise"), SerializeField]
         private float amplitude = 10;
@@ -44,7 +48,9 @@ namespace Spellbound.GeoForge {
                 var voxelPos = GetVoxelPosition(i, chunkOrigin, config);
                 var signedDistance = PerlinTerrainSDF(voxelPos, offset);
                 var densityByte = SignedDistanceToDensity(signedDistance, sdfGradientSteepness, config);
-                data[i] = new VoxelData(densityByte, materialIndex);
+                data[i] = isMature
+                        ? VoxelData.CreateMature(densityByte, materialIndex)
+                        : VoxelData.CreateImmature(densityByte, materialIndex);
             }
         }
 

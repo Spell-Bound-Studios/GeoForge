@@ -21,7 +21,7 @@ namespace Spellbound.GeoForge.Sample2 {
                 var delta = _geoChunk.GetVoxelData(newVoxelEdit.index).Density - newVoxelEdit.densityDelta;
                 _damagedVoxels[newVoxelEdit.index] = existing + delta;
 
-                if (_damagedVoxels[newVoxelEdit.index] > oreHealth) trueEdits.Add((newVoxelEdit.index, new VoxelData(0,0)));
+                if (_damagedVoxels[newVoxelEdit.index] > oreHealth) trueEdits.Add((newVoxelEdit.index, VoxelData.CreateImmature(0,0)));
             }
 
             if (_geoChunk.ApplyVoxelEdits(trueEdits, out var editBounds))

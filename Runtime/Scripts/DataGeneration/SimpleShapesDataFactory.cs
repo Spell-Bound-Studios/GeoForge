@@ -25,6 +25,10 @@ namespace Spellbound.GeoForge {
                  "Refer to MarchingCubeManager for what index corresponds to what material"),
          SerializeField]
         private byte materialIndex = 0;
+        
+        [Tooltip("Whether the terrain is mature or not, rendering alternate textures on it's upwards-facing surfaces"),
+         SerializeField]
+        private bool isMature = true;
 
         [Header("Shape Settings"), Tooltip("Type of Simple Shape"), SerializeField]
         private ShapeType shape = ShapeType.Sphere;
@@ -52,7 +56,10 @@ namespace Spellbound.GeoForge {
                 var signedDistance = GetSignedDistance(voxelPos, shapeSizeInVoxels);
                 signedDistance = invertShape ? -signedDistance : signedDistance;
                 var densityByte = SignedDistanceToDensity(signedDistance, sdfGradientSteepness, config);
-                data[i] = new VoxelData(densityByte, materialIndex);
+
+                data[i] = isMature
+                        ? VoxelData.CreateMature(densityByte, materialIndex)
+                        : VoxelData.CreateImmature(densityByte, materialIndex);
             }
         }
 

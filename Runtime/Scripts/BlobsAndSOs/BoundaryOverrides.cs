@@ -16,10 +16,10 @@ namespace Spellbound.GeoForge {
             var runtimeList = new List<BoundaryOverrideRuntime>();
 
             foreach (var bo in BoundaryOverridesList) {
-                var voxelData = new VoxelData {
-                    Density = bo.boundaryType == BoundaryType.Closed ? byte.MaxValue : byte.MinValue,
-                    MaterialIndex = bo.materialType
-                };
+                var voxelData = VoxelData.CreateMature(
+                    bo.boundaryType == BoundaryType.Closed ? byte.MaxValue : byte.MinValue,
+                    bo.materialType
+                );
 
                 runtimeList.Add(new BoundaryOverrideRuntime {
                     Axis = bo.axis,

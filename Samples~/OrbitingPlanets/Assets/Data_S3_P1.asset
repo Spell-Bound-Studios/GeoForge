@@ -15,6 +15,7 @@ MonoBehaviour:
   offset: {x: 0, y: 0, z: 0}
   sdfGradientSteepness: 32
   materialIndex: 1
+  isMature: 0
   shape: 4
   size: 20
   normalizedSize: 0

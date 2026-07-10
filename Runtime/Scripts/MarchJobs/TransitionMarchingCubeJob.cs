@@ -63,7 +63,9 @@ namespace Spellbound.GeoForge {
             var transitionVertexIndices = new NativeArray<int>(36, Allocator.Temp);
             var transitionCellValues = new NativeArray<VoxelData>(13, Allocator.Temp);
 
-            // Material blending structures - allocated once and reused for all vertices
+            // Material blending structures - allocated once and reused for all vertices.
+            // uniqueMaterials stores the DEMODULATED material index (0-127) only — maturity is resolved
+            // separately in GetNormalAndColor, checked only against voxel0/voxel1, not this dominance vote.
             var uniqueMaterials = new NativeList<byte>(14, Allocator.Temp);
             var materialWeights = new NativeList<float>(14, Allocator.Temp);
 
@@ -362,7 +364,8 @@ namespace Spellbound.GeoForge {
 
             var weight0 = 1f - t;
 
-            // Add all voxel contributions
+            // Add all voxel contributions (14-voxel neighborhood — this decides which TWO materials
+            // dominate this vertex, purely by material identity).
             AddMaterialWeight(voxel0, weight0, ref uniqueMaterials, ref materialWeights);
             AddMaterialWeight(v0011, weight0, ref uniqueMaterials, ref materialWeights);
             AddMaterialWeight(v0211, weight0, ref uniqueMaterials, ref materialWeights);
@@ -379,7 +382,7 @@ namespace Spellbound.GeoForge {
             AddMaterialWeight(v1110, t, ref uniqueMaterials, ref materialWeights);
             AddMaterialWeight(v1112, t, ref uniqueMaterials, ref materialWeights);
 
-            // Find top 2 materials
+            // Find top 2 materials (0-127 only — maturity plays no role in this selection).
             byte matA = 0;
             byte matB = 0;
             float matAWeight = 0;
@@ -398,13 +401,52 @@ namespace Spellbound.GeoForge {
                 }
             }
 
-            color = new Color32((byte)matA, (byte)matB, (byte)matA, 0);
+            // Maturity is checked ONLY against the two edge endpoints (voxel0/voxel1), not the wider
+            // 14-voxel dominance neighborhood above — "is this specific crossing point mature," not
+            // "is this whole neighborhood uniformly mature." Same rule as MarchingCubeJob.
+            var matIndex0 = (byte)(voxel0.MaterialIndex % VoxelData.MatureBitValue);
+            var isMature0 = voxel0.MaterialIndex >= VoxelData.MatureBitValue;
+            var matIndex1 = (byte)(voxel1.MaterialIndex % VoxelData.MatureBitValue);
+            var isMature1 = voxel1.MaterialIndex >= VoxelData.MatureBitValue;
+
+            var matAAllMature = ResolveMaturity(matA, matIndex0, isMature0, matIndex1, isMature1);
+            var matBAllMature = ResolveMaturity(matB, matIndex0, isMature0, matIndex1, isMature1);
+
+            color = new Color32(
+                matA,
+                matB,
+                (byte)(matAAllMature ? 255 : 0),
+                (byte)(matBAllMature ? 255 : 0)
+            );
         }
 
         private bool IsDegenerateTriangle(float3 a, float3 b, float3 c) {
             var area = math.length(math.cross(b - a, c - a));
 
             return area < 1e-5f; // Tweak epsilon if needed
+        }
+
+        // Returns true only if every endpoint (of voxel0/voxel1) whose demodulated material matches
+        // targetMat is mature. If neither endpoint's material matches targetMat (i.e. targetMat only
+        // came from the wider 14-voxel dominance neighborhood, not the endpoints themselves), this
+        // defaults to false rather than guessing at maturity from data we're not supposed to use.
+        // Identical logic to MarchingCubeJob.ResolveMaturity.
+        private static bool ResolveMaturity(
+            byte targetMat, byte matIndex0, bool isMature0, byte matIndex1, bool isMature1) {
+            var matched = false;
+            var allMature = true;
+
+            if (matIndex0 == targetMat) {
+                matched = true;
+                allMature &= isMature0;
+            }
+
+            if (matIndex1 == targetMat) {
+                matched = true;
+                allMature &= isMature1;
+            }
+
+            return matched && allMature;
         }
 
         [BurstCompile]
@@ -416,7 +458,9 @@ namespace Spellbound.GeoForge {
             // Skip voxels with zero DensityDelta (air)
             if (voxel.Density == 0) return;
 
-            var matIndex = voxel.MaterialIndex;
+            // Demodulate: material identity (0-127) only. Maturity is resolved separately in
+            // ResolveMaturity, checked only against voxel0/voxel1, not this wider neighborhood.
+            var matIndex = (byte)(voxel.MaterialIndex % VoxelData.MatureBitValue);
             var densityWeight = voxel.Density / 255f;
             var weight = baseWeight * densityWeight;
 

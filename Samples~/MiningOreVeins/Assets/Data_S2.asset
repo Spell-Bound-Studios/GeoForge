@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   offset: {x: 0, y: 0, z: 0}
   sdfGradientSteepness: 32
-  materialIndex: 1
+  materialIndex: 0
+  isMature: 0
   shape: 4
   size: 7
   normalizedSize: 0

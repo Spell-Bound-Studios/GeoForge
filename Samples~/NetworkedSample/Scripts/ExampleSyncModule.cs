@@ -262,7 +262,9 @@ namespace Spellbound.GeoForge.Sample4 {
                         ? newDelta.materialType
                         : voxelData.MaterialIndex;
 
-                var resolved = new VoxelData(density, matIndex);
+                var resolved = Mathf.Abs(newDelta.densityDelta) > 0 ?
+                        VoxelData.CreateImmature(density, matIndex) :
+                        VoxelData.CreateMature(density, matIndex);
 
                 if (resolved == voxelData)
                     continue;

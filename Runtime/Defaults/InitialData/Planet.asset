@@ -12,10 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 24cf1f274a851c949930b71f1eb56fef, type: 3}
   m_Name: Planet
   m_EditorClassIdentifier: 
-  shape: 3
-  size: 16
-  normalizedSize: 0
   offset: {x: 0, y: 0, z: 0}
   sdfGradientSteepness: 32
   materialIndex: 0
+  isMature: 0
+  shape: 3
+  size: 16
+  normalizedSize: 0
   invertShape: 0
