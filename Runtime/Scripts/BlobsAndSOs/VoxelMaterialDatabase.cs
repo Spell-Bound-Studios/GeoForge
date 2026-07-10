@@ -21,8 +21,14 @@ namespace Spellbound.GeoForge {
         [System.Serializable]
         public class MaterialEntry {
             public string materialName;
+            
+            // ---- Flat shading ----
+            [Tooltip("If you want every part of a given mesh triangle to share the same normal. Gives a 'crystalline' kind of look")]
+            public bool isFlatShaded;
 
             // ================= BASE =================
+            
+            [Header("Main Textures/Fallbacks")]
 
             // ---- Base color ----
             [Tooltip("Tint/base color. Used directly if Has Albedo Texture is false, or as a multiplicative tint over the texture if true.")]
@@ -54,13 +60,9 @@ namespace Spellbound.GeoForge {
             [Tooltip("Normal map texture")]
             public Texture2D normalTexture;
 
-            // ---- Flat shading ----
-            [Tooltip("If you want every part of a given mesh triangle to share the same normal. Gives a 'crystalline' kind of look")]
-            public bool isFlatShaded;
-
             // ================= ALT (normal-aware / stratified variant, e.g. moss/snow/sand layers) =================
 
-            [Header("Alt (undisturbed / normal-aware / stratified variant)")]
+            [Header("Alt Textures/Fallbacks")]
 
             [Tooltip("Tint/base color for the Alt variant. Used directly if Alt Has Albedo Texture is false, or as a multiplicative tint over the alt texture if true.")]
             public Color altFlatColor = Color.white;
