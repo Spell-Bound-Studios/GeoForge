@@ -52,7 +52,7 @@ namespace Spellbound.GeoForge {
                 var signedDistance = GetSignedDistance(voxelPos, shapeSizeInVoxels);
                 signedDistance = invertShape ? -signedDistance : signedDistance;
                 var densityByte = SignedDistanceToDensity(signedDistance, sdfGradientSteepness, config);
-                data[i] = new VoxelData(densityByte, materialIndex);
+                data[i] = VoxelData.CreateMature(densityByte, materialIndex);
             }
         }
 

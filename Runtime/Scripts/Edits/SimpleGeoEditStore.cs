@@ -56,11 +56,10 @@ namespace Spellbound.GeoForge {
                 var matIndex = voxelData.Density < newDelta.densityDelta
                         ? newDelta.materialType
                         : voxelData.MaterialIndex;
-                
-                if (Mathf.Abs(newDelta.densityDelta) > 0)
-                    matIndex = (byte)(matIndex % 128);
 
-                var resolved = new VoxelData(density, matIndex);
+                var resolved = Mathf.Abs(newDelta.densityDelta) > 0 ?
+                        VoxelData.CreateImmature(density, matIndex) :
+                        VoxelData.CreateMature(density, matIndex);
 
                 if (resolved == voxelData)
                     continue;

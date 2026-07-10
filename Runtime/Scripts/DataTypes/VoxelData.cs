@@ -12,13 +12,21 @@ namespace Spellbound.GeoForge {
     /// </summary>
     [Serializable]
     public struct VoxelData : IEquatable<VoxelData>, IPacker {
+        public const byte MatureBitValue = 128;
+        
         public byte Density;
         public byte MaterialIndex;
 
-        public VoxelData(byte density, byte matIndex) {
+        private VoxelData(byte density, byte matIndex) {
             Density = density;
             MaterialIndex = matIndex;
         }
+        
+        public static VoxelData CreateImmature(byte density, byte matIndex) =>
+                new(density, (byte)(matIndex % MatureBitValue));
+        
+        public static VoxelData CreateMature(byte density, byte matIndex) =>
+                new(density, (byte)((matIndex % MatureBitValue) + MatureBitValue));
 
         public void Pack(ref Span<byte> buffer) {
             Packer.WriteByte(ref buffer, Density);

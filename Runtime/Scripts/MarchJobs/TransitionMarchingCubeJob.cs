@@ -28,9 +28,6 @@ namespace Spellbound.GeoForge {
         public int Lod;
         public int3 Start;
 
-        // Mature/undisturbed bit lives in the high bit of VoxelData.MaterialIndex (>= 128 = mature).
-        private const byte MatureBitValue = 128;
-
         public void Execute() {
             var currentStart = 0;
             GenerateTransitionMesh(GfStaticHelper.TransitionFaceMask.XMin);
@@ -67,10 +64,10 @@ namespace Spellbound.GeoForge {
             var transitionCellValues = new NativeArray<VoxelData>(13, Allocator.Temp);
 
             // Material blending structures - allocated once and reused for all vertices.
-            // uniqueMaterials stores the DEMODULATED material index (0-127) only — see AddMaterialWeight.
+            // uniqueMaterials stores the DEMODULATED material index (0-127) only — maturity is resolved
+            // separately in GetNormalAndColor, checked only against voxel0/voxel1, not this dominance vote.
             var uniqueMaterials = new NativeList<byte>(14, Allocator.Temp);
             var materialWeights = new NativeList<float>(14, Allocator.Temp);
-            var materialMatureWeights = new NativeList<float>(14, Allocator.Temp);
 
             for (var y = 0; y < config.CubesMarchedPerOctreeLeaf; y++) {
                 for (var x = 0; x < config.CubesMarchedPerOctreeLeaf; x++) {
@@ -211,7 +208,7 @@ namespace Spellbound.GeoForge {
                             vertex = math.lerp(corner0Copy, corner1Copy, t);
 
                             GetNormalAndColor(corner0Copy, corner1Copy, t, ref uniqueMaterials, ref materialWeights,
-                                ref materialMatureWeights, out var n, out var c);
+                                out var n, out var c);
                             normal = n;
                             color = c;
                             var colorInterp = new float2((float)c.r / byte.MaxValue, 0);
@@ -276,13 +273,11 @@ namespace Spellbound.GeoForge {
             // Dispose reused structures
             uniqueMaterials.Dispose();
             materialWeights.Dispose();
-            materialMatureWeights.Dispose();
         }
 
         private void GetNormalAndColor(
             int3 corner0, int3 corner1, float t, ref NativeList<byte> uniqueMaterials,
-            ref NativeList<float> materialWeights, ref NativeList<float> materialMatureWeights,
-            out float3 normal, out Color32 color) {
+            ref NativeList<float> materialWeights, out float3 normal, out Color32 color) {
             ref var config = ref ConfigBlob.Value;
 
             var vertPosX0 = corner0.x;
@@ -366,62 +361,62 @@ namespace Spellbound.GeoForge {
             // Clear lists for reuse
             uniqueMaterials.Clear();
             materialWeights.Clear();
-            materialMatureWeights.Clear();
 
             var weight0 = 1f - t;
 
-            // Add all voxel contributions
-            AddMaterialWeight(voxel0, weight0, ref uniqueMaterials, ref materialWeights, ref materialMatureWeights);
-            AddMaterialWeight(v0011, weight0, ref uniqueMaterials, ref materialWeights, ref materialMatureWeights);
-            AddMaterialWeight(v0211, weight0, ref uniqueMaterials, ref materialWeights, ref materialMatureWeights);
-            AddMaterialWeight(v0101, weight0, ref uniqueMaterials, ref materialWeights, ref materialMatureWeights);
-            AddMaterialWeight(v0121, weight0, ref uniqueMaterials, ref materialWeights, ref materialMatureWeights);
-            AddMaterialWeight(v0110, weight0, ref uniqueMaterials, ref materialWeights, ref materialMatureWeights);
-            AddMaterialWeight(v0112, weight0, ref uniqueMaterials, ref materialWeights, ref materialMatureWeights);
+            // Add all voxel contributions (14-voxel neighborhood — this decides which TWO materials
+            // dominate this vertex, purely by material identity).
+            AddMaterialWeight(voxel0, weight0, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v0011, weight0, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v0211, weight0, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v0101, weight0, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v0121, weight0, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v0110, weight0, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v0112, weight0, ref uniqueMaterials, ref materialWeights);
 
-            AddMaterialWeight(voxel1, t, ref uniqueMaterials, ref materialWeights, ref materialMatureWeights);
-            AddMaterialWeight(v1011, t, ref uniqueMaterials, ref materialWeights, ref materialMatureWeights);
-            AddMaterialWeight(v1211, t, ref uniqueMaterials, ref materialWeights, ref materialMatureWeights);
-            AddMaterialWeight(v1101, t, ref uniqueMaterials, ref materialWeights, ref materialMatureWeights);
-            AddMaterialWeight(v1121, t, ref uniqueMaterials, ref materialWeights, ref materialMatureWeights);
-            AddMaterialWeight(v1110, t, ref uniqueMaterials, ref materialWeights, ref materialMatureWeights);
-            AddMaterialWeight(v1112, t, ref uniqueMaterials, ref materialWeights, ref materialMatureWeights);
+            AddMaterialWeight(voxel1, t, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v1011, t, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v1211, t, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v1101, t, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v1121, t, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v1110, t, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v1112, t, ref uniqueMaterials, ref materialWeights);
 
-            // Find top 2 materials (0-127 only — maturity was already excluded from this selection
-            // by AddMaterialWeight demodulating on the way in).
+            // Find top 2 materials (0-127 only — maturity plays no role in this selection).
             byte matA = 0;
             byte matB = 0;
             float matAWeight = 0;
             float matBWeight = 0;
-            var matAMatureWeight = 0f;
-            var matBMatureWeight = 0f;
 
             for (var l = 0; l < uniqueMaterials.Length; l++) {
                 if (materialWeights[l] > matAWeight) {
                     matB = matA;
                     matBWeight = matAWeight;
-                    matBMatureWeight = matAMatureWeight;
-
                     matA = uniqueMaterials[l];
                     matAWeight = materialWeights[l];
-                    matAMatureWeight = materialMatureWeights[l];
                 }
                 else if (materialWeights[l] > matBWeight) {
                     matB = uniqueMaterials[l];
                     matBWeight = materialWeights[l];
-                    matBMatureWeight = materialMatureWeights[l];
                 }
             }
 
-            // Maturity resolved independently per winning material, same as the main MarchingCubeJob.
-            var isMatureA = matAWeight > 0f && matAMatureWeight > matAWeight * 0.5f;
-            var isMatureB = matBWeight > 0f && matBMatureWeight > matBWeight * 0.5f;
+            // Maturity is checked ONLY against the two edge endpoints (voxel0/voxel1), not the wider
+            // 14-voxel dominance neighborhood above — "is this specific crossing point mature," not
+            // "is this whole neighborhood uniformly mature." Same rule as MarchingCubeJob.
+            var matIndex0 = (byte)(voxel0.MaterialIndex % VoxelData.MatureBitValue);
+            var isMature0 = voxel0.MaterialIndex >= VoxelData.MatureBitValue;
+            var matIndex1 = (byte)(voxel1.MaterialIndex % VoxelData.MatureBitValue);
+            var isMature1 = voxel1.MaterialIndex >= VoxelData.MatureBitValue;
+
+            var matAAllMature = ResolveMaturity(matA, matIndex0, isMature0, matIndex1, isMature1);
+            var matBAllMature = ResolveMaturity(matB, matIndex0, isMature0, matIndex1, isMature1);
 
             color = new Color32(
                 matA,
                 matB,
-                (byte)(isMatureA ? 255 : 0),
-                (byte)(isMatureB ? 255 : 0)
+                (byte)(matAAllMature ? 255 : 0),
+                (byte)(matBAllMature ? 255 : 0)
             );
         }
 
@@ -431,22 +426,41 @@ namespace Spellbound.GeoForge {
             return area < 1e-5f; // Tweak epsilon if needed
         }
 
+        // Returns true only if every endpoint (of voxel0/voxel1) whose demodulated material matches
+        // targetMat is mature. If neither endpoint's material matches targetMat (i.e. targetMat only
+        // came from the wider 14-voxel dominance neighborhood, not the endpoints themselves), this
+        // defaults to false rather than guessing at maturity from data we're not supposed to use.
+        // Identical logic to MarchingCubeJob.ResolveMaturity.
+        private static bool ResolveMaturity(
+            byte targetMat, byte matIndex0, bool isMature0, byte matIndex1, bool isMature1) {
+            var matched = false;
+            var allMature = true;
+
+            if (matIndex0 == targetMat) {
+                matched = true;
+                allMature &= isMature0;
+            }
+
+            if (matIndex1 == targetMat) {
+                matched = true;
+                allMature &= isMature1;
+            }
+
+            return matched && allMature;
+        }
+
         [BurstCompile]
         private static void AddMaterialWeight(
             in VoxelData voxel,
             float baseWeight,
             ref NativeList<byte> uniqueMaterials,
-            ref NativeList<float> materialWeights,
-            ref NativeList<float> materialMatureWeights) {
+            ref NativeList<float> materialWeights) {
             // Skip voxels with zero DensityDelta (air)
             if (voxel.Density == 0) return;
 
-            // Demodulate: material identity (0-127) tracked separately from maturity, same reasoning
-            // as the main MarchingCubeJob's AddMaterialWeight.
-            var rawMatIndex = voxel.MaterialIndex;
-            var matIndex = (byte)(rawMatIndex % MatureBitValue);
-            var isMature = rawMatIndex >= MatureBitValue;
-
+            // Demodulate: material identity (0-127) only. Maturity is resolved separately in
+            // ResolveMaturity, checked only against voxel0/voxel1, not this wider neighborhood.
+            var matIndex = (byte)(voxel.MaterialIndex % VoxelData.MatureBitValue);
             var densityWeight = voxel.Density / 255f;
             var weight = baseWeight * densityWeight;
 
@@ -461,14 +475,11 @@ namespace Spellbound.GeoForge {
                 }
             }
 
-            if (existingIndex >= 0) {
+            if (existingIndex >= 0)
                 materialWeights[existingIndex] += weight;
-                if (isMature) materialMatureWeights[existingIndex] += weight;
-            }
             else {
                 uniqueMaterials.Add(matIndex);
                 materialWeights.Add(weight);
-                materialMatureWeights.Add(isMature ? weight : 0f);
             }
         }
 

@@ -29,9 +29,6 @@ namespace Spellbound.GeoForge {
         public int Lod;
         public int3 Start;
 
-        // Mature/undisturbed bit lives in the high bit of VoxelData.MaterialIndex (>= 128 = mature).
-        private const byte MatureBitValue = 128;
-
         public void Execute() {
             ref var tables = ref TablesBlob.Value;
             ref var config = ref ConfigBlob.Value;
@@ -352,10 +349,10 @@ namespace Spellbound.GeoForge {
                                 // Maturity is checked ONLY against the two edge endpoints (voxel0/voxel1),
                                 // not the wider 14-voxel dominance neighborhood above — "is this specific
                                 // crossing point mature," not "is this whole neighborhood uniformly mature."
-                                var matIndex0 = (byte)(voxel0.MaterialIndex % MatureBitValue);
-                                var isMature0 = voxel0.MaterialIndex >= MatureBitValue;
-                                var matIndex1 = (byte)(voxel1.MaterialIndex % MatureBitValue);
-                                var isMature1 = voxel1.MaterialIndex >= MatureBitValue;
+                                var matIndex0 = (byte)(voxel0.MaterialIndex % VoxelData.MatureBitValue);
+                                var isMature0 = voxel0.MaterialIndex >= VoxelData.MatureBitValue;
+                                var matIndex1 = (byte)(voxel1.MaterialIndex % VoxelData.MatureBitValue);
+                                var isMature1 = voxel1.MaterialIndex >= VoxelData.MatureBitValue;
 
                                 var matAAllMature = ResolveMaturity(matA, matIndex0, isMature0, matIndex1, isMature1);
                                 var matBAllMature = ResolveMaturity(matB, matIndex0, isMature0, matIndex1, isMature1);
@@ -492,7 +489,7 @@ namespace Spellbound.GeoForge {
 
             // Demodulate: material identity (0-127) only. Maturity is resolved separately in
             // ResolveMaturity, checked only against voxel0/voxel1, not this wider neighborhood.
-            var matIndex = (byte)(voxel.MaterialIndex % MatureBitValue);
+            var matIndex = (byte)(voxel.MaterialIndex % VoxelData.MatureBitValue);
             var densityWeight = voxel.Density / 255f;
             var weight = baseWeight * densityWeight;
 

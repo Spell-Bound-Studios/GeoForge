@@ -222,7 +222,7 @@ namespace Spellbound.GeoForge {
                     voxelChange.Item2.MaterialIndex == existingVoxel.MaterialIndex)
                     continue;
 
-                voxelArray[index] = new VoxelData(voxelChange.Item2.Density, voxelChange.Item2.MaterialIndex);
+                voxelArray[index] = VoxelData.CreateImmature(voxelChange.Item2.Density, voxelChange.Item2.MaterialIndex);
 
                 if (!hasEdits) {
                     editBounds = new BoundsInt(voxelPos, Vector3Int.one);

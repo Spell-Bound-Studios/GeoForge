@@ -137,7 +137,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4407416699791479052, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -511.502
+      value: -11.502
       objectReference: {fileID: 0}
     - target: {fileID: 4407416699791479052, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: m_LocalPosition.z
@@ -182,7 +182,7 @@ PrefabInstance:
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: dataFactory
       value: 
-      objectReference: {fileID: 11400000, guid: b53a84b52b4ee3b428a44d2dd83668b0, type: 2}
+      objectReference: {fileID: 11400000, guid: 32fd03bf75be58349b83b1627c600cba, type: 2}
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: isPrimaryTerrain
       value: 1
@@ -190,7 +190,7 @@ PrefabInstance:
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: boundaryOverrides
       value: 
-      objectReference: {fileID: 11400000, guid: 4f43f851bbe38eb47ab25e7b9ff01110, type: 2}
+      objectReference: {fileID: 11400000, guid: 418912af9029cc44ab70960ba4cd7239, type: 2}
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: viewDistanceLodRanges.Array.size
       value: 4
@@ -1476,7 +1476,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &1984977049
 Transform:
   m_ObjectHideFlags: 0
