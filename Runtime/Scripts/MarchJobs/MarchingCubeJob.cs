@@ -29,6 +29,9 @@ namespace Spellbound.GeoForge {
         public int Lod;
         public int3 Start;
 
+        // Mature/undisturbed bit lives in the high bit of VoxelData.MaterialIndex (>= 128 = mature).
+        private const byte MatureBitValue = 128;
+
         public void Execute() {
             ref var tables = ref TablesBlob.Value;
             ref var config = ref ConfigBlob.Value;
@@ -68,7 +71,9 @@ namespace Spellbound.GeoForge {
             // CellValues holds the densities of the voxels at each corner of the cube.
             var cellValues = new NativeArray<VoxelData>(8, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
 
-            // Material blending structures - allocated once and reused for all vertices
+            // Material blending structures - allocated once and reused for all vertices.
+            // uniqueMaterials stores the DEMODULATED material index (0-127) only — maturity is resolved
+            // separately (see below), so this dominance selection is purely about material identity.
             var uniqueMaterials = new NativeList<byte>(14, Allocator.Temp);
             var materialWeights = new NativeList<float>(14, Allocator.Temp);
 
@@ -307,7 +312,8 @@ namespace Spellbound.GeoForge {
 
                                 var weight0 = 1f - t;
 
-                                // Add all voxel contributions
+                                // Add all voxel contributions (14-voxel neighborhood — this decides which
+                                // TWO materials dominate this vertex, purely by material identity).
                                 AddMaterialWeight(voxel0, weight0, ref uniqueMaterials, ref materialWeights);
                                 AddMaterialWeight(v0011, weight0, ref uniqueMaterials, ref materialWeights);
                                 AddMaterialWeight(v0211, weight0, ref uniqueMaterials, ref materialWeights);
@@ -324,7 +330,7 @@ namespace Spellbound.GeoForge {
                                 AddMaterialWeight(v1110, t, ref uniqueMaterials, ref materialWeights);
                                 AddMaterialWeight(v1112, t, ref uniqueMaterials, ref materialWeights);
 
-                                // Find top 2 materials
+                                // Find top 2 materials (0-127 only — maturity plays no role in this selection).
                                 byte matA = 0;
                                 byte matB = 0;
                                 float matAWeight = 0;
@@ -343,9 +349,26 @@ namespace Spellbound.GeoForge {
                                     }
                                 }
 
+                                // Maturity is checked ONLY against the two edge endpoints (voxel0/voxel1),
+                                // not the wider 14-voxel dominance neighborhood above — "is this specific
+                                // crossing point mature," not "is this whole neighborhood uniformly mature."
+                                var matIndex0 = (byte)(voxel0.MaterialIndex % MatureBitValue);
+                                var isMature0 = voxel0.MaterialIndex >= MatureBitValue;
+                                var matIndex1 = (byte)(voxel1.MaterialIndex % MatureBitValue);
+                                var isMature1 = voxel1.MaterialIndex >= MatureBitValue;
+
+                                var matAAllMature = ResolveMaturity(matA, matIndex0, isMature0, matIndex1, isMature1);
+                                var matBAllMature = ResolveMaturity(matB, matIndex0, isMature0, matIndex1, isMature1);
+
                                 var colorInterp = new float2((float)matA / byte.MaxValue, 0);
 
-                                var color = new Color32(matA, matB, 0, 0);
+                                var color = new Color32(
+                                    matA,
+                                    matB,
+                                    (byte)(matAAllMature ? 255 : 0),
+                                    (byte)(matBAllMature ? 255 : 0)
+                                );
+
                                 var centeredVertex = (vertex + offsetBurst) * resolution;
 
                                 Vertices.Add(new MeshingVertexData(centeredVertex, normal, color,
@@ -436,6 +459,28 @@ namespace Spellbound.GeoForge {
             return area < 1e-5f; // Tweak epsilon if needed
         }
 
+        // Returns true only if every endpoint (of voxel0/voxel1) whose demodulated material matches
+        // targetMat is mature. If neither endpoint's material matches targetMat (i.e. targetMat only
+        // came from the wider 14-voxel dominance neighborhood, not the endpoints themselves), this
+        // defaults to false rather than guessing at maturity from data we're not supposed to use.
+        private static bool ResolveMaturity(
+            byte targetMat, byte matIndex0, bool isMature0, byte matIndex1, bool isMature1) {
+            var matched = false;
+            var allMature = true;
+
+            if (matIndex0 == targetMat) {
+                matched = true;
+                allMature &= isMature0;
+            }
+
+            if (matIndex1 == targetMat) {
+                matched = true;
+                allMature &= isMature1;
+            }
+
+            return matched && allMature;
+        }
+
         [BurstCompile]
         private static void AddMaterialWeight(
             in VoxelData voxel,
@@ -445,7 +490,9 @@ namespace Spellbound.GeoForge {
             // Skip voxels with zero DensityDelta (air)
             if (voxel.Density == 0) return;
 
-            var matIndex = voxel.MaterialIndex;
+            // Demodulate: material identity (0-127) only. Maturity is resolved separately in
+            // ResolveMaturity, checked only against voxel0/voxel1, not this wider neighborhood.
+            var matIndex = (byte)(voxel.MaterialIndex % MatureBitValue);
             var densityWeight = voxel.Density / 255f;
             var weight = baseWeight * densityWeight;
 

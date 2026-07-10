@@ -44,7 +44,11 @@ namespace Spellbound.GeoForge {
                 var voxelPos = GetVoxelPosition(i, chunkOrigin, config);
                 var signedDistance = PerlinTerrainSDF(voxelPos, offset);
                 var densityByte = SignedDistanceToDensity(signedDistance, sdfGradientSteepness, config);
-                data[i] = new VoxelData(densityByte, materialIndex);
+                var matIndex = voxelPos.x > 0 ? (byte)1 : (byte)0;
+
+                if (voxelPos.z > 0)
+                    matIndex += 128;
+                data[i] = new VoxelData(densityByte, matIndex);
             }
         }
 

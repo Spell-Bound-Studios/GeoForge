@@ -17,7 +17,7 @@ namespace Spellbound.GeoForge {
 
             foreach (var bo in BoundaryOverridesList) {
                 var voxelData = new VoxelData {
-                    Density = bo.boundaryType == BoundaryType.Closed ? byte.MaxValue : byte.MinValue,
+                    Density = bo.boundaryType == BoundaryType.Closed ? (byte)250 : (byte)5,
                     MaterialIndex = bo.materialType
                 };
 

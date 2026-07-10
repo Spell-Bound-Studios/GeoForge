@@ -18,22 +18,41 @@ Material:
   m_DoubleSidedGI: 0
   m_CustomRenderQueue: -1
   stringTagMap: {}
-  disabledShaderPasses:
-  - MOTIONVECTORS
+  disabledShaderPasses: []
   m_LockedProperties: 
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _AltAlbedoArray:
+        m_Texture: {fileID: -872078260095018862, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _AltMASArray:
+        m_Texture: {fileID: -5234764130358195720, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _AltNormalArray:
+        m_Texture: {fileID: -3157334857222447769, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Fallbacks:
+        m_Texture: {fileID: -4969979536818117624, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MappingTable:
+        m_Texture: {fileID: 2447262749531605014, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _TerrainAlbedoArray:
-        m_Texture: {fileID: -8485858540279609692, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
+        m_Texture: {fileID: -4591355319868033551, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _TerrainMetalSmoothArray:
-        m_Texture: {fileID: 7821240383847147627, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
+        m_Texture: {fileID: 8496174572909075987, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _TerrainNormalArray:
-        m_Texture: {fileID: 4525816841744273673, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
+        m_Texture: {fileID: 8659535964022464092, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _TerrainTextureArray:
@@ -75,6 +94,8 @@ Material:
     - _QueueOffset: 0
     - _Scale: 0.07
     - _Smoothness: 0
+    - _StepHighEdge: 0.93
+    - _StepLowEdge: 0.8
     - _Tiling: 0.1
     - _temp_blend: 0.52
     - _tempblend: -6.65
