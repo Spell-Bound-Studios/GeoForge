@@ -25,16 +25,36 @@ Material:
   m_SavedProperties:
     serializedVersion: 3
     m_TexEnvs:
+    - _AltAlbedoArray:
+        m_Texture: {fileID: 8744776320594200962, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _AltMASArray:
+        m_Texture: {fileID: 5380550833877003153, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _AltNormalArray:
+        m_Texture: {fileID: -3838513353427229918, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Fallbacks:
+        m_Texture: {fileID: 2447250843640611500, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _MappingTable:
+        m_Texture: {fileID: -3666678685438841200, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _TerrainAlbedoArray:
-        m_Texture: {fileID: -8485858540279609692, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
+        m_Texture: {fileID: -4683613562398619491, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _TerrainMetalSmoothArray:
-        m_Texture: {fileID: 7047179945310383253, guid: 30e77578e0c5dbf46b44bc9c5a16df17, type: 2}
+        m_Texture: {fileID: 2733909314166910987, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _TerrainNormalArray:
-        m_Texture: {fileID: 4525816841744273673, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
+        m_Texture: {fileID: 5563757938149360904, guid: f262553490c7f6d4fa3350502d00458c, type: 2}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _TerrainTextureArray:
