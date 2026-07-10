@@ -16,7 +16,7 @@ MonoBehaviour:
   - axis: 1
     side: 1
     boundaryType: 1
-    materialType: 128
+    materialType: 0
   - axis: 1
     side: 0
     boundaryType: 0
