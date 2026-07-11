@@ -11,7 +11,7 @@ namespace Spellbound.GeoForge {
     /// a geoVolume in the game world with a material and DensityDelta.
     /// This doesn't get sent on the network or saved.
     /// </summary>
-    [Serializable]
+    [Serializable, BurstCompile]
     public struct VoxelData : IEquatable<VoxelData>, IPacker {
         public const byte MatureBitValue = 128;
         
