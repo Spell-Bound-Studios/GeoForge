@@ -11,7 +11,7 @@ namespace Spellbound.GeoForge {
     /// a geoVolume in the game world with a material and DensityDelta.
     /// This doesn't get sent on the network or saved.
     /// </summary>
-    [Serializable, BurstCompile]
+    [Serializable]
     public struct VoxelData : IEquatable<VoxelData>, IPacker {
         public const byte MatureBitValue = 128;
         
@@ -23,11 +23,11 @@ namespace Spellbound.GeoForge {
             MaterialIndex = matIndex;
         }
         
-        [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static VoxelData CreateImmature(byte density, byte matIndex) =>
                 new(density, (byte)(matIndex % MatureBitValue));
         
-        [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static VoxelData CreateMature(byte density, byte matIndex) =>
                 new(density, (byte)((matIndex % MatureBitValue) + MatureBitValue));
 
