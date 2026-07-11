@@ -1,6 +1,7 @@
 // Copyright 2026 Spellbound Studio Inc.
 
 using System;
+using System.Runtime.CompilerServices;
 using Spellbound.Core.Packing;
 using Unity.Burst;
 
@@ -22,9 +23,11 @@ namespace Spellbound.GeoForge {
             MaterialIndex = matIndex;
         }
         
+        [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static VoxelData CreateImmature(byte density, byte matIndex) =>
                 new(density, (byte)(matIndex % MatureBitValue));
         
+        [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static VoxelData CreateMature(byte density, byte matIndex) =>
                 new(density, (byte)((matIndex % MatureBitValue) + MatureBitValue));
 
