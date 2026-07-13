@@ -16,10 +16,12 @@ namespace Spellbound.GeoForge {
             var runtimeList = new List<BoundaryOverrideRuntime>();
 
             foreach (var bo in BoundaryOverridesList) {
-                var voxelData = VoxelData.CreateMature(
-                    bo.boundaryType == BoundaryType.Closed ? byte.MaxValue : byte.MinValue,
-                    bo.materialType
-                );
+                var closed = bo.boundaryType is BoundaryType.Closed or BoundaryType.MatureClosed;
+                var mature = bo.boundaryType is BoundaryType.MatureClosed or BoundaryType.MatureOpen;
+                
+                var voxelData = mature
+                    ? VoxelData.CreateMature(closed ? byte.MaxValue : byte.MinValue, bo.materialType)
+                    : VoxelData.CreateImmature(closed ? byte.MaxValue : byte.MinValue, bo.materialType);
 
                 runtimeList.Add(new BoundaryOverrideRuntime {
                     Axis = bo.axis,
@@ -101,7 +103,9 @@ namespace Spellbound.GeoForge {
 
     public enum BoundaryType {
         Closed,
-        Open
+        Open,
+        MatureClosed,
+        MatureOpen
     }
 
     [System.Serializable]
