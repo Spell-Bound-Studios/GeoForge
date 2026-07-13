@@ -70,8 +70,10 @@ namespace Spellbound.GeoForge {
             }
         }
 
-        private void InitializeVoxelMaterial() {
-            if (octreePrefab == null) {
+        private void InitializeVoxelMaterial()
+        {
+            if (octreePrefab == null)
+            {
                 Debug.LogError("Octree bakePrefab not assigned!");
 
                 return;
@@ -79,7 +81,8 @@ namespace Spellbound.GeoForge {
 
             var renderer = octreePrefab.GetComponent<MeshRenderer>();
 
-            if (renderer == null || renderer.sharedMaterial == null) {
+            if (renderer == null || renderer.sharedMaterial == null)
+            {
                 Debug.LogError("Octree bakePrefab has no MeshRenderer or Material!");
 
                 return;
@@ -89,15 +92,7 @@ namespace Spellbound.GeoForge {
             _runtimeVoxelMaterial = new Material(renderer.sharedMaterial);
 
             // Apply texture arrays from database
-            if (materialDatabase != null) {
-                if (materialDatabase.albedoTextureArray != null && materialDatabase.masTextureArray != null) {
-                    _runtimeVoxelMaterial.SetTexture("_TerrainAlbedoArray", materialDatabase.albedoTextureArray);
-                    _runtimeVoxelMaterial.SetTexture("_TerrainMetalSmoothArray", materialDatabase.masTextureArray);
-                }
-                else
-                    Debug.LogError("Texture arrays not built! Use 'Build Texture Arrays' on VoxelMaterialDatabase.");
-            }
-            else
+            if (materialDatabase == null)
                 Debug.LogError("No VoxelMaterialDatabase assigned!");
         }
 
