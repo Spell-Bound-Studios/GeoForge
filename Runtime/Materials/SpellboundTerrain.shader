@@ -1,4 +1,4 @@
-Shader "Spellbound/SpellboundTerrain"
+Shader "Spellbound/TerrainShader"
 {
     Properties
     {
@@ -733,7 +733,7 @@ Shader "Spellbound/SpellboundTerrain"
             float4 _Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4;
             Unity_Add_float4(_Multiply_1515bdb9bc774abfb0456db98a0243d2_Out_2_Vector4, float4(0.5, 0.5, 0.5, 0.5), _Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4);
             float4 _Branch_1e0b2c2cf59348308c46fdad1a9fec27_Out_3_Vector4;
-            Unity_Branch_float4(_Comparison_595e2dca3b0d46b3b5d3264c115e1139_Out_2_Boolean, float4(0.5, 0.5, 1, 1), _Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4, _Branch_1e0b2c2cf59348308c46fdad1a9fec27_Out_3_Vector4);
+            Unity_Branch_float4(_Comparison_595e2dca3b0d46b3b5d3264c115e1139_Out_2_Boolean, float4(0, 0, 1, 1), _Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4, _Branch_1e0b2c2cf59348308c46fdad1a9fec27_Out_3_Vector4);
             float _Multiply_f3c8028f13af41e0b44e52c24c65a76f_Out_2_Float;
             Unity_Multiply_float_float(_SampleTexture2DArray_cf7882f6e1b949719b5dd3d2ed4898ed_B_6_Float, 255, _Multiply_f3c8028f13af41e0b44e52c24c65a76f_Out_2_Float);
             float _Round_a1f5cd81fab64904bbc59f02b1c27564_Out_1_Float;
@@ -1635,7 +1635,7 @@ Shader "Spellbound/SpellboundTerrain"
             float4 _Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4;
             Unity_Add_float4(_Multiply_1515bdb9bc774abfb0456db98a0243d2_Out_2_Vector4, float4(0.5, 0.5, 0.5, 0.5), _Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4);
             float4 _Branch_1e0b2c2cf59348308c46fdad1a9fec27_Out_3_Vector4;
-            Unity_Branch_float4(_Comparison_595e2dca3b0d46b3b5d3264c115e1139_Out_2_Boolean, float4(0.5, 0.5, 1, 1), _Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4, _Branch_1e0b2c2cf59348308c46fdad1a9fec27_Out_3_Vector4);
+            Unity_Branch_float4(_Comparison_595e2dca3b0d46b3b5d3264c115e1139_Out_2_Boolean, float4(0, 0, 1, 1), _Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4, _Branch_1e0b2c2cf59348308c46fdad1a9fec27_Out_3_Vector4);
             float _Multiply_f3c8028f13af41e0b44e52c24c65a76f_Out_2_Float;
             Unity_Multiply_float_float(_SampleTexture2DArray_cf7882f6e1b949719b5dd3d2ed4898ed_B_6_Float, 255, _Multiply_f3c8028f13af41e0b44e52c24c65a76f_Out_2_Float);
             float _Round_a1f5cd81fab64904bbc59f02b1c27564_Out_1_Float;
@@ -3323,7 +3323,7 @@ Shader "Spellbound/SpellboundTerrain"
             float4 _Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4;
             Unity_Add_float4(_Multiply_1515bdb9bc774abfb0456db98a0243d2_Out_2_Vector4, float4(0.5, 0.5, 0.5, 0.5), _Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4);
             float4 _Branch_1e0b2c2cf59348308c46fdad1a9fec27_Out_3_Vector4;
-            Unity_Branch_float4(_Comparison_595e2dca3b0d46b3b5d3264c115e1139_Out_2_Boolean, float4(0.5, 0.5, 1, 1), _Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4, _Branch_1e0b2c2cf59348308c46fdad1a9fec27_Out_3_Vector4);
+            Unity_Branch_float4(_Comparison_595e2dca3b0d46b3b5d3264c115e1139_Out_2_Boolean, float4(0, 0, 1, 1), _Add_03cb5a02416e4166a52ae531c503c743_Out_2_Vector4, _Branch_1e0b2c2cf59348308c46fdad1a9fec27_Out_3_Vector4);
             UnityTexture2DArray _Property_22653d56e21a40b39033633512f18f2d_Out_0_Texture2DArray = UnityBuildTexture2DArrayStruct(_MappingTable);
             float4 _SampleTexture2DArray_cf7882f6e1b949719b5dd3d2ed4898ed_RGBA_0_Vector4 = PLATFORM_SAMPLE_TEXTURE2D_ARRAY(_Property_22653d56e21a40b39033633512f18f2d_Out_0_Texture2DArray.tex, _Property_22653d56e21a40b39033633512f18f2d_Out_0_Texture2DArray.samplerstate, _Combine_151f632a12c04805a28fcc5e175b3cbc_RG_6_Vector2, float(1) );
             float _SampleTexture2DArray_cf7882f6e1b949719b5dd3d2ed4898ed_R_4_Float = _SampleTexture2DArray_cf7882f6e1b949719b5dd3d2ed4898ed_RGBA_0_Vector4.r;
