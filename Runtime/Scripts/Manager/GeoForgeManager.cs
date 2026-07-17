@@ -60,7 +60,13 @@ namespace Spellbound.GeoForge {
         public async void ValidateAllVolumesLodsAsync() {
             try {
                 while (true) {
-                    foreach (var volume in _voxelVolumes) await volume.ValidateChunkLods();
+                    var volumeList = new List<IGeoVolume>(_voxelVolumes);
+                    foreach (var volume in volumeList) {
+                        if (volume == null) 
+                            continue;
+                        await volume.ValidateChunkLods();
+                    }
+                        
 
                     await Awaitable.NextFrameAsync();
                 }
@@ -113,7 +119,6 @@ namespace Spellbound.GeoForge {
         }
 
         public void RegisterVoxelVolume(IGeoVolume geoVolume) {
-            Debug.Log("RegisterVoxelVolume called");
             _voxelVolumes.Add(geoVolume);
             var chunkSize = geoVolume.ConfigBlob.Value.ChunkSize;
 
@@ -121,6 +126,10 @@ namespace Spellbound.GeoForge {
                 var denseData = new DenseVoxelData(chunkSize);
                 _denseVoxelDataDict.Add(chunkSize, denseData);
             }
+        }
+
+        public void UnRegisterVoxelVolume(IGeoVolume geoVolume) {
+            _voxelVolumes.Remove(geoVolume);
         }
 
         public GameObject GetPooledObject(Transform parent) {

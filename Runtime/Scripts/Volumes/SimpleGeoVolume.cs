@@ -66,11 +66,15 @@ namespace Spellbound.GeoForge {
                 return;
             }
 
-            _geoVolume = new GeoVolume(this, this, config);
-            GeoVolume.RegisterVolume();
+            CreateGeoVolume(config);
         }
 
-        protected virtual void Start() => StartCoroutine(InitializeChunks());
+        protected virtual void CreateGeoVolume(VoxelVolumeConfig voxelVolumeConfig) {
+            _geoVolume = new GeoVolume(this, this, voxelVolumeConfig);
+            _geoVolume.RegisterVolume();
+            StartCoroutine(InitializeChunks());
+        }
+        
 
         /// <summary>
         /// Initializes Chunks one per frame, centered on the Volume's transform
@@ -109,6 +113,11 @@ namespace Spellbound.GeoForge {
                 return;
 
             _geoVolume.UpdateVolumeOrigin();
+
+            if (Input.GetKeyDown(KeyCode.G)) {
+                _geoVolume.Dispose();
+                CreateGeoVolume(config);
+            }
         }
 
         /// <summary>

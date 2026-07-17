@@ -21,6 +21,8 @@ namespace Spellbound.GeoForge {
         public float3 OffsetBurst;
         public int GeneratesPerFrame;
         public int ValidatesPerFrame;
+        public bool IsFiniteSize;
+        public int TotalChunks;
     }
 
     public static class VolumeConfigBlobCreator {
@@ -40,6 +42,10 @@ namespace Spellbound.GeoForge {
             config.UnitsPerChunk = config.ChunkSize * config.Resolution;
             config.GeneratesPerFrame = voxelVolumeConfig.generatesPerFrame;
             config.ValidatesPerFrame = voxelVolumeConfig.validatesPerFrame;
+            config.IsFiniteSize = voxelVolumeConfig.isFiniteSize;
+            config.TotalChunks = voxelVolumeConfig.sizeInChunks.x 
+                                 * voxelVolumeConfig.sizeInChunks.y 
+                                 * voxelVolumeConfig.sizeInChunks.z;
 
             config.Offset = new Vector3Int(
                 config.SizeInChunks.x % 2 == 0 ? -1 : -(1 + config.ChunkSize / 2),

@@ -26,6 +26,16 @@ namespace Spellbound.GeoForge {
             _bounds = CalculateVolumeBounds();
         }
 
+        public bool AllChunksReady() {
+            if (!ConfigBlob.Value.IsFiniteSize)
+                return false;
+            
+            if (ConfigBlob.Value.TotalChunks != _chunkDict.Count)
+                return false;
+            
+            return true;
+        }
+
         public Vector3Int WorldToVoxelSpace(Vector3 worldPosition) {
             ref var config = ref ConfigBlob.Value;
             var localPos = Transform.InverseTransformPoint(worldPosition);
@@ -100,8 +110,10 @@ namespace Spellbound.GeoForge {
             if (geoChunk == null)
                 return false;
 
-            if (_chunkDict.TryAdd(chunkCoord, geoChunk))
+            if (_chunkDict.TryAdd(chunkCoord, geoChunk)) {
                 return true;
+            }
+                
 
             return false;
         }
@@ -186,6 +198,16 @@ namespace Spellbound.GeoForge {
         }
 
         public void Dispose() {
+            var chunkList = new List<IGeoChunk>(_chunkDict.Values);
+            foreach (var chunk in chunkList) {
+                chunk.GeoChunk.Dispose();
+                Object.DestroyImmediate(chunk.GeoChunk.Transform.gameObject);
+            }
+            
+            if (SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var mcManager)) {
+                mcManager.UnRegisterVoxelVolume(_ownerAsIGeoVolume);
+            }
+            
             if (ConfigBlob.IsCreated)
                 ConfigBlob.Dispose();
         }
