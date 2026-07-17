@@ -113,11 +113,6 @@ namespace Spellbound.GeoForge {
                 return;
 
             _geoVolume.UpdateVolumeOrigin();
-
-            if (Input.GetKeyDown(KeyCode.G)) {
-                _geoVolume.Dispose();
-                CreateGeoVolume(config);
-            }
         }
 
         /// <summary>
