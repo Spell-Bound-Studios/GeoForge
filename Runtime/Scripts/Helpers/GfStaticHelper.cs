@@ -4,6 +4,7 @@ using System;
 using System.Runtime.CompilerServices;
 using Unity.Burst;
 using Unity.Collections;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
@@ -79,6 +80,21 @@ namespace Spellbound.GeoForge {
 
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Coord2DToIndex(int x, int z, int chunkDataWidthSize) => x + z * chunkDataWidthSize;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int3 GetChunkOrigin(int3 chunkCoord, in VolumeConfigBlobAsset config) =>
+                new(
+                    chunkCoord.x * config.ChunkSize + config.Offset.x,
+                    chunkCoord.y * config.ChunkSize + config.Offset.y,
+                    chunkCoord.z * config.ChunkSize + config.Offset.z
+                );
+
+        [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static byte SignedDistanceToDensity(float signedDistance, float gradient, byte densityThreshold) {
+            var density = densityThreshold - signedDistance * gradient;
+
+            return (byte)Mathf.Clamp(density, byte.MinValue, byte.MaxValue);
+        }
 
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int BinarySearchVoxelData(
