@@ -13,15 +13,33 @@ namespace Spellbound.GeoForge.Sample2 {
         [SerializeField] private int oreHealth;
         private Dictionary<int, int> _damagedVoxels = new();
 
-        public override void PassVoxelEdits(List<VoxelDelta> newVoxelEdits) {
+        public override void PassVoxelEdits(VoxelEditOperation operation) {
             var trueEdits = new List<(int, VoxelData)>();
 
-            foreach (var newVoxelEdit in newVoxelEdits) {
-                _damagedVoxels.TryGetValue(newVoxelEdit.index, out var existing);
-                var delta = _geoChunk.GetVoxelData(newVoxelEdit.index).Density - newVoxelEdit.densityDelta;
-                _damagedVoxels[newVoxelEdit.index] = existing + delta;
+            foreach (var voxelDelta in operation.Deltas) {
+                var voxelData = _geoChunk.GetVoxelData(voxelDelta.Index);
+                var existingMatIndex = (byte)(voxelData.MaterialIndex % VoxelData.MatureBitValue);
+                var wasFull = voxelData.Density >= _geoChunk.ParentGeoVolume.GeoVolume.ConfigBlob.Value.DensityThreshold;
 
-                if (_damagedVoxels[newVoxelEdit.index] > oreHealth) trueEdits.Add((newVoxelEdit.index, VoxelData.CreateImmature(0,0)));
+                // Same gate as the crossing rule elsewhere: a disallowed/Impervious voxel that's
+                // already full takes no damage at all - additions or subtractions alike.
+                if (wasFull && !operation.IsAllowed(existingMatIndex))
+                    continue;
+
+                // Damage this hit is the magnitude of density being removed, not the resulting
+                // density plus current density (the old formula effectively added the voxel's
+                // whole current density on every hit, which would blow past oreHealth almost
+                // immediately regardless of dig strength). Negative deltas (digs) deal damage;
+                // positive deltas (fills) heal it back, clamped at zero.
+                _damagedVoxels.TryGetValue(voxelDelta.Index, out var existingDamage);
+                var damageThisHit = -voxelDelta.DensityDelta;
+                var totalDamage = Mathf.Max(0, existingDamage + damageThisHit);
+                _damagedVoxels[voxelDelta.Index] = totalDamage;
+
+                if (totalDamage >= oreHealth) {
+                    trueEdits.Add((voxelDelta.Index, VoxelData.CreateImmature(0, VoxelData.NullSentinelValue)));
+                    _damagedVoxels.Remove(voxelDelta.Index); // reset in case this voxel is later refilled
+                }
             }
 
             if (_geoChunk.ApplyVoxelEdits(trueEdits, out var editBounds))

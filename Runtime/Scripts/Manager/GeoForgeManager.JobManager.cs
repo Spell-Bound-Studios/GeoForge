@@ -8,6 +8,7 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     public partial class GeoForgeManager : MonoBehaviour {
+        [SerializeField] public MaterialRenderingProfile jobAndRenderProfile;
         private JobHandle _combinedJobHandle;
         private Dictionary<OctreeNode, MarchJobData> _pendingMarchJobData = new();
         private Dictionary<OctreeNode, TransitionMarchJobData> _pendingTransitionMarchJobData = new();

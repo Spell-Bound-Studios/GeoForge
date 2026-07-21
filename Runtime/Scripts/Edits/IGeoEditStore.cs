@@ -15,7 +15,7 @@ namespace Spellbound.GeoForge {
 
         void Write(List<(int, VoxelData)> voxelDatas);
 
-        void Delta(List<VoxelDelta> voxelEdits);
+        void Delta(VoxelEditOperation operation);
 
         IEnumerable<(int, VoxelData)> ReadAllEdits();
     }

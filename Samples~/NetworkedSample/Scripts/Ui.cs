@@ -32,9 +32,6 @@ namespace Spellbound.Sample4 {
         // Material that will be added when additive terraforming occurs.
         [SerializeField] private TMP_Dropdown addableMaterialDropdown;
 
-        // Materials that will be removed when negative terraforming occurs.
-        [SerializeField] private Toggle[] diggableMaterialToggles;
-
         // Semi-Transparent overlay to indicate when tab is pressed.
         [SerializeField] private GameObject tabOverlayObj;
 
@@ -63,14 +60,6 @@ namespace Spellbound.Sample4 {
 
             addableMaterialDropdown.onValueChanged.AddListener(HandleAddableMaterialChanged);
             HandleAddableMaterialChanged(addableMaterialDropdown.value);
-
-            for (var i = 0; i < diggableMaterialToggles.Length; i++) {
-                var index = i;
-
-                diggableMaterialToggles[i].onValueChanged.AddListener((value)
-                        => HandleDiggableMateralsChanged(index, value));
-                HandleDiggableMateralsChanged(index, diggableMaterialToggles[i].isOn);
-            }
 
             Cursor.lockState = CursorLockMode.Locked;
             tabOverlayObj.SetActive(false);
@@ -120,17 +109,7 @@ namespace Spellbound.Sample4 {
         private void HandleCollisionToggle(bool value) => _controller.GetComponent<Collider>().enabled = value;
 
         private void HandleAddableMaterialChanged(int index) => _controller.addableMaterial = (byte)index;
-
-        private void HandleDiggableMateralsChanged(int index, bool isDiggable) {
-            if (!isDiggable) {
-                _controller.diggableMaterialList.Remove((byte)index);
-
-                return;
-            }
-
-            if (!_controller.diggableMaterialList.Contains((byte)index))
-                _controller.diggableMaterialList.Add((byte)index);
-        }
+        
 
         private void HandleTabPressed() {
             if (_controller == null)

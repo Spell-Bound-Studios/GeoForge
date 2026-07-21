@@ -6,11 +6,13 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     public class SimpleGeoEditStore : IGeoEditStore {
-        private GeoForgeChunkData _chunkData;
+        private readonly GeoForgeChunkData _chunkData;
+        private readonly byte _densityThreshold;
 
-        public SimpleGeoEditStore(GeoForgeChunkData chunkData = null) {
+        public SimpleGeoEditStore(byte densityThreshold, GeoForgeChunkData chunkData = null) {
             chunkData ??= new GeoForgeChunkData();
             _chunkData = chunkData;
+            _densityThreshold = densityThreshold;
         }
 
         public event Action<List<(int, VoxelData)>> OnGeoEditChanged;
@@ -41,31 +43,57 @@ namespace Spellbound.GeoForge {
             NotifyGeoEditsChanged(changes);
         }
 
-        public void Delta(List<VoxelDelta> newDeltas) {
-            var changes = new List<(int, VoxelData)>(newDeltas.Count);
+        public void Delta(VoxelEditOperation operation) {
+            var changes = new List<(int, VoxelData)>(operation.Deltas.Length);
 
-            foreach (var newDelta in newDeltas) {
-                if (!_chunkData.TryReadEdit(newDelta.index, out var voxelData))
-                    voxelData = DefaultVoxelDataFunc(newDelta.index);
+            foreach (var voxelDelta in operation.Deltas) {
+                if (!_chunkData.TryReadEdit(voxelDelta.Index, out var voxelData))
+                    voxelData = DefaultVoxelDataFunc(voxelDelta.Index);
+
+                var wasFull = voxelData.Density >= _densityThreshold;
+                var existingMatIndex = (byte)(voxelData.MaterialIndex % VoxelData.MatureBitValue);
+
+                VoxelData resolved;
+
+                // Gate: a voxel that's already full and whose current material this operation isn't
+                // permitted to affect (e.g. Impervious, or below the calling tool's tier) rejects
+                // ALL density changes outright — additions as well as subtractions. Additions onto
+                // empty/Null voxels are never gated (wasFull is false there), and additions onto an
+                // already-full, ALLOWED voxel still proceed normally below.
+                if (wasFull && !operation.IsAllowed(existingMatIndex)) {
+                    continue;
+                }
 
                 var density = (byte)Mathf.Clamp(
-                    voxelData.Density + newDelta.densityDelta,
+                    voxelData.Density + voxelDelta.DensityDelta,
                     byte.MinValue,
                     byte.MaxValue);
 
-                var matIndex = voxelData.Density < newDelta.densityDelta
-                        ? newDelta.materialType
-                        : voxelData.MaterialIndex;
+                var isFull = density >= _densityThreshold;
 
-                var resolved = Mathf.Abs(newDelta.densityDelta) > 0 ?
-                        VoxelData.CreateImmature(density, matIndex) :
-                        VoxelData.CreateMature(density, matIndex);
+                byte matIndex;
+
+                if (!isFull) {
+                    // Core invariant: any voxel ending below threshold is the null/sentinel
+                    // material, no exceptions.
+                    matIndex = VoxelData.NullSentinelValue;
+                }
+                else if (!wasFull && isFull) {
+                    // Material is only ever claimed at the empty -> full crossing.
+                    matIndex = operation.MaterialIndex;
+                }
+                else {
+                    // Already solid on both sides of this delta - material persists unchanged.
+                    matIndex = existingMatIndex;
+                }
+
+                resolved = VoxelData.CreateImmature(density, matIndex);
 
                 if (resolved == voxelData)
                     continue;
 
-                _chunkData.WriteEdit(newDelta.index, resolved);
-                changes.Add((newDelta.index, resolved));
+                _chunkData.WriteEdit(voxelDelta.Index, resolved);
+                changes.Add((voxelDelta.Index, resolved));
             }
 
             NotifyGeoEditsChanged(changes);

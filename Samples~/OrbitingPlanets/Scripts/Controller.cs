@@ -24,11 +24,10 @@ namespace Spellbound.GeoForge.Sample3 {
 
         [SerializeField, Range(1, byte.MaxValue)]
         public short terraformStrength = byte.MaxValue;
-
-        [SerializeField] public List<byte> diggableMaterialList = new();
         [SerializeField] public byte addableMaterial;
 
         // Config
+        [SerializeField] private DigMaskDefinition digMaskDefinition;
         [SerializeField] private Color lowStrengthColor;
         [SerializeField] private Color highStrengthColor;
         [SerializeField] private Material projectionMaterial;
@@ -104,7 +103,7 @@ namespace Spellbound.GeoForge.Sample3 {
                         out var hit,
                         terraformRange,
                         ~0)) {
-                    GeoForgeStatic.RemoveSphereAll(hit, terraformSize, terraformStrength, diggableMaterialList);
+                    GeoForgeStatic.RemoveSphere(hit, terraformSize, terraformStrength, digMaskDefinition.GetMask());
                     lineRenderer.enabled = true;
                     lineRenderer.SetPosition(0, transform.position - transform.up * lineRendererStartOffset);
                     lineRenderer.SetPosition(1, hit.point);
@@ -117,7 +116,7 @@ namespace Spellbound.GeoForge.Sample3 {
                              out hit,
                              terraformRange,
                              ~0)) {
-                    GeoForgeStatic.AddSphere(hit, terraformSize, terraformStrength, addableMaterial);
+                    GeoForgeStatic.AddSphere(hit, terraformSize, terraformStrength, addableMaterial, digMaskDefinition.GetMask());
                     lineRenderer.enabled = true;
                     lineRenderer.SetPosition(0, transform.position - transform.up * lineRendererStartOffset);
                     lineRenderer.SetPosition(1, hit.point);

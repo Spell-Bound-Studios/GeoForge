@@ -1,6 +1,7 @@
 // Copyright 2026 Spellbound Studio Inc.
 
 using System.Collections.Generic;
+using Unity.Mathematics;
 using UnityEngine;
 #if ENABLE_INPUT_SYSTEM
 using UnityEngine.InputSystem;
@@ -24,11 +25,10 @@ namespace Spellbound.GeoForge.Sample1 {
 
         [SerializeField, Range(1, byte.MaxValue)]
         public short terraformStrength = byte.MaxValue;
-
-        [SerializeField] public List<byte> diggableMaterialList = new() { 0, 1, 2, 3 };
         [SerializeField] public byte addableMaterial;
 
         // Config
+        [SerializeField] private DigMaskDefinition digMaskDefinition;
         [SerializeField] private Color lowStrengthColor;
         [SerializeField] private Color highStrengthColor;
         [SerializeField] private Material projectionMaterial;
@@ -99,7 +99,7 @@ namespace Spellbound.GeoForge.Sample1 {
                         out var hit,
                         terraformRange,
                         ~0))
-                    GeoForgeStatic.RemoveSphereAll(hit, terraformSize, terraformStrength, diggableMaterialList);
+                    GeoForgeStatic.RemoveSphere(hit, terraformSize, terraformStrength, digMaskDefinition.GetMask());
 
                 else if (keyboard.digit2Key.wasPressedThisFrame
                          && Physics.Raycast(
@@ -108,7 +108,7 @@ namespace Spellbound.GeoForge.Sample1 {
                              out hit,
                              terraformRange,
                              ~0))
-                    GeoForgeStatic.AddSphere(hit, terraformSize, terraformStrength, addableMaterial);
+                    GeoForgeStatic.AddSphere(hit, terraformSize, terraformStrength, addableMaterial, digMaskDefinition.GetMask());
             }
 #else
             if (Input.GetKeyDown(KeyCode.Alpha1)

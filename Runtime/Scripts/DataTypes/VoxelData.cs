@@ -14,6 +14,7 @@ namespace Spellbound.GeoForge {
     [Serializable]
     public struct VoxelData : IEquatable<VoxelData>, IPacker {
         public const byte MatureBitValue = 128;
+        public const byte NullSentinelValue = 127;
         
         public byte Density;
         public byte MaterialIndex;

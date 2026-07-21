@@ -28,10 +28,9 @@ namespace Spellbound.GeoForge {
         DensityRange DensityRange => GeoChunk.DensityRange;
 
         /// <summary>
-        /// Method for Chunk to receive voxel edits.
+        /// Method for Chunk to receive a voxel edit operation.
         /// </summary>
-        /// <param name="newVoxelEdits"></param>
-        void PassVoxelEdits(List<VoxelDelta> newVoxelEdits) => GeoChunk.IGeoEditStore.Delta(newVoxelEdits);
+        void PassVoxelEdits(VoxelEditOperation operation) => GeoChunk.IGeoEditStore.Delta(operation);
 
         /// <summary>
         /// Method to kick-off the Chunk being an actively managed Marching Cubes Chunk.

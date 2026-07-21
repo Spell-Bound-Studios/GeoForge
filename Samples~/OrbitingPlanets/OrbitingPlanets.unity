@@ -484,6 +484,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6673862094514295435, guid: 649071cd54a327946a92f1cedecd78e2, type: 3}
+      propertyPath: jobAndRenderProfile
+      value: 
+      objectReference: {fileID: 11400000, guid: 637f2d8dba04242458817791c5f6515e, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
@@ -1168,8 +1172,8 @@ MonoBehaviour:
   terraformRange: 5
   terraformSize: 1
   terraformStrength: 255
-  diggableMaterialList: 
   addableMaterial: 0
+  digMaskDefinition: {fileID: 11400000, guid: a8dd357ff7104fc479c8237c5bbe641a, type: 2}
   lowStrengthColor: {r: 0, g: 0.3212328, b: 1, a: 0.4}
   highStrengthColor: {r: 1, g: 0, b: 0, a: 0.4}
   projectionMaterial: {fileID: 2100000, guid: 4d745a8e8038d1b40a93be700b93dcac, type: 2}

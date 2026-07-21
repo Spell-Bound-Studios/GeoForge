@@ -1,7 +1,6 @@
 // Copyright 2026 Spellbound Studio Inc.
 
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
@@ -13,8 +12,7 @@ namespace Spellbound.GeoForge {
             IGeoVolume iGeoVoxelVolume,
             Vector3 worldPosition,
             float size,
-            short delta,
-            HashSet<byte> materials) {
+            short delta) {
             var voxelCenter = iGeoVoxelVolume.WorldToVoxelSpace(worldPosition);
             var halfSizeVoxels = size * 0.5f / iGeoVoxelVolume.ConfigBlob.Value.Resolution;
             var r = Mathf.CeilToInt(halfSizeVoxels);
@@ -32,7 +30,14 @@ namespace Spellbound.GeoForge {
                 var falloff = 1f - Mathf.Clamp01(normalizedDist);
                 var scaledDelta = Mathf.RoundToInt(delta * falloff);
 
-                rawVoxelEdits.Add(new RawVoxelEdit(voxelPos, (short)scaledDelta, materials.FirstOrDefault()));
+                // Skip voxels this stroke doesn't actually touch (falloff decayed to zero at this
+                // distance). Emitting a zero-delta edit here would make Delta stamp the voxel
+                // "mature" even though it was never part of this edit — mature means
+                // generated/authored, not merely "sat inside this brush's bounding cube."
+                if (scaledDelta == 0)
+                    continue;
+
+                rawVoxelEdits.Add(new RawVoxelEdit(voxelPos, (short)scaledDelta));
             }
 
             var voxelBounds = new Bounds(voxelCenter, Vector3.one * halfSizeVoxels * 2f);

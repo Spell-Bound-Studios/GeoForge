@@ -28,6 +28,7 @@ namespace Spellbound.GeoForge.Sample2 {
         private readonly List<byte> _diggableMaterialList = new() { 0, 1, 2, 3 };
 
         // Config
+        [SerializeField] private DigMaskDefinition digMaskDefinition;
         [SerializeField] private Color lowStrengthColor;
         [SerializeField] private Color highStrengthColor;
         [SerializeField] private Material projectionMaterial;
@@ -102,7 +103,7 @@ namespace Spellbound.GeoForge.Sample2 {
                         out var hit,
                         terraformRange,
                         ~0)) {
-                    GeoForgeStatic.RemoveSphereAll(hit, terraformSize, terraformStrength, _diggableMaterialList);
+                    GeoForgeStatic.RemoveSphere(hit, terraformSize, terraformStrength, digMaskDefinition.GetMask());
                     AudioSource.PlayClipAtPoint(miningAudioClip, hit.point);
                     var direction = Vector3.Slerp(-transform.forward, hit.normal, 0.5f);
                     var geoVolume = hit.collider.gameObject.GetComponentInParent<IGeoVolume>();

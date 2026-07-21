@@ -324,8 +324,8 @@ MonoBehaviour:
   terraformRange: 5
   terraformSize: 1
   terraformStrength: 255
-  diggableMaterialList: 00010203
   addableMaterial: 0
+  digMaskDefinition: {fileID: 11400000, guid: 66ce1cf63f1ffaf44aa4c9deb4e6f433, type: 2}
   lowStrengthColor: {r: 0, g: 0.2746606, b: 1, a: 0.4}
   highStrengthColor: {r: 1, g: 0, b: 0, a: 0.4}
   projectionMaterial: {fileID: 2100000, guid: aa89e0a5b94c6004c8f442396966654a, type: 2}
@@ -741,6 +741,10 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 6673862094514295435, guid: 649071cd54a327946a92f1cedecd78e2, type: 3}
+      propertyPath: jobAndRenderProfile
+      value: 
+      objectReference: {fileID: 11400000, guid: 637f2d8dba04242458817791c5f6515e, type: 2}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []

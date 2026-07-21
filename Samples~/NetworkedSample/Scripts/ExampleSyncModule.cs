@@ -6,6 +6,7 @@ using PurrNet;
 using Spellbound.Core.Logging;
 using Spellbound.Core.Packing;
 using Spellbound.GeoForge;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace Spellbound.GeoForge.Sample4 {
@@ -16,6 +17,12 @@ namespace Spellbound.GeoForge.Sample4 {
     /// </summary>
     public class ExampleSyncModule : NetworkModule, IGeoEditStore, ITick {
         [SerializeField] private bool ownerAuth;
+
+        // Needed to evaluate the wasFull/isFull crossing rule in ResolveDelta. Set alongside
+        // SetChunkData when this module is initialized — NetworkModule instances are typically
+        // framework-managed, so this is exposed as a serialized field + setter rather than a
+        // required constructor parameter.
+        [SerializeField] private byte densityThreshold;
 
         #region Data
 
@@ -42,6 +49,14 @@ namespace Spellbound.GeoForge.Sample4 {
         public void SetChunkData(GeoForgeChunkData chunkData = null) {
             chunkData ??= new GeoForgeChunkData();
             _chunkData = chunkData;
+        }
+
+        /// <summary>
+        /// Must be set before any Delta call resolves — needed for the wasFull/isFull crossing
+        /// rule. Should be set to the owning GeoVolume's config.DensityThreshold.
+        /// </summary>
+        public void SetDensityThreshold(byte threshold) {
+            densityThreshold = threshold;
         }
 
         #endregion Initialization
@@ -166,7 +181,7 @@ namespace Spellbound.GeoForge.Sample4 {
         private void SubmitWriteToServerRpc(byte[] payload) => ResolveWrite(ReadListVoxelData(payload));
 
         [ServerRpc]
-        private void SubmitDeltaToServerRpc(byte[] payload) => ResolveDelta(ReadListVoxelDeltas(payload));
+        private void SubmitDeltaToServerRpc(byte[] payload) => ResolveDelta(ReadVoxelEditOperation(payload));
 
         /// <summary>
         /// Special ObserverRPC to clear the edits without utilizing the Dirty flag
@@ -209,12 +224,12 @@ namespace Spellbound.GeoForge.Sample4 {
             }
         }
 
-        public void Delta(List<VoxelDelta> voxelEdits) {
+        public void Delta(VoxelEditOperation operation) {
             if (IsController(ownerAuth))
-                ResolveDelta(voxelEdits);
+                ResolveDelta(operation);
             else {
                 var payload = Packer.BuildPayload((ref Span<byte> buffer) =>
-                        WriteListVoxelDelta(voxelEdits, ref buffer));
+                        WriteVoxelEditOperation(operation, ref buffer));
 
                 SubmitDeltaToServerRpc(payload);
             }
@@ -246,32 +261,56 @@ namespace Spellbound.GeoForge.Sample4 {
             NotifyGeoEditsChanged(changes);
         }
 
-        private void ResolveDelta(List<VoxelDelta> newDeltas) {
-            var changes = new List<(int, VoxelData)>(newDeltas.Count);
+        private void ResolveDelta(VoxelEditOperation operation) {
+            var changes = new List<(int, VoxelData)>(operation.Deltas.Length);
 
-            foreach (var newDelta in newDeltas) {
-                if (!_chunkData.TryReadEdit(newDelta.index, out var voxelData))
-                    voxelData = DefaultVoxelDataFunc(newDelta.index);
+            foreach (var voxelDelta in operation.Deltas) {
+                if (!_chunkData.TryReadEdit(voxelDelta.Index, out var voxelData))
+                    voxelData = DefaultVoxelDataFunc(voxelDelta.Index);
+
+                var wasFull = voxelData.Density >= densityThreshold;
+                var existingMatIndex = (byte)(voxelData.MaterialIndex % VoxelData.MatureBitValue);
+
+                // Gate: a voxel that's already full and whose current material this operation
+                // isn't permitted to affect (e.g. Impervious, or below the calling tool's tier)
+                // rejects ALL density changes outright — additions as well as subtractions.
+                if (wasFull && !operation.IsAllowed(existingMatIndex)) {
+                    continue;
+                }
 
                 var density = (byte)Mathf.Clamp(
-                    voxelData.Density + newDelta.densityDelta,
+                    voxelData.Density + voxelDelta.DensityDelta,
                     byte.MinValue,
                     byte.MaxValue);
 
-                var matIndex = voxelData.Density < newDelta.densityDelta
-                        ? newDelta.materialType
-                        : voxelData.MaterialIndex;
+                var isFull = density >= densityThreshold;
 
-                var resolved = Mathf.Abs(newDelta.densityDelta) > 0 ?
-                        VoxelData.CreateImmature(density, matIndex) :
-                        VoxelData.CreateMature(density, matIndex);
+                byte matIndex;
+
+                if (!isFull) {
+                    // Core invariant: any voxel ending below threshold is the null/sentinel
+                    // material, no exceptions.
+                    matIndex = VoxelData.NullSentinelValue;
+                }
+                else if (!wasFull && isFull) {
+                    // Material is only ever claimed at the empty -> full crossing.
+                    matIndex = operation.MaterialIndex;
+                }
+                else {
+                    // Already solid on both sides of this delta - material persists unchanged.
+                    matIndex = existingMatIndex;
+                }
+
+                var resolved = voxelDelta.DensityDelta != 0
+                        ? VoxelData.CreateImmature(density, matIndex)
+                        : VoxelData.CreateMature(density, matIndex);
 
                 if (resolved == voxelData)
                     continue;
 
-                _chunkData.WriteEdit(newDelta.index, resolved);
-                _dirty.Add(newDelta.index);
-                changes.Add((newDelta.index, resolved));
+                _chunkData.WriteEdit(voxelDelta.Index, resolved);
+                _dirty.Add(voxelDelta.Index);
+                changes.Add((voxelDelta.Index, resolved));
             }
 
             NotifyGeoEditsChanged(changes);
@@ -281,11 +320,22 @@ namespace Spellbound.GeoForge.Sample4 {
 
         #region Packer Batch Write
 
-        private static void WriteListVoxelDelta(List<VoxelDelta> voxelDeltas, ref Span<byte> buffer) {
-            Packer.WriteInt(ref buffer, voxelDeltas.Count);
+        private static void WriteVoxelEditOperation(VoxelEditOperation operation, ref Span<byte> buffer) {
+            Packer.WriteByte(ref buffer, operation.MaterialIndex);
 
-            foreach (var voxelDelta in voxelDeltas)
-                voxelDelta.Pack(ref buffer);
+            // uint4 has no native Packer support, so each lane is round-tripped through int via
+            // unchecked cast (bit pattern preserved, just relabeled as signed for the packer).
+            Packer.WriteInt(ref buffer, unchecked((int)operation.AllowedMaterialsMask.x));
+            Packer.WriteInt(ref buffer, unchecked((int)operation.AllowedMaterialsMask.y));
+            Packer.WriteInt(ref buffer, unchecked((int)operation.AllowedMaterialsMask.z));
+            Packer.WriteInt(ref buffer, unchecked((int)operation.AllowedMaterialsMask.w));
+
+            Packer.WriteInt(ref buffer, operation.Deltas.Length);
+
+            foreach (var delta in operation.Deltas) {
+                Packer.WriteInt(ref buffer, delta.Index);
+                Packer.WriteShort(ref buffer, delta.DensityDelta);
+            }
         }
 
         private static void WriteListVoxelData(List<(int, VoxelData)> voxelDatas, ref Span<byte> buffer) {
@@ -331,18 +381,27 @@ namespace Spellbound.GeoForge.Sample4 {
 
         #region Packer Batch Read
 
-        private static List<VoxelDelta> ReadListVoxelDeltas(byte[] payload) {
+        private static VoxelEditOperation ReadVoxelEditOperation(byte[] payload) {
             ReadOnlySpan<byte> span = payload;
+
+            var materialIndex = Packer.ReadByte(ref span);
+
+            var maskX = unchecked((uint)Packer.ReadInt(ref span));
+            var maskY = unchecked((uint)Packer.ReadInt(ref span));
+            var maskZ = unchecked((uint)Packer.ReadInt(ref span));
+            var maskW = unchecked((uint)Packer.ReadInt(ref span));
+            var mask = new uint4(maskX, maskY, maskZ, maskW);
+
             var count = Packer.ReadInt(ref span);
-            var deltas = new List<VoxelDelta>(count);
+            var deltas = new List<VoxelDensityDelta>(count);
 
             for (var i = 0; i < count; i++) {
-                var voxelDelta = new VoxelDelta();
-                voxelDelta.Unpack(ref span);
-                deltas.Add(voxelDelta);
+                var index = Packer.ReadInt(ref span);
+                var densityDelta = Packer.ReadShort(ref span);
+                deltas.Add(new VoxelDensityDelta(index, densityDelta));
             }
 
-            return deltas;
+            return new VoxelEditOperation(materialIndex, deltas, mask);
         }
 
         private static List<(int, VoxelData)> ReadListVoxelData(byte[] payload) {
