@@ -215,43 +215,44 @@ namespace Spellbound.GeoForge {
         }
 
         private void MarchAndMesh(NativeArray<VoxelData> voxelArray) {
-            var marchingCubeJob = new MarchingCubeJob {
-                TablesBlob = _gfManager.McTablesBlob,
-                ConfigBlob = _parentGeoVolume.ConfigBlob,
-                IsFlatShadedLookUp = _gfManager.FlatShadedLookUp,
-                VoxelArray = voxelArray,
+            var profile = _gfManager.jobAndRenderProfile;
+            var start = new int3(_localPosition.x, _localPosition.y, _localPosition.z);
 
-                Vertices = new NativeList<MeshingVertexData>(Allocator.Persistent),
-                Triangles = new NativeList<int>(Allocator.Persistent),
-                Lod = _lod,
-                Start = new int3(_localPosition.x, _localPosition.y, _localPosition.z)
-            };
-            var jobHandle = marchingCubeJob.Schedule();
+            var vertices = new NativeList<MeshingVertexData>(Allocator.Persistent);
+            var triangles = new NativeList<int>(Allocator.Persistent);
 
-            _gfManager.RegisterMarchJob(this, jobHandle, marchingCubeJob.Vertices, marchingCubeJob.Triangles,
-                _geoChunk.ChunkCoord);
+            var jobHandle = profile.ScheduleMarchingCubes(
+                _gfManager.McTablesBlob,
+                _parentGeoVolume.ConfigBlob,
+                _gfManager.FlatShadedLookUp,
+                voxelArray,
+                vertices,
+                triangles,
+                _lod,
+                start);
+
+            _gfManager.RegisterMarchJob(this, jobHandle, vertices, triangles, _geoChunk.ChunkCoord);
 
             if (_lod != 0) {
-                var transitionMarchingCubeJob = new TransitionMarchingCubeJob {
-                    TablesBlob = _gfManager.McTablesBlob,
-                    ConfigBlob = _parentGeoVolume.ConfigBlob,
-                    VoxelArray = voxelArray,
+                var transitionMeshingVertexData = new NativeList<MeshingVertexData>(Allocator.Persistent);
+                var transitionTriangles = new NativeList<int>(Allocator.Persistent);
+                var transitionRanges = new NativeArray<int2>(6, Allocator.Persistent);
 
-                    TransitionMeshingVertexData = new NativeList<MeshingVertexData>(Allocator.Persistent),
-                    TransitionTriangles = new NativeList<int>(Allocator.Persistent),
-                    TransitionRanges = new NativeArray<int2>(6, Allocator.Persistent),
-
-                    Lod = _lod,
-                    Start = new int3(_localPosition.x, _localPosition.y, _localPosition.z)
-                };
-
-                var transitionJobHandle = transitionMarchingCubeJob.Schedule();
+                var transitionJobHandle = profile.ScheduleTransitionMarchingCubes(
+                    _gfManager.McTablesBlob,
+                    _parentGeoVolume.ConfigBlob,
+                    voxelArray,
+                    transitionMeshingVertexData,
+                    transitionTriangles,
+                    transitionRanges,
+                    _lod,
+                    start);
 
                 _gfManager.RegisterTransitionJob(this,
                     transitionJobHandle,
-                    transitionMarchingCubeJob.TransitionMeshingVertexData,
-                    transitionMarchingCubeJob.TransitionTriangles,
-                    transitionMarchingCubeJob.TransitionRanges,
+                    transitionMeshingVertexData,
+                    transitionTriangles,
+                    transitionRanges,
                     _geoChunk.ChunkCoord);
             }
         }

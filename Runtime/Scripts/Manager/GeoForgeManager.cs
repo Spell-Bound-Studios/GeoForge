@@ -18,7 +18,6 @@ namespace Spellbound.GeoForge {
 
         [SerializeField] public GameObject octreePrefab;
         [SerializeField] public VoxelMaterialDatabase materialDatabase;
-        private Material _runtimeVoxelMaterial;
 
         private readonly Stack<GameObject> _objectPool = new();
         private bool _isActive;
@@ -30,18 +29,6 @@ namespace Spellbound.GeoForge {
 
         private HashSet<byte> _allMaterials;
         public NativeArray<bool> FlatShadedLookUp { get; private set; }
-        [SerializeField] private byte defaultMaterial;
-
-        public HashSet<byte> GetAllMaterials() {
-            if (_allMaterials == null) {
-                _allMaterials = new HashSet<byte>();
-                for (var i = 0; i < materialDatabase.materials.Count; ++i) _allMaterials.Add((byte)i);
-            }
-
-            return _allMaterials;
-        }
-
-        public byte GetDefaultMaterial() => defaultMaterial;
 
         public event Action OctreeBatchTransitionUpdate;
 
@@ -50,7 +37,6 @@ namespace Spellbound.GeoForge {
             McTablesBlob = McTablesBlobCreator.CreateMcTablesBlobAsset();
             _objectPoolParent = new GameObject("OctreeLeafPool").transform;
             _objectPoolParent.SetParent(transform);
-            InitializeVoxelMaterial();
             ValidateAllVolumesLodsAsync();
             FlatShadedLookUp = new NativeArray<bool>(256, Allocator.Persistent);
             var lookUp = FlatShadedLookUp;
@@ -75,32 +61,6 @@ namespace Spellbound.GeoForge {
             finally {
                 Debug.Log("ValidateAllVolumesLodsAsync stopped");
             }
-        }
-
-        private void InitializeVoxelMaterial()
-        {
-            if (octreePrefab == null)
-            {
-                Debug.LogError("Octree bakePrefab not assigned!");
-
-                return;
-            }
-
-            var renderer = octreePrefab.GetComponent<MeshRenderer>();
-
-            if (renderer == null || renderer.sharedMaterial == null)
-            {
-                Debug.LogError("Octree bakePrefab has no MeshRenderer or Material!");
-
-                return;
-            }
-
-            // Create runtime instance from bakePrefab's material
-            _runtimeVoxelMaterial = new Material(renderer.sharedMaterial);
-
-            // Apply texture arrays from database
-            if (materialDatabase == null)
-                Debug.LogError("No VoxelMaterialDatabase assigned!");
         }
 
         private void LateUpdate() => OctreeBatchTransitionUpdate?.Invoke();
@@ -145,7 +105,7 @@ namespace Spellbound.GeoForge {
 
                 // Apply the runtime material to new instances
                 var renderer = go.GetComponent<MeshRenderer>();
-                if (renderer != null) renderer.sharedMaterial = _runtimeVoxelMaterial;
+                if (renderer != null) renderer.sharedMaterial = jobAndRenderProfile.Material;
             }
 
             go.transform.SetParent(parent, false);
