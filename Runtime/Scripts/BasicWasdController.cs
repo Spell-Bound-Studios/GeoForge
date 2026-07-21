@@ -102,7 +102,7 @@ namespace Spellbound.GeoForge {
                     out var hit,
                     float.MaxValue,
                     ~0))
-                GeoForgeStatic.RemoveSphereAll(hit, 6, byte.MaxValue, conditionalDigList);
+                GeoForgeStatic.RemoveSphere(hit, 6, byte.MaxValue);
         }
 
         /// <summary>

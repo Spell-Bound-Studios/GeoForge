@@ -14,12 +14,11 @@ namespace Spellbound.GeoForge {
         public GeoChunk GeoChunk => _geoChunk;
 
         public void InitializeGeoChunk(Vector3Int coord) {
-            _geoChunk = new GeoChunk(this, transform, new SimpleGeoEditStore(), coord);
+            _geoChunk = new GeoChunk(this, transform, new SimpleGeoEditStore(128), coord);
             GeoChunk.IGeoEditStore.DefaultVoxelDataFunc = GeoChunk.GetVoxelData;
         }
 
-        public virtual void PassVoxelEdits(List<VoxelDelta> newVoxelEdits) =>
-                GeoChunk.IGeoEditStore.Delta(newVoxelEdits);
+        public virtual void PassVoxelEdits(VoxelEditOperation operation) => GeoChunk.IGeoEditStore.Delta(operation);
 
         public void SetDataFactory(DataFactory factory) => dataFactory = factory;
 

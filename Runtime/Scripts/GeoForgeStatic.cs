@@ -1,8 +1,7 @@
 // Copyright 2026 Spellbound Studio Inc.
 
-using System.Collections.Generic;
-using System.Linq;
 using Spellbound.Core.Tooling;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
@@ -10,6 +9,11 @@ namespace Spellbound.GeoForge {
     /// DX Library for GeoForge Usage
     /// </summary>
     public static class GeoForgeStatic {
+        // uint4 can't be used as a C# default parameter value (not a compile-time constant), so
+        // the unrestricted-mask overloads below forward to the full method with this value
+        // explicitly, rather than declaring it as a default argument.
+        private static readonly uint4 AllMaterialsMask = new(uint.MaxValue);
+
         /// <summary>
         /// Check for GeoForgeManager being in the scene.
         /// </summary>
@@ -35,10 +39,19 @@ namespace Spellbound.GeoForge {
         }
 
         /// <summary>
+        /// Public method to Remove or "Dig-into" a spherical region in one specific GeoForge Volume,
+        /// with no restriction on which existing materials can be affected.
+        /// </summary>
+        public static void RemoveSphere(RaycastHit hit, float radius, int delta) =>
+                RemoveSphere(hit, radius, delta, AllMaterialsMask);
+
+        /// <summary>
         /// Public method to Remove or "Dig-into" a spherical region in one specific GeoForge Volume.
+        /// allowedMaterialsMask restricts which EXISTING materials this dig can affect (e.g. tool
+        /// tier vs. Impervious terrain).
         /// </summary>
         public static void RemoveSphere(
-            RaycastHit hit, float radius, int delta, List<byte> materials = null) {
+            RaycastHit hit, float radius, int delta, uint4 allowedMaterialsMask) {
             if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager)) {
                 Debug.LogError("GeoForgeManager not found. Ensure it's in the current scene.");
 
@@ -50,16 +63,25 @@ namespace Spellbound.GeoForge {
             if (iVolume == null)
                 return;
 
-            var matHashSet = materials == null ? gfManager.GetAllMaterials() : materials.ToHashSet();
-            var results = TerraformCommands.TerraformSphere(iVolume, hit.point, radius, (short)-delta, matHashSet);
-            gfManager.DistributeVoxelEdits(iVolume, results.edits);
+            var results = TerraformCommands.TerraformSphere(iVolume, hit.point, radius, (short)-delta);
+
+            // A dig never crosses from empty into full, so materialIndex is never actually read by
+            // the crossing rule downstream — 0 here is just a placeholder, not a meaningful value.
+            gfManager.DistributeVoxelEdits(iVolume, results.edits, 0, allowedMaterialsMask);
         }
 
         /// <summary>
-        /// Public method to Remove or "Dig-into" a spherical region for ALL GeoForge volumes in the region.
+        /// Public method to Remove or "Dig-into" a spherical region for ALL GeoForge volumes in the
+        /// scene, with no restriction on which existing materials can be affected.
         /// </summary>
-        public static void RemoveSphereAll(
-            RaycastHit hit, float radius, short delta, List<byte> materials = null) {
+        public static void RemoveSphereAllVolumes(RaycastHit hit, float radius, short delta) =>
+                RemoveSphereAllVolumes(hit, radius, delta, AllMaterialsMask);
+
+        /// <summary>
+        /// Public method to Remove or "Dig-into" a spherical region for ALL GeoForge volumes in the scene.
+        /// </summary>
+        public static void RemoveSphereAllVolumes(
+            RaycastHit hit, float radius, short delta, uint4 allowedMaterialsMask) {
             if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager)) {
                 Debug.LogError("GeoForgeManager not found. Ensure it's in the current scene.");
 
@@ -71,18 +93,24 @@ namespace Spellbound.GeoForge {
             if (iVolume == null)
                 return;
 
-            var matHashSet = materials == null ? gfManager.GetAllMaterials() : materials.ToHashSet();
-
-            gfManager.ExecuteTerraformAll(volume =>
-                    TerraformCommands.TerraformSphere(volume, hit.point, radius, (short)-delta, matHashSet)
-            );
+            gfManager.ExecuteTerraformAll(
+                volume => TerraformCommands.TerraformSphere(volume, hit.point, radius, (short)-delta),
+                0,
+                allowedMaterialsMask);
         }
+
+        /// <summary>
+        /// Public method to Add or "Deposit-onto" a spherical region for one specific GeoForge
+        /// geoVolume, with no restriction on which existing materials can be filled into.
+        /// </summary>
+        public static void AddSphere(RaycastHit hit, float radius, short delta, byte material) =>
+                AddSphere(hit, radius, delta, material, AllMaterialsMask);
 
         /// <summary>
         /// Public method to Add or "Deposit-onto" a spherical region for one specific GeoForge geoVolume. 
         /// </summary>
         public static void AddSphere(
-            RaycastHit hit, float radius, short delta, byte material) {
+            RaycastHit hit, float radius, short delta, byte material, uint4 allowedMaterialsMask) {
             if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager)) {
                 Debug.LogError("GeoForgeManager not found. Ensure it's in the current scene.");
 
@@ -94,9 +122,8 @@ namespace Spellbound.GeoForge {
             if (iVolume == null)
                 return;
 
-            var matHashSet = new HashSet<byte> { material };
-            var results = TerraformCommands.TerraformSphere(iVolume, hit.point, radius, delta, matHashSet);
-            gfManager.DistributeVoxelEdits(iVolume, results.edits);
+            var results = TerraformCommands.TerraformSphere(iVolume, hit.point, radius, delta);
+            gfManager.DistributeVoxelEdits(iVolume, results.edits, material, allowedMaterialsMask);
         }
     }
 }

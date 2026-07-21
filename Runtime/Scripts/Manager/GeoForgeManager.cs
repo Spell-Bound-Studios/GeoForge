@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using Spellbound.Core.Tooling;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Mathematics;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
@@ -62,11 +63,11 @@ namespace Spellbound.GeoForge {
                 while (true) {
                     var volumeList = new List<IGeoVolume>(_voxelVolumes);
                     foreach (var volume in volumeList) {
-                        if (volume == null) 
+                        if (volume == null)
                             continue;
                         await volume.ValidateChunkLods();
                     }
-                        
+
 
                     await Awaitable.NextFrameAsync();
                 }
@@ -109,7 +110,7 @@ namespace Spellbound.GeoForge {
 
             if (McTablesBlob.IsCreated)
                 McTablesBlob.Dispose();
-            
+
             if (FlatShadedLookUp.IsCreated)
                 FlatShadedLookUp.Dispose();
 
@@ -171,28 +172,37 @@ namespace Spellbound.GeoForge {
         }
 
         /// <summary>
-        /// For Terraforming Commands that might affect multiple volumes.
+        /// For Terraforming Commands that might affect multiple volumes. materialIndex and
+        /// allowedMaterialsMask are shared across every volume the action touches; only the
+        /// per-volume edits/bounds come from the terraformAction delegate.
         /// </summary>
         public void ExecuteTerraformAll(
-            Func<IGeoVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction) {
+            Func<IGeoVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction,
+            byte materialIndex,
+            uint4 allowedMaterialsMask) {
             foreach (var iVolume in _voxelVolumes) {
                 var result = terraformAction(iVolume);
 
                 if (!iVolume.IntersectsVolume(result.bounds))
                     continue;
 
-                DistributeVoxelEdits(iVolume, result.edits);
+                DistributeVoxelEdits(iVolume, result.edits, materialIndex, allowedMaterialsMask);
             }
         }
 
         /// <summary>
         /// Expected to run on server only.
-        /// Maps "raw" (world space) voxel edit to Chunks and Lists of local changes in each geoChunk.
-        /// This is required because there's data overlap between the chunks. 
+        /// Maps "raw" (world space) voxel edits to Chunks and builds one VoxelEditOperation per
+        /// affected chunk. materialIndex and allowedMaterialsMask are properties of the whole
+        /// terraform action and are copied onto every chunk's operation unchanged; only the
+        /// per-chunk Deltas differ.
         /// </summary>
         public void DistributeVoxelEdits(
-            IGeoVolume geoVolume, List<RawVoxelEdit> rawVoxelEdits) {
-            var editsByChunkCoord = new Dictionary<Vector3Int, List<VoxelDelta>>();
+            IGeoVolume geoVolume,
+            List<RawVoxelEdit> rawVoxelEdits,
+            byte materialIndex,
+            uint4 allowedMaterialsMask) {
+            var editsByChunkCoord = new Dictionary<Vector3Int, List<VoxelDensityDelta>>();
 
             ref var config = ref geoVolume.ConfigBlob.Value;
 
@@ -213,12 +223,11 @@ namespace Spellbound.GeoForge {
                     return;
 
                 if (!editsByChunkCoord.TryGetValue(centralCoord, out var localEdits)) {
-                    localEdits = new List<VoxelDelta>();
+                    localEdits = new List<VoxelDensityDelta>();
                     editsByChunkCoord[centralCoord] = localEdits;
                 }
 
-                var localEdit = new VoxelDelta(index, rawEdit.DensityDelta, rawEdit.NewMatIndex);
-                localEdits.Add(localEdit);
+                localEdits.Add(new VoxelDensityDelta(index, rawEdit.DensityDelta));
 
                 if (denseVoxelData.SharedIndicesAcrossChunks.TryGetValue(index, out var neighborCoords)) {
                     foreach (var neighborCoord in neighborCoords) {
@@ -229,13 +238,11 @@ namespace Spellbound.GeoForge {
                             neighborLocalPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
 
                         if (!editsByChunkCoord.TryGetValue(trueNeighborCoord, out var localNeighborEdits)) {
-                            localNeighborEdits = new List<VoxelDelta>();
+                            localNeighborEdits = new List<VoxelDensityDelta>();
                             editsByChunkCoord[trueNeighborCoord] = localNeighborEdits;
                         }
 
-                        var localNeighborEdit =
-                                new VoxelDelta(neighborIndex, rawEdit.DensityDelta, rawEdit.NewMatIndex);
-                        localNeighborEdits.Add(localNeighborEdit);
+                        localNeighborEdits.Add(new VoxelDensityDelta(neighborIndex, rawEdit.DensityDelta));
                     }
                 }
             }
@@ -246,7 +253,7 @@ namespace Spellbound.GeoForge {
                 if (chunk == null)
                     continue;
 
-                chunk.PassVoxelEdits(kvp.Value);
+                chunk.PassVoxelEdits(new VoxelEditOperation(materialIndex, kvp.Value, allowedMaterialsMask));
             }
         }
 

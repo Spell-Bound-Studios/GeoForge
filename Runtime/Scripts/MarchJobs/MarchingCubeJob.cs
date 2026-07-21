@@ -310,22 +310,24 @@ namespace Spellbound.GeoForge {
                                 var weight0 = 1f - t;
 
                                 // Add all voxel contributions (14-voxel neighborhood — this decides which
-                                // TWO materials dominate this vertex, purely by material identity).
-                                AddMaterialWeight(voxel0, weight0, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v0011, weight0, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v0211, weight0, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v0101, weight0, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v0121, weight0, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v0110, weight0, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v0112, weight0, ref uniqueMaterials, ref materialWeights);
+                                // TWO materials dominate this vertex, purely by material identity). Voxels
+                                // below densityThreshold (including the null/sentinel material) never
+                                // contribute — see AddMaterialWeight.
+                                AddMaterialWeight(voxel0, weight0, densityThreshold, ref uniqueMaterials, ref materialWeights);
+                                AddMaterialWeight(v0011, weight0, densityThreshold, ref uniqueMaterials, ref materialWeights);
+                                AddMaterialWeight(v0211, weight0, densityThreshold, ref uniqueMaterials, ref materialWeights);
+                                AddMaterialWeight(v0101, weight0, densityThreshold, ref uniqueMaterials, ref materialWeights);
+                                AddMaterialWeight(v0121, weight0, densityThreshold, ref uniqueMaterials, ref materialWeights);
+                                AddMaterialWeight(v0110, weight0, densityThreshold, ref uniqueMaterials, ref materialWeights);
+                                AddMaterialWeight(v0112, weight0, densityThreshold, ref uniqueMaterials, ref materialWeights);
 
-                                AddMaterialWeight(voxel1, t, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v1011, t, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v1211, t, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v1101, t, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v1121, t, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v1110, t, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v1112, t, ref uniqueMaterials, ref materialWeights);
+                                AddMaterialWeight(voxel1, t, densityThreshold, ref uniqueMaterials, ref materialWeights);
+                                AddMaterialWeight(v1011, t, densityThreshold, ref uniqueMaterials, ref materialWeights);
+                                AddMaterialWeight(v1211, t, densityThreshold, ref uniqueMaterials, ref materialWeights);
+                                AddMaterialWeight(v1101, t, densityThreshold, ref uniqueMaterials, ref materialWeights);
+                                AddMaterialWeight(v1121, t, densityThreshold, ref uniqueMaterials, ref materialWeights);
+                                AddMaterialWeight(v1110, t, densityThreshold, ref uniqueMaterials, ref materialWeights);
+                                AddMaterialWeight(v1112, t, densityThreshold, ref uniqueMaterials, ref materialWeights);
 
                                 // Find top 2 materials (0-127 only — maturity plays no role in this selection).
                                 byte matA = 0;
@@ -482,10 +484,16 @@ namespace Spellbound.GeoForge {
         private static void AddMaterialWeight(
             in VoxelData voxel,
             float baseWeight,
+            byte densityThreshold,
             ref NativeList<byte> uniqueMaterials,
             ref NativeList<float> materialWeights) {
-            // Skip voxels with zero DensityDelta (air)
-            if (voxel.Density == 0) return;
+            // Skip any voxel that isn't actually "full" (density >= densityThreshold). This is the
+            // same threshold the mesher uses for the case code, so a voxel can never simultaneously
+            // count as "empty" for geometry and "a real material" for this vote. It also guarantees
+            // the null/sentinel material (always < densityThreshold, per the core density/material
+            // invariant) can never contribute weight here, and therefore can never be selected as
+            // matA/matB below.
+            if (voxel.Density < densityThreshold) return;
 
             // Demodulate: material identity (0-127) only. Maturity is resolved separately in
             // ResolveMaturity, checked only against voxel0/voxel1, not this wider neighborhood.
