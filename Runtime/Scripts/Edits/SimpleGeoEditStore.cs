@@ -53,6 +53,8 @@ namespace Spellbound.GeoForge {
                 var wasFull = voxelData.Density >= _densityThreshold;
                 var existingMatIndex = (byte)(voxelData.MaterialIndex % VoxelData.MatureBitValue);
 
+                VoxelData resolved;
+
                 // Gate: a voxel that's already full and whose current material this operation isn't
                 // permitted to affect (e.g. Impervious, or below the calling tool's tier) rejects
                 // ALL density changes outright — additions as well as subtractions. Additions onto
@@ -85,9 +87,7 @@ namespace Spellbound.GeoForge {
                     matIndex = existingMatIndex;
                 }
 
-                var resolved = voxelDelta.DensityDelta != 0
-                        ? VoxelData.CreateImmature(density, matIndex)
-                        : VoxelData.CreateMature(density, matIndex);
+                resolved = VoxelData.CreateImmature(density, matIndex);
 
                 if (resolved == voxelData)
                     continue;

@@ -12,13 +12,13 @@ namespace Spellbound.GeoForge {
         public float3 Position;
         public float3 Normal;
         public Color32 FixedColor;
-        public float2 InterpolatedColor;
+        public float4 ExtendedUV;
 
-        public MeshingVertexData(float3 position, float3 normal, Color32 fixedColor, float2 interpolatedColor) {
+        public MeshingVertexData(float3 position, float3 normal, Color32 fixedColor, float4 extendedUV) {
             Position = position;
             Normal = normal;
             FixedColor = fixedColor;
-            InterpolatedColor = interpolatedColor;
+            ExtendedUV = extendedUV;
         }
 
         /// <summary>
@@ -28,7 +28,7 @@ namespace Spellbound.GeoForge {
             new(VertexAttribute.Position),
             new(VertexAttribute.Normal),
             new(VertexAttribute.Color, VertexAttributeFormat.UNorm8, 4),
-            new(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 2)
+            new(VertexAttribute.TexCoord0, VertexAttributeFormat.Float32, 4)
         };
     }
 }

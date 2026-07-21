@@ -12,4 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2766faac0017b7d48aacbe67c48039e9, type: 3}
   m_Name: FlatBaryMaterialRenderingProfile
   m_EditorClassIdentifier: 
-  material: {fileID: 2100000, guid: 7b3d048aed26b0f409804293cd6adbff, type: 2}
+  material: {fileID: 2100000, guid: 4836f5c9b50cb79449d6286b9bbe8b11, type: 2}

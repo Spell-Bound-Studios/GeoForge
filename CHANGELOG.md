@@ -18,5 +18,11 @@
 * Revised VoxelData to contain a bit for if the voxel is "mature" or not.
 * Added Shader Capability to render alternate textures/fallbacks as moss or snow or discoloration, but only for mature voxels.
 
+## \[0.5.0] - 7/21/2026
+
+* Improved fidelity of voxel edits/deltas.
+* Added a barycentric coordinate shader for rendering the intersection between different materials more accurately
+* Provided a scriptableobject type to swap in different profiles for how to handle rendering, and variations on the fundamental marching cubes algorithms.
+
 
 

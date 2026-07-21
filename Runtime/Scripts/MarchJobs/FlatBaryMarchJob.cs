@@ -43,6 +43,7 @@ namespace Spellbound.GeoForge {
         private struct EdgeVertex {
             public float3 Position;
             public byte RawMaterial; // raw VoxelData.MaterialIndex of the original full corner (includes maturity bit)
+            public byte Density; // density (0-255) of that same original full corner - used as a confidence weight
         }
 
         public void Execute() {
@@ -156,6 +157,8 @@ namespace Spellbound.GeoForge {
                                 // can, in that degenerate case, resolve to two voxels that are BOTH on the empty
                                 // side - both carrying the null/sentinel material - which would then render.
                                 var originalFullVoxel = isVert0DensityAboveThreshold ? voxel0 : voxel1;
+                                var wasVoxel0Mature = voxel0.MaterialIndex >= VoxelData.MatureBitValue;
+                                var wasVoxel1Mature = voxel1.MaterialIndex >= VoxelData.MatureBitValue;
 
                                 for (var j = 0; j < Lod; ++j) {
                                     var mid = (p0 + p1) * 0.5f;
@@ -198,10 +201,15 @@ namespace Spellbound.GeoForge {
 
                                 var vertex = math.lerp(vertLocalPos0, vertLocalPos1, t);
                                 var centeredVertex = (vertex + offsetBurst) * resolution;
+                                
+                                var materialIndexOnly = (byte)(originalFullVoxel.MaterialIndex % VoxelData.MatureBitValue);
+                                var combinedIsMature = wasVoxel0Mature && wasVoxel1Mature;
+                                var packedRawMaterial = (byte)(materialIndexOnly + (combinedIsMature ? VoxelData.MatureBitValue : 0));
 
                                 edgeVertex = new EdgeVertex {
                                     Position = centeredVertex,
-                                    RawMaterial = originalFullVoxel.MaterialIndex
+                                    RawMaterial = packedRawMaterial,
+                                    Density = originalFullVoxel.Density
                                 };
 
                                 if (cornerIdx1 == 7) {
@@ -227,19 +235,31 @@ namespace Spellbound.GeoForge {
                             var faceNormal = math.normalize(
                                 math.cross(vB.Position - vC.Position, vA.Position - vC.Position));
 
-                            // Pack all three corner materials identically onto all three vertices (safe to
-                            // "interpolate" since it's constant across the triangle), plus a barycentric role
-                            // marker that DOES vary per vertex and IS meant to interpolate smoothly.
-                            var matTriple = new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 255);
+                            // matTriple's rgb is triangle-constant (safe to "interpolate" since it never
+                            // varies across the triangle); alpha carries the per-vertex barycentric marker u
+                            // (exactly 0 or 255 at any given vertex - the GPU interpolates the in-between
+                            // values across the triangle for us).
+                            var densityTriple = new float3(vA.Density - densityThreshold, 
+                                vB.Density - densityThreshold, 
+                                vC.Density - densityThreshold);
 
                             var iaIndex = Vertices.Length;
-                            Vertices.Add(new MeshingVertexData(vA.Position, faceNormal, matTriple, new float2(1, 0)));
+                            Vertices.Add(new MeshingVertexData(
+                                vA.Position, faceNormal,
+                                new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 255),
+                                new float4(densityTriple, 0)));
 
                             var ibIndex = Vertices.Length;
-                            Vertices.Add(new MeshingVertexData(vB.Position, faceNormal, matTriple, new float2(0, 1)));
+                            Vertices.Add(new MeshingVertexData(
+                                vB.Position, faceNormal,
+                                new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 0),
+                                new float4(densityTriple, 1)));
 
                             var icIndex = Vertices.Length;
-                            Vertices.Add(new MeshingVertexData(vC.Position, faceNormal, matTriple, new float2(0, 0)));
+                            Vertices.Add(new MeshingVertexData(
+                                vC.Position, faceNormal,
+                                new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 0),
+                                new float4(densityTriple, 0)));
 
                             Triangles.Add(icIndex);
                             Triangles.Add(ibIndex);

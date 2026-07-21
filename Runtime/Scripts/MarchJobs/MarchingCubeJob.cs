@@ -359,7 +359,7 @@ namespace Spellbound.GeoForge {
                                 var matAAllMature = ResolveMaturity(matA, matIndex0, isMature0, matIndex1, isMature1);
                                 var matBAllMature = ResolveMaturity(matB, matIndex0, isMature0, matIndex1, isMature1);
 
-                                var colorInterp = new float2((float)matA / byte.MaxValue, 0);
+                                var colorInterp = new float4((float)matA / byte.MaxValue, 0, 0, 0);
 
                                 var color = new Color32(
                                     matA,

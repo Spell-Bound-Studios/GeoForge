@@ -40,6 +40,7 @@ namespace Spellbound.GeoForge {
         private struct EdgeVertex {
             public float3 Position;
             public byte RawMaterial;
+            public byte Density; // density (0-255) of the original full corner - confidence weight
             public bool IsValid;
         }
 
@@ -177,6 +178,8 @@ namespace Spellbound.GeoForge {
                             // complementary - immune to the subdivision search degenerating under
                             // non-monotonic (dug/edited) density.
                             var originalFullVoxel = isVert0DensityAboveThreshold ? initVoxel0 : initVoxel1;
+                            var wasVoxel0Mature = initVoxel0.MaterialIndex >= VoxelData.MatureBitValue;
+                            var wasVoxel1Mature = initVoxel1.MaterialIndex >= VoxelData.MatureBitValue;
 
                             for (var j = 0; j < subEdges; ++j) {
                                 var midPointLocalPos = (float3)(corner0Copy + corner1Copy) * 0.5f;
@@ -215,10 +218,15 @@ namespace Spellbound.GeoForge {
 
                             var vertex = math.lerp(corner0Copy, corner1Copy, t);
                             var centeredVertex = (vertex + config.OffsetBurst) * config.Resolution;
+                            
+                            var materialIndexOnly = (byte)(originalFullVoxel.MaterialIndex % VoxelData.MatureBitValue);
+                            var combinedIsMature = wasVoxel0Mature && wasVoxel1Mature;
+                            var packedRawMaterial = (byte)(materialIndexOnly + (combinedIsMature ? VoxelData.MatureBitValue : 0));
 
                             edgeVertex = new EdgeVertex {
                                 Position = centeredVertex,
-                                RawMaterial = originalFullVoxel.MaterialIndex,
+                                RawMaterial = packedRawMaterial,
+                                Density = originalFullVoxel.Density,
                                 IsValid = true
                             };
 
@@ -265,19 +273,27 @@ namespace Spellbound.GeoForge {
                                 ? math.normalize(math.cross(vB.Position - vC.Position, vA.Position - vC.Position))
                                 : math.normalize(math.cross(vB.Position - vA.Position, vC.Position - vA.Position));
 
-                        var matTriple = new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 255);
+                        var densityTriple = new float3(vA.Density - config.DensityThreshold, 
+                            vB.Density - config.DensityThreshold, 
+                            vC.Density - config.DensityThreshold);
 
                         var newIa = TransitionMeshingVertexData.Length;
-                        TransitionMeshingVertexData.Add(
-                            new MeshingVertexData(vA.Position, normal, matTriple, new float2(1, 0)));
+                        TransitionMeshingVertexData.Add(new MeshingVertexData(
+                            vA.Position, normal,
+                            new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 255),
+                            new float4(densityTriple, 0)));
 
                         var newIb = TransitionMeshingVertexData.Length;
-                        TransitionMeshingVertexData.Add(
-                            new MeshingVertexData(vB.Position, normal, matTriple, new float2(0, 1)));
+                        TransitionMeshingVertexData.Add(new MeshingVertexData(
+                            vB.Position, normal,
+                            new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 0),
+                            new float4(densityTriple, 1)));
 
                         var newIc = TransitionMeshingVertexData.Length;
-                        TransitionMeshingVertexData.Add(
-                            new MeshingVertexData(vC.Position, normal, matTriple, new float2(0, 0)));
+                        TransitionMeshingVertexData.Add(new MeshingVertexData(
+                            vC.Position, normal,
+                            new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 0),
+                            new float4(densityTriple, 0)));
 
                         if (bFlipWinding) {
                             TransitionTriangles.Add(newIc);

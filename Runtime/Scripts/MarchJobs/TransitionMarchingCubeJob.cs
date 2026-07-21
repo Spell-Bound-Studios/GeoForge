@@ -211,7 +211,7 @@ namespace Spellbound.GeoForge {
                                 out var n, out var c);
                             normal = n;
                             color = c;
-                            var colorInterp = new float2((float)c.r / byte.MaxValue, 0);
+                            var colorInterp = new float4((float)c.r / byte.MaxValue, 0, 0, 0);
 
                             if (bIsLowResFace) {
                                 if (cacheDir == 8) {
