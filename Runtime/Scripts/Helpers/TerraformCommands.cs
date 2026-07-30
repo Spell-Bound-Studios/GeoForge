@@ -44,5 +44,142 @@ namespace Spellbound.GeoForge {
 
             return (rawVoxelEdits, voxelBounds);
         }
+
+        /// <summary>
+        /// A pickaxe-hit "arc" dig: half of a short, wide cylinder ("a coin held on edge"),
+        /// carving a shallow patch out of the wall rather than boring deep into it. No raycast
+        /// or spherecast involved -- purely geometric, defined by a center position, a facing
+        /// direction, a radius, and a thickness.
+        ///
+        /// Axes, relative to worldPosition:
+        ///   - thinAxis = normalize(cross(direction, upHint)) -- the cylinder's actual axis (the
+        ///     "short way through the coin"). thickness extends along this axis, split evenly
+        ///     on either side of worldPosition.
+        ///   - direction and upHint together span the disc's face plane (the flat circular
+        ///     cross-section you actually see carved into the wall). direction is used directly
+        ///     to decide which half of that disc to keep.
+        ///
+        /// Only the half of the disc with a non-negative component along direction is carved --
+        /// i.e. only material genuinely behind the impact point, never the half that would stick
+        /// out toward the player. This isn't an artificial clip papering over a flaw (like the
+        /// flat-mouth issue on the old egg shape); it's the intended shape, so no rounding/cap is
+        /// needed here the way it was there.
+        ///
+        /// Only the curved rim (radius) gets the randomized core/band edge treatment, same
+        /// guaranteed-threshold-crossing logic as TerraformFlake/TerraformChip before it (no
+        /// isolated single-voxel islands, absolute floor on band width so a hit never "whiffs").
+        /// The two flat thickness end-caps and the flat diameter cut (the half-disc split) stay
+        /// crisp/hard cutoffs -- those are deliberate gameplay-simplification edges, not stand-ins
+        /// for a real fracture surface, so leaving them clean rather than ragged seemed right;
+        /// revisit if it looks wrong in practice.
+        ///
+        /// No delta parameter, same reasoning as the shapes before it: an arc either commits or
+        /// it's not the right brush to call.
+        /// </summary>
+        internal static (List<RawVoxelEdit> edits, Bounds bounds) TerraformArc(
+            IGeoVolume iGeoVoxelVolume,
+            Vector3 worldPosition,
+            Vector3 direction,
+            Vector3 upHint,
+            float radius,
+            float thickness) {
+            var impactVoxelPosF = iGeoVoxelVolume.WorldToVoxelSpaceContinuous(worldPosition);
+            var voxelCenter = Vector3Int.RoundToInt(impactVoxelPosF);
+
+            var resolution = iGeoVoxelVolume.ConfigBlob.Value.Resolution;
+
+            // NOTE: radius here is a true radius (unlike "size" on TerraformSphere/Flake/Chip,
+            // which was a diameter) -- matches how you described this shape ("radius is the
+            // radius of the cylinder"). Worth double-checking this convention is what you want
+            // at the call site, since it differs from the other Terraform* methods.
+            var radiusVoxels = radius / resolution;
+            var halfThicknessVoxels = thickness * 0.5f / resolution;
+
+            if (direction.sqrMagnitude < 1e-6f) {
+                Debug.LogWarning("TerraformArc: direction is zero-length; defaulting to +Z.");
+                direction = Vector3.forward;
+            }
+
+            direction.Normalize();
+
+            var thinAxis = Vector3.Cross(direction, upHint);
+
+            if (thinAxis.sqrMagnitude < 1e-6f) {
+                // direction is parallel (or near-parallel) to upHint -- cross product is
+                // degenerate. Fall back to a different reference axis to still get a sane thin
+                // axis perpendicular to direction.
+                thinAxis = Vector3.Cross(direction, Vector3.forward);
+
+                if (thinAxis.sqrMagnitude < 1e-6f)
+                    thinAxis = Vector3.Cross(direction, Vector3.right);
+            }
+
+            thinAxis.Normalize();
+
+            const float bandMinOuterRadius = 1.0f;
+            const int bandMinSubtract = 129;
+            const int bandMaxSubtract = 255;
+
+            var coreRadius = Mathf.Max(0f, radiusVoxels - 1f);
+            var bandOuterRadius = Mathf.Max(radiusVoxels, bandMinOuterRadius);
+
+            // Iteration bound: covers the disc's radius (with band floor) and the thickness
+            // slab, plus +1 slack for the sub-voxel impact position.
+            var boundRadius = Mathf.Max(bandOuterRadius, halfThicknessVoxels);
+            var r = Mathf.CeilToInt(boundRadius) + 1;
+            var diameter = 2 * r + 1;
+            var rawVoxelEdits = new List<RawVoxelEdit>(diameter * diameter * diameter);
+
+            for (var x = -r; x <= r; x++)
+            for (var y = -r; y <= r; y++)
+            for (var z = -r; z <= r; z++) {
+                var voxelPos = voxelCenter + new Vector3Int(x, y, z);
+                var offset = (Vector3)voxelPos - impactVoxelPosF;
+
+                // Thickness cutoff: hard, both sides of the slab.
+                var tThin = Vector3.Dot(offset, thinAxis);
+
+                if (Mathf.Abs(tThin) > halfThicknessVoxels)
+                    continue;
+
+                // Component of the offset lying within the disc's face plane (perpendicular to
+                // thinAxis by construction, since thinAxis is orthogonal to both direction and
+                // upHint).
+                var inPlane = offset - tThin * thinAxis;
+
+                // Half-disc cutoff: hard, keep only the side genuinely behind the impact point.
+                var dDir = Vector3.Dot(inPlane, direction);
+
+                if (dDir < 0f)
+                    continue;
+
+                var p = inPlane.magnitude;
+
+                if (p <= coreRadius) {
+                    // Fully inside the core -- zero this voxel outright.
+                    rawVoxelEdits.Add(new RawVoxelEdit(voxelPos, (short)-bandMaxSubtract));
+                    continue;
+                }
+
+                if (p <= bandOuterRadius) {
+                    // In the band -- guaranteed to cross threshold, magnitude otherwise random.
+                    var subtractMag = Random.Range(bandMinSubtract, bandMaxSubtract + 1);
+                    rawVoxelEdits.Add(new RawVoxelEdit(voxelPos, (short)-subtractMag));
+                }
+
+                // Outside both, or in front of the impact plane, or outside the thickness slab --
+                // untouched, no edit emitted.
+            }
+
+            // Conservative bounding box: centered on the impact point, offset slightly into the
+            // wall along direction to account for the half-disc's lopsidedness, sized to the
+            // larger of radius or thickness. Looser than the true half-disc silhouette, but
+            // simple and correct regardless of orientation.
+            var boundsCenter = (Vector3)voxelCenter + direction * (bandOuterRadius * 0.5f);
+            var boundsSize = Vector3.one * (Mathf.Max(bandOuterRadius, halfThicknessVoxels) * 2f);
+            var voxelBounds = new Bounds(boundsCenter, boundsSize);
+
+            return (rawVoxelEdits, voxelBounds);
+        }
     }
 }

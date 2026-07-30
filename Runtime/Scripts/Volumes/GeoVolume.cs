@@ -46,6 +46,17 @@ namespace Spellbound.GeoForge {
                 Mathf.RoundToInt(localPos.z / config.Resolution) - config.Offset.z
             );
         }
+        
+        public Vector3 WorldToVoxelSpaceContinuous(Vector3 worldPosition) {
+            ref var config = ref ConfigBlob.Value;
+            var localPos = Transform.InverseTransformPoint(worldPosition);
+
+            return new Vector3(
+                localPos.x / config.Resolution - config.Offset.x,
+                localPos.y / config.Resolution - config.Offset.y,
+                localPos.z / config.Resolution - config.Offset.z
+            );
+        }
 
         public void RegisterVolume() {
             if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var mcManager)) {

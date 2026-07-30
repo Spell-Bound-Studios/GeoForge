@@ -47,6 +47,8 @@ namespace Spellbound.GeoForge {
         async Awaitable ValidateChunkLods() => await GeoVolume.ValidateChunkLodsAsync();
 
         Vector3Int WorldToVoxelSpace(Vector3 worldPosition) => GeoVolume.WorldToVoxelSpace(worldPosition);
+        
+        Vector3 WorldToVoxelSpaceContinuous(Vector3 worldPosition) => GeoVolume.WorldToVoxelSpaceContinuous(worldPosition);
 
         IGeoChunk GetChunkByCoord(Vector3Int coord) => GeoVolume.GetChunkByCoord(coord);
 

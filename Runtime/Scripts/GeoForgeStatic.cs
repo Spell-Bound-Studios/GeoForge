@@ -125,5 +125,41 @@ namespace Spellbound.GeoForge {
             var results = TerraformCommands.TerraformSphere(iVolume, hit.point, radius, delta);
             gfManager.DistributeVoxelEdits(iVolume, results.edits, material, allowedMaterialsMask);
         }
+
+        /// <summary>
+        /// Public method to Remove or "Dig-into" an "arc" region -- half of a short, wide
+        /// cylinder ("a coin held on edge") -- carved directly at worldPosition, with no
+        /// raycast/spherecast involved. Since there's no cast pinning this to a single volume,
+        /// this always acts like the AllVolumes sphere variant: every GeoForge volume the shape
+        /// actually overlaps gets carved (volumes it doesn't intersect simply produce no edits).
+        /// Facing direction picks which half of the disc is kept (only the side genuinely behind
+        /// the impact point); upHint plus direction together orient the disc's face plane. No
+        /// restriction on which existing materials can be affected. No delta -- an arc either
+        /// commits or it's not the right brush to call.
+        /// </summary>
+        public static void RemoveArc(
+            Vector3 worldPosition, Vector3 direction, Vector3 upHint, float radius, float thickness) =>
+                RemoveArc(worldPosition, direction, upHint, radius, thickness, AllMaterialsMask);
+
+        /// <summary>
+        /// Public method to Remove or "Dig-into" an "arc" region for every GeoForge volume it
+        /// overlaps. allowedMaterialsMask restricts which EXISTING materials this dig can affect
+        /// (e.g. tool tier vs. Impervious terrain).
+        /// </summary>
+        public static void RemoveArc(
+            Vector3 worldPosition, Vector3 direction, Vector3 upHint, float radius, float thickness,
+            uint4 allowedMaterialsMask) {
+            if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager)) {
+                Debug.LogError("GeoForgeManager not found. Ensure it's in the current scene.");
+
+                return;
+            }
+
+            gfManager.ExecuteTerraformAll(
+                volume => TerraformCommands.TerraformArc(
+                    volume, worldPosition, direction, upHint, radius, thickness),
+                0,
+                allowedMaterialsMask);
+        }
     }
 }
