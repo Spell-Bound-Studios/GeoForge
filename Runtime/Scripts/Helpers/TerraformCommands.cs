@@ -65,13 +65,21 @@ namespace Spellbound.GeoForge {
         /// flat-mouth issue on the old egg shape); it's the intended shape, so no rounding/cap is
         /// needed here the way it was there.
         ///
-        /// Only the curved rim (radius) gets the randomized core/band edge treatment, same
-        /// guaranteed-threshold-crossing logic as TerraformFlake/TerraformChip before it (no
-        /// isolated single-voxel islands, absolute floor on band width so a hit never "whiffs").
+        /// The curved rim (radius) uses a smooth falloff, same style as TerraformSphere's own
+        /// falloff -- just applied to a fixed maximum subtraction (bandMaxSubtract) rather than a
+        /// caller-supplied delta, since TerraformArc has no delta. Falls out to about one voxel
+        /// wide naturally: full-strength subtraction inside coreRadius (= radiusVoxels - 1),
+        /// ramping smoothly down to zero by bandOuterRadius (= radiusVoxels, floored at 1 voxel
+        /// so a very small radius still guarantees at least one voxel of effect). Being a smooth,
+        /// deterministic function of distance (not per-voxel random) means neighboring voxels
+        /// always land close in value, so this can't produce the scattered/isolated-voxel
+        /// topology problem random band values could -- same safety property as the guaranteed-
+        /// crossing random band had, via a different mechanism.
+        ///
         /// The two flat thickness end-caps and the flat diameter cut (the half-disc split) stay
         /// crisp/hard cutoffs -- those are deliberate gameplay-simplification edges, not stand-ins
-        /// for a real fracture surface, so leaving them clean rather than ragged seemed right;
-        /// revisit if it looks wrong in practice.
+        /// for a real fracture surface, so leaving them clean rather than smoothed/ragged seemed
+        /// right; revisit if it looks wrong in practice.
         ///
         /// No delta parameter, same reasoning as the shapes before it: an arc either commits or
         /// it's not the right brush to call.
@@ -117,7 +125,6 @@ namespace Spellbound.GeoForge {
             thinAxis.Normalize();
 
             const float bandMinOuterRadius = 1.0f;
-            const int bandMinSubtract = 129;
             const int bandMaxSubtract = 255;
 
             var coreRadius = Mathf.Max(0f, radiusVoxels - 1f);
@@ -155,20 +162,25 @@ namespace Spellbound.GeoForge {
 
                 var p = inPlane.magnitude;
 
-                if (p <= coreRadius) {
-                    // Fully inside the core -- zero this voxel outright.
-                    rawVoxelEdits.Add(new RawVoxelEdit(voxelPos, (short)-bandMaxSubtract));
+                if (p > bandOuterRadius)
                     continue;
-                }
 
-                if (p <= bandOuterRadius) {
-                    // In the band -- guaranteed to cross threshold, magnitude otherwise random.
-                    var subtractMag = Random.Range(bandMinSubtract, bandMaxSubtract + 1);
-                    rawVoxelEdits.Add(new RawVoxelEdit(voxelPos, (short)-subtractMag));
-                }
+                // Smooth falloff, same shape as TerraformSphere's: 1.0 (full strength) at/inside
+                // coreRadius, ramping linearly down to 0.0 at bandOuterRadius. Since coreRadius
+                // and bandOuterRadius are ~1 voxel apart, this is a ~1-voxel-wide transition.
+                var normalizedDist = p - coreRadius;
+                var falloff = 1f - Mathf.Clamp01(normalizedDist);
+                var scaledSubtract = Mathf.RoundToInt(bandMaxSubtract * falloff);
 
-                // Outside both, or in front of the impact plane, or outside the thickness slab --
-                // untouched, no edit emitted.
+                // Same reasoning as TerraformSphere: skip voxels the falloff decayed to zero at
+                // this distance, rather than emitting a zero-value edit.
+                if (scaledSubtract == 0)
+                    continue;
+
+                rawVoxelEdits.Add(new RawVoxelEdit(voxelPos, (short)-scaledSubtract));
+
+                // Outside the radius, in front of the impact plane, or outside the thickness
+                // slab -- untouched, no edit emitted.
             }
 
             // Conservative bounding box: centered on the impact point, offset slightly into the
