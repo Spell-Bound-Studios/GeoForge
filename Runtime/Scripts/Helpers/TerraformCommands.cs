@@ -65,21 +65,27 @@ namespace Spellbound.GeoForge {
         /// flat-mouth issue on the old egg shape); it's the intended shape, so no rounding/cap is
         /// needed here the way it was there.
         ///
-        /// The curved rim (radius) uses a smooth falloff, same style as TerraformSphere's own
-        /// falloff -- just applied to a fixed maximum subtraction (bandMaxSubtract) rather than a
-        /// caller-supplied delta, since TerraformArc has no delta. Falls out to about one voxel
-        /// wide naturally: full-strength subtraction inside coreRadius (= radiusVoxels - 1),
-        /// ramping smoothly down to zero by bandOuterRadius (= radiusVoxels, floored at 1 voxel
-        /// so a very small radius still guarantees at least one voxel of effect). Being a smooth,
-        /// deterministic function of distance (not per-voxel random) means neighboring voxels
-        /// always land close in value, so this can't produce the scattered/isolated-voxel
-        /// topology problem random band values could -- same safety property as the guaranteed-
-        /// crossing random band had, via a different mechanism.
+        /// The curved rim (radius) and the thickness slab's two faces both use a smooth falloff,
+        /// same style as TerraformSphere's own falloff -- applied to a fixed maximum subtraction
+        /// (bandMaxSubtract) rather than a caller-supplied delta, since TerraformArc has no delta.
+        /// Each axis falls off independently over about one voxel (full-strength inside its own
+        /// core, ramping to zero at its own outer bound, floored at 1 voxel so a very small
+        /// radius/thickness still guarantees at least one voxel of effect), and the two falloffs
+        /// are multiplied together -- so a voxel near the curved rim AND near a thickness face
+        /// (e.g. digging along a diagonal) tapers smoothly in both dimensions at once, rather
+        /// than getting a hard cutoff from whichever axis's binary test happened to trigger
+        /// first (the previous hard thickness cutoff produced a visible sawtooth pattern on
+        /// diagonal swings for exactly this reason -- the rim was smooth but the thickness faces
+        /// weren't, so the two edges disagreed with each other at an angle).
         ///
-        /// The two flat thickness end-caps and the flat diameter cut (the half-disc split) stay
-        /// crisp/hard cutoffs -- those are deliberate gameplay-simplification edges, not stand-ins
-        /// for a real fracture surface, so leaving them clean rather than smoothed/ragged seemed
-        /// right; revisit if it looks wrong in practice.
+        /// Being smooth, deterministic functions of distance (not per-voxel random) means
+        /// neighboring voxels always land close in value on both axes, so this can't produce the
+        /// scattered/isolated-voxel topology problem random values could.
+        ///
+        /// The flat diameter cut (the half-disc split) stays a crisp/hard cutoff -- that's a
+        /// deliberate gameplay-simplification edge, not a stand-in for a real fracture surface,
+        /// so leaving it clean rather than smoothed seemed right; revisit if it looks wrong in
+        /// practice.
         ///
         /// No delta parameter, same reasoning as the shapes before it: an arc either commits or
         /// it's not the right brush to call.
@@ -130,9 +136,12 @@ namespace Spellbound.GeoForge {
             var coreRadius = Mathf.Max(0f, radiusVoxels - 1f);
             var bandOuterRadius = Mathf.Max(radiusVoxels, bandMinOuterRadius);
 
-            // Iteration bound: covers the disc's radius (with band floor) and the thickness
-            // slab, plus +1 slack for the sub-voxel impact position.
-            var boundRadius = Mathf.Max(bandOuterRadius, halfThicknessVoxels);
+            var thicknessCoreHalf = Mathf.Max(0f, halfThicknessVoxels - 1f);
+            var thicknessOuterHalf = Mathf.Max(halfThicknessVoxels, bandMinOuterRadius);
+
+            // Iteration bound: covers the disc's radius and the thickness slab, both including
+            // their outer falloff bounds, plus +1 slack for the sub-voxel impact position.
+            var boundRadius = Mathf.Max(bandOuterRadius, thicknessOuterHalf);
             var r = Mathf.CeilToInt(boundRadius) + 1;
             var diameter = 2 * r + 1;
             var rawVoxelEdits = new List<RawVoxelEdit>(diameter * diameter * diameter);
@@ -143,10 +152,10 @@ namespace Spellbound.GeoForge {
                 var voxelPos = voxelCenter + new Vector3Int(x, y, z);
                 var offset = (Vector3)voxelPos - impactVoxelPosF;
 
-                // Thickness cutoff: hard, both sides of the slab.
                 var tThin = Vector3.Dot(offset, thinAxis);
+                var absTThin = Mathf.Abs(tThin);
 
-                if (Mathf.Abs(tThin) > halfThicknessVoxels)
+                if (absTThin > thicknessOuterHalf)
                     continue;
 
                 // Component of the offset lying within the disc's face plane (perpendicular to
@@ -165,12 +174,15 @@ namespace Spellbound.GeoForge {
                 if (p > bandOuterRadius)
                     continue;
 
-                // Smooth falloff, same shape as TerraformSphere's: 1.0 (full strength) at/inside
-                // coreRadius, ramping linearly down to 0.0 at bandOuterRadius. Since coreRadius
-                // and bandOuterRadius are ~1 voxel apart, this is a ~1-voxel-wide transition.
-                var normalizedDist = p - coreRadius;
-                var falloff = 1f - Mathf.Clamp01(normalizedDist);
-                var scaledSubtract = Mathf.RoundToInt(bandMaxSubtract * falloff);
+                // Two independent smooth falloffs -- radial (curved rim) and thickness (the two
+                // flat faces) -- each 1.0 at/inside their own core, ramping to 0.0 at their own
+                // outer bound over ~1 voxel. Multiplied together so a voxel near both edges at
+                // once (a diagonal swing) tapers smoothly on both axes rather than snapping off
+                // wherever the stricter of the two hard cutoffs used to trigger.
+                var radialFalloff = 1f - Mathf.Clamp01(p - coreRadius);
+                var thicknessFalloff = 1f - Mathf.Clamp01(absTThin - thicknessCoreHalf);
+                var combinedFalloff = radialFalloff * thicknessFalloff;
+                var scaledSubtract = Mathf.RoundToInt(bandMaxSubtract * combinedFalloff);
 
                 // Same reasoning as TerraformSphere: skip voxels the falloff decayed to zero at
                 // this distance, rather than emitting a zero-value edit.
@@ -188,7 +200,7 @@ namespace Spellbound.GeoForge {
             // larger of radius or thickness. Looser than the true half-disc silhouette, but
             // simple and correct regardless of orientation.
             var boundsCenter = (Vector3)voxelCenter + direction * (bandOuterRadius * 0.5f);
-            var boundsSize = Vector3.one * (Mathf.Max(bandOuterRadius, halfThicknessVoxels) * 2f);
+            var boundsSize = Vector3.one * (Mathf.Max(bandOuterRadius, thicknessOuterHalf) * 2f);
             var voxelBounds = new Bounds(boundsCenter, boundsSize);
 
             return (rawVoxelEdits, voxelBounds);
