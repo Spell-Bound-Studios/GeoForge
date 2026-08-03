@@ -16,10 +16,13 @@ namespace Spellbound.GeoForge {
             GeoChunk chunk,
             NativeList<SparseVoxelData> sparseData) {
             if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var denseVoxelData)) {
-                Debug.LogError(
-                    $"MarchingCubes Manager does not have a denseVoxelData Array of this size");
-
-                return new DenseVoxelData().DenseVoxelArray;
+                // No entry means RegisterVoxelVolume was never called for this chunk size - a
+                // setup/lifecycle bug, not a normal runtime condition. Throw immediately instead
+                // of handing back an uncreated NativeArray, which would only surface as a
+                // confusing "array not allocated" exception far away at the first index into it.
+                throw new InvalidOperationException(
+                    $"GetOrUnpackVoxelArray: no denseVoxelData registered for chunk size {dataSizeKey}. " +
+                    "Was RegisterVoxelVolume called for this volume's chunk size?");
             }
 
             ref var config = ref chunk.ParentGeoVolume.ConfigBlob.Value;
@@ -67,8 +70,11 @@ namespace Spellbound.GeoForge {
 
         public void PackVoxelArray(int dataSizeKey) {
             if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var denseVoxelData)) {
-                Debug.LogError(
-                    $"MarchingCubes Manager does not have a denseVoxelData Array of this size");
+                // Same misuse case as GetOrUnpackVoxelArray - throw immediately rather than
+                // falling through and dereferencing a null denseVoxelData on the next line.
+                throw new InvalidOperationException(
+                    $"PackVoxelArray: no denseVoxelData registered for chunk size {dataSizeKey}. " +
+                    "Was RegisterVoxelVolume called for this volume's chunk size?");
             }
 
             if (denseVoxelData.CurrentChunk == null) {
@@ -79,8 +85,13 @@ namespace Spellbound.GeoForge {
             }
 
             if (!denseVoxelData.IsArrayInUse) {
+                // Was falling through and packing anyway even though nothing currently has this
+                // array checked out - same "log then continue as if nothing happened" pattern as
+                // the two misuse cases above. Stop here instead.
                 Debug.LogError(
                     $"PackVoxelArray - Trying to pack but _isArrayInUse is false which is unexpected and bad");
+
+                return;
             }
 
             var sparseData = new NativeList<SparseVoxelData>(Allocator.TempJob);
