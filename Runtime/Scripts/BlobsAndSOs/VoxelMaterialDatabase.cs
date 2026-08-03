@@ -1,7 +1,9 @@
 // Copyright 2026 Spellbound Studio Inc.
 
 using System.Collections.Generic;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
@@ -161,7 +163,7 @@ namespace Spellbound.GeoForge {
             return null;
         }
 
-        public bool HasMaterial(string materialName) => GetMaterialIndex(materialName) >= 0;
+        public bool HasMaterial(string materialName) => GetMaterialIndex(materialName) != NotPresent;
 
         public IEnumerable<string> GetAllMaterialNames() {
             foreach (var mat in materials) {
