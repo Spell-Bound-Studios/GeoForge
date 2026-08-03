@@ -7,7 +7,6 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     public struct VolumeConfigBlobAsset {
-        public byte DensityThreshold;
         public int CubesMarchedPerOctreeLeaf;
         public int LevelsOfDetail;
         public int ChunkSize;
@@ -30,7 +29,6 @@ namespace Spellbound.GeoForge {
                 CreateVolumeConfigBlobAsset(VoxelVolumeConfig voxelVolumeConfig) {
             var builder = new BlobBuilder(Allocator.Temp);
             ref var config = ref builder.ConstructRoot<VolumeConfigBlobAsset>();
-            config.DensityThreshold = (byte)(voxelVolumeConfig.threshold * byte.MaxValue);
             config.CubesMarchedPerOctreeLeaf = voxelVolumeConfig.cubesPerMarch;
             config.LevelsOfDetail = voxelVolumeConfig.levelsOfDetail - 1;
             config.ChunkSize = voxelVolumeConfig.ChunkSize;

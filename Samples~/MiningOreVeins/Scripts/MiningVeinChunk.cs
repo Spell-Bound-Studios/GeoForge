@@ -18,8 +18,8 @@ namespace Spellbound.GeoForge.Sample2 {
 
             foreach (var voxelDelta in operation.Deltas) {
                 var voxelData = _geoChunk.GetVoxelData(voxelDelta.Index);
-                var existingMatIndex = (byte)(voxelData.MaterialIndex % VoxelData.MatureBitValue);
-                var wasFull = voxelData.Density >= _geoChunk.ParentGeoVolume.GeoVolume.ConfigBlob.Value.DensityThreshold;
+                var existingMatIndex = voxelData.MaterialIndex;
+                var wasFull = voxelData.Density >= 0;
 
                 // Same gate as the crossing rule elsewhere: a disallowed/Impervious voxel that's
                 // already full takes no damage at all - additions or subtractions alike.

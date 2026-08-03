@@ -6,10 +6,6 @@ using UnityEngine;
 namespace Spellbound.GeoForge {
     [CreateAssetMenu(menuName = "Spellbound/GeoForge/VoxelVolumeConfig")]
     public class VoxelVolumeConfig : ScriptableObject {
-        [Tooltip("Voxel Fill threshold separating full and empty. 128 is default."),
-         Range(1, 255)]
-        public byte threshold = 128;
-
         [Tooltip("Determines how many voxels are marched at a time, per side. Higher number may affect performance"),
          Range(8, 32)]
         public int cubesPerMarch = 16;

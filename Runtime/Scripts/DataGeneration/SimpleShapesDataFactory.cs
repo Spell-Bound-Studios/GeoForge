@@ -55,7 +55,7 @@ namespace Spellbound.GeoForge {
                 var voxelPos = GetVoxelPosition(i, chunkOrigin, config);
                 var signedDistance = GetSignedDistance(voxelPos, shapeSizeInVoxels);
                 signedDistance = invertShape ? -signedDistance : signedDistance;
-                var densityByte = SignedDistanceToDensity(signedDistance, sdfGradientSteepness, config);
+                var densityByte = SignedDistanceToDensity(signedDistance, sdfGradientSteepness);
 
                 data[i] = isMature
                         ? VoxelData.CreateMature(densityByte, materialIndex)
