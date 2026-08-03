@@ -8,8 +8,12 @@ using Unity.Mathematics;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Unpacks Sparse Voxel Data to Dense.
-    /// Vibecoded with chatgpt because Binary Searches and RLEs are well-known and replicable. 
+    /// Unpacks Sparse Voxel Data to Dense. DensityRange is NOT computed here - it's computed
+    /// once, single-threaded, in DenseToSparseVoxelDataJob (the pack direction) instead. This
+    /// job runs as IJobParallelFor across decks; a shared DensityRange element written from
+    /// every parallel iteration would be a data race (unsynchronized read-modify-write), so
+    /// density-range tracking was moved out entirely rather than attempting a per-deck
+    /// reduction for a value that's already available for free from the single-threaded pack step.
     /// </summary>
     [BurstCompile]
     public struct SparseToDenseVoxelDataJob : IJobParallelFor {
@@ -17,8 +21,6 @@ namespace Spellbound.GeoForge {
         [NativeDisableParallelForRestriction] public NativeArray<VoxelData> Voxels;
 
         [ReadOnly] public NativeList<SparseVoxelData> SparseVoxels;
-
-        [NativeDisableParallelForRestriction] public NativeArray<DensityRange> DensityRange;
 
         public void Execute(int deckIndex) {
             ref var config = ref ConfigBlob.Value;
@@ -31,9 +33,6 @@ namespace Spellbound.GeoForge {
 
             while (rleIndex < SparseVoxels.Length) {
                 var rle = SparseVoxels[rleIndex];
-                var range = DensityRange[0];          // COPY the struct
-                range.Encapsulate(rle.Voxel.Density); // Modify the COPY
-                DensityRange[0] = range;
                 var runStart = rle.StartIndex;
 
                 var runEnd = rleIndex == SparseVoxels.Length - 1

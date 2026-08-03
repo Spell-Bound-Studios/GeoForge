@@ -49,13 +49,15 @@ namespace Spellbound.GeoForge {
             denseVoxelData.IsArrayInUse = true;
             denseVoxelData.CurrentChunk = chunk;
 
-            denseVoxelData.DensityRange[0] = new DensityRange(sbyte.MaxValue, sbyte.MinValue);
-
+            // DensityRange is no longer touched by the unpack job - it's only ever computed by the
+            // pack job (DenseToSparseVoxelDataJob), which is single-threaded and always runs after
+            // edits are written into the dense array. No seed/reset needed here; whatever value is
+            // sitting in denseVoxelData.DensityRange[0] is leftover from a previous pack and gets
+            // overwritten the next time PackVoxelArray runs for this pooled slot.
             var unpackJob = new SparseToDenseVoxelDataJob {
                 ConfigBlob = chunk.ParentGeoVolume.ConfigBlob,
                 Voxels = denseVoxelData.DenseVoxelArray,
-                SparseVoxels = sparseData,
-                DensityRange = denseVoxelData.DensityRange
+                SparseVoxels = sparseData
             };
             var jobHandle = unpackJob.Schedule(config.ChunkDataWidthSize, 1);
             jobHandle.Complete();
@@ -83,9 +85,13 @@ namespace Spellbound.GeoForge {
 
             var sparseData = new NativeList<SparseVoxelData>(Allocator.TempJob);
 
+            // DensityRange is computed fresh here, single-threaded, from the dense array as it
+            // currently stands - which already has any pending edits written into it by the time
+            // PackVoxelArray is called. This is the only place DensityRange gets computed.
             var packJob = new DenseToSparseVoxelDataJob {
                 Voxels = denseVoxelData.DenseVoxelArray,
-                SparseVoxels = sparseData
+                SparseVoxels = sparseData,
+                DensityRange = denseVoxelData.DensityRange
             };
             var jobHandle = packJob.Schedule();
             jobHandle.Complete();

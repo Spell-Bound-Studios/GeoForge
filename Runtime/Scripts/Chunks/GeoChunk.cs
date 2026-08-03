@@ -180,12 +180,20 @@ namespace Spellbound.GeoForge {
             if (HasOverrides())
                 ApplyOverrides(voxels);
 
+            var densityRangeArray = new NativeArray<DensityRange>(1, Allocator.TempJob);
+
             new DenseToSparseVoxelDataJob {
                 Voxels = voxels,
-                SparseVoxels = _sparseVoxels
+                SparseVoxels = _sparseVoxels,
+                DensityRange = densityRangeArray
             }.Schedule().Complete();
 
-            _densityRange = new DensityRange(sbyte.MinValue, sbyte.MaxValue);
+            // Use the range DenseToSparseVoxelDataJob actually computed from this chunk's real
+            // data, instead of always forcing "never skip" - a freshly-generated, fully-buried
+            // solid (or fully-empty) chunk now correctly starts out skippable on first load,
+            // rather than only becoming skippable after its first edit-triggered pack.
+            _densityRange = densityRangeArray[0];
+            densityRangeArray.Dispose();
 
             _rootNode = new OctreeNode(Vector3Int.zero, _parentGeoVolume.ConfigBlob.Value.LevelsOfDetail, _implementer,
                 _parentGeoVolume);
@@ -233,7 +241,10 @@ namespace Spellbound.GeoForge {
                     editBounds = new BoundsInt(min, max - min);
                 }
 
-                DensityRange.Encapsulate(voxelChange.Item2.Density);
+                // DensityRange is a struct - the public DensityRange property only has a getter, so
+                // calling Encapsulate through it (as this used to) mutates a throwaway copy and never
+                // reaches _densityRange. Mutate the field directly since we're inside GeoChunk itself.
+                _densityRange.Encapsulate(voxelChange.Item2.Density);
             }
 
             if (hasEdits)
