@@ -20,8 +20,8 @@ namespace Spellbound.GeoForge {
                 var mature = bo.boundaryType is BoundaryType.MatureClosed or BoundaryType.MatureOpen;
                 
                 var voxelData = mature
-                    ? VoxelData.CreateMature(closed ? byte.MaxValue : byte.MinValue, bo.materialType)
-                    : VoxelData.CreateImmature(closed ? byte.MaxValue : byte.MinValue, bo.materialType);
+                    ? VoxelData.CreateMature(closed ? sbyte.MaxValue : sbyte.MinValue, bo.materialType)
+                    : VoxelData.CreateImmature(closed ? sbyte.MaxValue : sbyte.MinValue, bo.materialType);
 
                 runtimeList.Add(new BoundaryOverrideRuntime {
                     Axis = bo.axis,

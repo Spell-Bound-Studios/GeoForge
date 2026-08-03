@@ -49,7 +49,7 @@ namespace Spellbound.GeoForge {
             denseVoxelData.IsArrayInUse = true;
             denseVoxelData.CurrentChunk = chunk;
 
-            denseVoxelData.DensityRange[0] = new DensityRange(byte.MaxValue, byte.MinValue, config.DensityThreshold);
+            denseVoxelData.DensityRange[0] = new DensityRange(sbyte.MaxValue, sbyte.MinValue);
 
             var unpackJob = new SparseToDenseVoxelDataJob {
                 ConfigBlob = chunk.ParentGeoVolume.ConfigBlob,

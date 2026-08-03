@@ -42,15 +42,18 @@ namespace Spellbound.GeoForge {
         /// </summary>
         private struct EdgeVertex {
             public float3 Position;
-            public byte RawMaterial; // raw VoxelData.MaterialIndex of the original full corner (includes maturity bit)
-            public byte Density; // density (0-255) of that same original full corner - used as a confidence weight
+
+            // Raw packed byte: demodulated material index (0-127) plus VoxelData.MatureBitValue (128)
+            // when mature, giving the full 0-255 range the shader expects. Must stay byte, not sbyte -
+            // a mature high-index material (e.g. 127 + 128 = 255) doesn't fit in sbyte's -128..127 range.
+            public byte RawMaterial;
+            public sbyte Density; // density of that same original full corner (always >= 0, it's a full voxel) - used as a confidence weight
         }
 
         public void Execute() {
             ref var tables = ref TablesBlob.Value;
             ref var config = ref ConfigBlob.Value;
 
-            var densityThreshold = config.DensityThreshold;
             var chunkDataAreaSize = config.ChunkDataAreaSize;
             var chunkDataWidthSize = config.ChunkDataWidthSize;
             var cubesMarchedPerLeaf = config.CubesMarchedPerOctreeLeaf;
@@ -92,16 +95,19 @@ namespace Spellbound.GeoForge {
                             )];
                         }
 
-                        var caseCode = (byte)((cellValues[0].Density >= densityThreshold ? 0x01 : 0)
-                                              | (cellValues[1].Density >= densityThreshold ? 0x02 : 0)
-                                              | (cellValues[2].Density >= densityThreshold ? 0x04 : 0)
-                                              | (cellValues[3].Density >= densityThreshold ? 0x08 : 0)
-                                              | (cellValues[4].Density >= densityThreshold ? 0x10 : 0)
-                                              | (cellValues[5].Density >= densityThreshold ? 0x20 : 0)
-                                              | (cellValues[6].Density >= densityThreshold ? 0x40 : 0)
-                                              | (cellValues[7].Density >= densityThreshold ? 0x80 : 0));
+                        var caseCode = (byte)((cellValues[0].Density >= 0 ? 0x01 : 0)
+                                              | (cellValues[1].Density >= 0 ? 0x02 : 0)
+                                              | (cellValues[2].Density >= 0 ? 0x04 : 0)
+                                              | (cellValues[3].Density >= 0 ? 0x08 : 0)
+                                              | (cellValues[4].Density >= 0 ? 0x10 : 0)
+                                              | (cellValues[5].Density >= 0 ? 0x20 : 0)
+                                              | (cellValues[6].Density >= 0 ? 0x40 : 0)
+                                              | (cellValues[7].Density >= 0 ? 0x80 : 0));
 
-                        if ((caseCode ^ ((cellValues[7].Density >> 7) & 0xFF)) == 0) continue;
+                        // Uniform-cube early-out: skip cubes that are fully solid (caseCode == 0xFF) or
+                        // fully empty (caseCode == 0x00) — the MC tables produce zero triangles for both,
+                        // so there's nothing to mesh.
+                        if (caseCode == 0x00 || caseCode == 0xFF) continue;
 
                         var cacheValidator = (x != 0 ? 0x01 : 0)
                                              | (z != 0 ? 0x02 : 0)
@@ -147,7 +153,7 @@ namespace Spellbound.GeoForge {
                                     vertLocalPos1.z, chunkDataAreaSize, chunkDataWidthSize);
                                 var voxel1 = VoxelArray[index1];
 
-                                var isVert0DensityAboveThreshold = voxel0.Density >= densityThreshold;
+                                var isVert0Full = voxel0.Density >= 0;
 
                                 // Capture the ORIGINAL cube corners (before bisection moves anything) and which
                                 // one is really full. The marching-cubes case table guarantees these two original
@@ -156,9 +162,9 @@ namespace Spellbound.GeoForge {
                                 // (dug/edited) density fields. Using the post-subdivision voxel0/voxel1 instead
                                 // can, in that degenerate case, resolve to two voxels that are BOTH on the empty
                                 // side - both carrying the null/sentinel material - which would then render.
-                                var originalFullVoxel = isVert0DensityAboveThreshold ? voxel0 : voxel1;
-                                var wasVoxel0Mature = voxel0.MaterialIndex >= VoxelData.MatureBitValue;
-                                var wasVoxel1Mature = voxel1.MaterialIndex >= VoxelData.MatureBitValue;
+                                var originalFullVoxel = isVert0Full ? voxel0 : voxel1;
+                                var wasVoxel0Mature = voxel0.IsMature();
+                                var wasVoxel1Mature = voxel1.IsMature();
 
                                 for (var j = 0; j < Lod; ++j) {
                                     var mid = (p0 + p1) * 0.5f;
@@ -171,11 +177,11 @@ namespace Spellbound.GeoForge {
                                                             chunkDataWidthSize)]
                                                     .Density;
 
-                                    var isMidPointDensityAboveThreshold = midPointDensity >= densityThreshold;
+                                    var isMidPointFull = midPointDensity >= 0;
 
                                     var isVertexNearerToVert1 =
-                                            (isMidPointDensityAboveThreshold && isVert0DensityAboveThreshold)
-                                            || (!isMidPointDensityAboveThreshold && !isVert0DensityAboveThreshold);
+                                            (isMidPointFull && isVert0Full)
+                                            || (!isMidPointFull && !isVert0Full);
 
                                     if (isVertexNearerToVert1) {
                                         p0 = samplePos;
@@ -195,16 +201,20 @@ namespace Spellbound.GeoForge {
                                     vertLocalPos1.z, chunkDataAreaSize, chunkDataWidthSize);
                                 voxel1 = VoxelArray[index1];
 
-                                var t = ((float)densityThreshold - voxel0.Density) /
-                                        (voxel1.Density - voxel0.Density);
+                                var t = (float)-voxel0.Density / (voxel1.Density - voxel0.Density);
                                 t = math.clamp(t, 0, 1);
 
                                 var vertex = math.lerp(vertLocalPos0, vertLocalPos1, t);
                                 var centeredVertex = (vertex + offsetBurst) * resolution;
-                                
-                                var materialIndexOnly = (byte)(originalFullVoxel.MaterialIndex % VoxelData.MatureBitValue);
+
+                                // materialIndexOnly is already the demodulated 0-127 index (VoxelData.MaterialIndex
+                                // returns it pre-stripped). Maturity is packed back in additively, matching the
+                                // shader's raw-byte contract - NOT via sign, which can't distinguish material 0
+                                // mature from material 0 immature (there's no negative zero).
+                                var materialIndexOnly = originalFullVoxel.GetPlainMatIndex();
                                 var combinedIsMature = wasVoxel0Mature && wasVoxel1Mature;
-                                var packedRawMaterial = (byte)(materialIndexOnly + (combinedIsMature ? VoxelData.MatureBitValue : 0));
+                                var packedRawMaterial =
+                                        (byte)(materialIndexOnly + (combinedIsMature ? VoxelData.MatureBitValue : 0));
 
                                 edgeVertex = new EdgeVertex {
                                     Position = centeredVertex,
@@ -235,13 +245,13 @@ namespace Spellbound.GeoForge {
                             var faceNormal = math.normalize(
                                 math.cross(vB.Position - vC.Position, vA.Position - vC.Position));
 
-                            // matTriple's rgb is triangle-constant (safe to "interpolate" since it never
-                            // varies across the triangle); alpha carries the per-vertex barycentric marker u
-                            // (exactly 0 or 255 at any given vertex - the GPU interpolates the in-between
-                            // values across the triangle for us).
-                            var densityTriple = new float3(vA.Density - densityThreshold, 
-                                vB.Density - densityThreshold, 
-                                vC.Density - densityThreshold);
+                            // The three vertices share the same RawMaterial triple in their Color32 rgb
+                            // (triangle-constant, safe to "interpolate" since it never varies across the
+                            // triangle); alpha carries the per-vertex barycentric marker u (exactly 0 or
+                            // 255 at any given vertex - the GPU interpolates the in-between values across
+                            // the triangle for us). densityTriple carries the same three corner densities
+                            // into ColorInterp/float4 for shader-side confidence weighting.
+                            var densityTriple = new float3(vA.Density, vB.Density, vC.Density);
 
                             var iaIndex = Vertices.Length;
                             Vertices.Add(new MeshingVertexData(

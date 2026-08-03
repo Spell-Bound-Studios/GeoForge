@@ -47,7 +47,7 @@ namespace Spellbound.GeoForge {
             for (var i = 0; i < data.Length; ++i) {
                 var voxelPos = GetVoxelPosition(i, chunkOrigin, config);
                 var signedDistance = PerlinTerrainSDF(voxelPos, offset);
-                var densityByte = SignedDistanceToDensity(signedDistance, sdfGradientSteepness, config);
+                var densityByte = SignedDistanceToDensity(signedDistance, sdfGradientSteepness);
                 data[i] = isMature
                         ? VoxelData.CreateMature(densityByte, materialIndex)
                         : VoxelData.CreateImmature(densityByte, materialIndex);

@@ -84,15 +84,15 @@ namespace Spellbound.GeoForge {
                             config.ChunkDataWidthSize)];
                     }
 
-                    var caseCode = (transitionCellValues[0].Density >= config.DensityThreshold ? 1 : 0)
-                                   | (transitionCellValues[1].Density >= config.DensityThreshold ? 2 : 0)
-                                   | (transitionCellValues[2].Density >= config.DensityThreshold ? 4 : 0)
-                                   | (transitionCellValues[5].Density >= config.DensityThreshold ? 8 : 0)
-                                   | (transitionCellValues[8].Density >= config.DensityThreshold ? 16 : 0)
-                                   | (transitionCellValues[7].Density >= config.DensityThreshold ? 32 : 0)
-                                   | (transitionCellValues[6].Density >= config.DensityThreshold ? 64 : 0)
-                                   | (transitionCellValues[3].Density >= config.DensityThreshold ? 128 : 0)
-                                   | (transitionCellValues[4].Density >= config.DensityThreshold ? 256 : 0);
+                    var caseCode = (transitionCellValues[0].Density >= 0 ? 1 : 0)
+                                   | (transitionCellValues[1].Density >= 0 ? 2 : 0)
+                                   | (transitionCellValues[2].Density >= 0 ? 4 : 0)
+                                   | (transitionCellValues[5].Density >= 0 ? 8 : 0)
+                                   | (transitionCellValues[8].Density >= 0 ? 16 : 0)
+                                   | (transitionCellValues[7].Density >= 0 ? 32 : 0)
+                                   | (transitionCellValues[6].Density >= 0 ? 64 : 0)
+                                   | (transitionCellValues[3].Density >= 0 ? 128 : 0)
+                                   | (transitionCellValues[4].Density >= 0 ? 256 : 0);
 
                     transitionCurrentCache[0 * config.CubesMarchedPerOctreeLeaf + x] = -1;
                     transitionCurrentCache[1 * config.CubesMarchedPerOctreeLeaf + x] = -1;
@@ -116,12 +116,12 @@ namespace Spellbound.GeoForge {
                         var cacheIdx = (byte)((edgeCode >> 8) & 0x0F);
                         var cacheDir = (byte)(edgeCode >> 12);
 
-                        if (transitionCellValues[cornerIdx1].Density == config.DensityThreshold) {
+                        if (transitionCellValues[cornerIdx1].Density == 0) {
                             var trCornerData = tables.TransitionCornerData[cornerIdx1];
                             cacheDir = (byte)((trCornerData >> 4) & 0x0F);
                             cacheIdx = (byte)(trCornerData & 0x0F);
                         }
-                        else if (transitionCellValues[cornerIdx0].Density == config.DensityThreshold) {
+                        else if (transitionCellValues[cornerIdx0].Density == 0) {
                             var trCornerData = tables.TransitionCornerData[cornerIdx0];
                             cacheDir = (byte)((trCornerData >> 4) & 0x0F);
                             cacheIdx = (byte)(trCornerData & 0x0F);
@@ -171,19 +171,19 @@ namespace Spellbound.GeoForge {
                                                         config.ChunkDataAreaSize, config.ChunkDataWidthSize)]
                                                 .Density;
 
-                                var isMidPointDensityAboveThreshold =
-                                        midPointDensity >= config.DensityThreshold;
+                                var isMidPointFull =
+                                        midPointDensity >= 0;
 
-                                var isVert0DensityAboveThreshold =
+                                var isVert0Full =
                                         VoxelArray[
                                                     GfStaticHelper.Coord3DToIndex(corner0Copy.x, corner0Copy.y,
                                                         corner0Copy.z, config.ChunkDataAreaSize,
                                                         config.ChunkDataWidthSize)]
-                                                .Density >= config.DensityThreshold;
+                                                .Density >= 0;
 
                                 var isVertexNearerToVert1 =
-                                        (isMidPointDensityAboveThreshold && isVert0DensityAboveThreshold)
-                                        || (!isMidPointDensityAboveThreshold && !isVert0DensityAboveThreshold);
+                                        (isMidPointFull && isVert0Full)
+                                        || (!isMidPointFull && !isVert0Full);
 
                                 if (isVertexNearerToVert1)
                                     corner0Copy = samplePos;
@@ -200,8 +200,7 @@ namespace Spellbound.GeoForge {
                                 corner1Copy.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
                             var voxel1 = VoxelArray[index1];
 
-                            var t = ((float)config.DensityThreshold - voxel0.Density) /
-                                    (voxel1.Density - voxel0.Density);
+                            var t = (float)-voxel0.Density / (voxel1.Density - voxel0.Density);
 
                             t = math.clamp(t, 0, 1); // safety clamp
 
@@ -279,7 +278,6 @@ namespace Spellbound.GeoForge {
             int3 corner0, int3 corner1, float t, ref NativeList<byte> uniqueMaterials,
             ref NativeList<float> materialWeights, out float3 normal, out Color32 color) {
             ref var config = ref ConfigBlob.Value;
-            var densityThreshold = config.DensityThreshold;
 
             var vertPosX0 = corner0.x;
             var vertPosY0 = corner0.y;
@@ -366,23 +364,23 @@ namespace Spellbound.GeoForge {
             var weight0 = 1f - t;
 
             // Add all voxel contributions (14-voxel neighborhood — this decides which TWO materials
-            // dominate this vertex, purely by material identity). Voxels below densityThreshold
+            // dominate this vertex, purely by material identity). Voxels with negative density
             // (including the null/sentinel material) never contribute — see AddMaterialWeight.
-            AddMaterialWeight(voxel0, weight0, densityThreshold, ref uniqueMaterials, ref materialWeights);
-            AddMaterialWeight(v0011, weight0, densityThreshold, ref uniqueMaterials, ref materialWeights);
-            AddMaterialWeight(v0211, weight0, densityThreshold, ref uniqueMaterials, ref materialWeights);
-            AddMaterialWeight(v0101, weight0, densityThreshold, ref uniqueMaterials, ref materialWeights);
-            AddMaterialWeight(v0121, weight0, densityThreshold, ref uniqueMaterials, ref materialWeights);
-            AddMaterialWeight(v0110, weight0, densityThreshold, ref uniqueMaterials, ref materialWeights);
-            AddMaterialWeight(v0112, weight0, densityThreshold, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(voxel0, weight0, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v0011, weight0, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v0211, weight0, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v0101, weight0, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v0121, weight0, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v0110, weight0, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v0112, weight0, ref uniqueMaterials, ref materialWeights);
 
-            AddMaterialWeight(voxel1, t, densityThreshold, ref uniqueMaterials, ref materialWeights);
-            AddMaterialWeight(v1011, t, densityThreshold, ref uniqueMaterials, ref materialWeights);
-            AddMaterialWeight(v1211, t, densityThreshold, ref uniqueMaterials, ref materialWeights);
-            AddMaterialWeight(v1101, t, densityThreshold, ref uniqueMaterials, ref materialWeights);
-            AddMaterialWeight(v1121, t, densityThreshold, ref uniqueMaterials, ref materialWeights);
-            AddMaterialWeight(v1110, t, densityThreshold, ref uniqueMaterials, ref materialWeights);
-            AddMaterialWeight(v1112, t, densityThreshold, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(voxel1, t, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v1011, t, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v1211, t, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v1101, t, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v1121, t, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v1110, t, ref uniqueMaterials, ref materialWeights);
+            AddMaterialWeight(v1112, t, ref uniqueMaterials, ref materialWeights);
 
             // Find top 2 materials (0-127 only — maturity plays no role in this selection).
             byte matA = 0;
@@ -406,10 +404,10 @@ namespace Spellbound.GeoForge {
             // Maturity is checked ONLY against the two edge endpoints (voxel0/voxel1), not the wider
             // 14-voxel dominance neighborhood above — "is this specific crossing point mature," not
             // "is this whole neighborhood uniformly mature." Same rule as MarchingCubeJob.
-            var matIndex0 = (byte)(voxel0.MaterialIndex % VoxelData.MatureBitValue);
-            var isMature0 = voxel0.MaterialIndex >= VoxelData.MatureBitValue;
-            var matIndex1 = (byte)(voxel1.MaterialIndex % VoxelData.MatureBitValue);
-            var isMature1 = voxel1.MaterialIndex >= VoxelData.MatureBitValue;
+            var matIndex0 = voxel0.GetPlainMatIndex();
+            var isMature0 = voxel0.IsMature();
+            var matIndex1 = voxel1.GetPlainMatIndex();
+            var isMature1 = voxel1.IsMature();
 
             var matAAllMature = ResolveMaturity(matA, matIndex0, isMature0, matIndex1, isMature1);
             var matBAllMature = ResolveMaturity(matB, matIndex0, isMature0, matIndex1, isMature1);
@@ -455,21 +453,19 @@ namespace Spellbound.GeoForge {
         private static void AddMaterialWeight(
             in VoxelData voxel,
             float baseWeight,
-            byte densityThreshold,
             ref NativeList<byte> uniqueMaterials,
             ref NativeList<float> materialWeights) {
-            // Skip any voxel that isn't actually "full" (density >= densityThreshold). This is the
-            // same threshold the mesher uses for the case code, so a voxel can never simultaneously
-            // count as "empty" for geometry and "a real material" for this vote. It also guarantees
-            // the null/sentinel material (always < densityThreshold, per the core density/material
-            // invariant) can never contribute weight here, and therefore can never be selected as
-            // matA/matB above.
-            if (voxel.Density < densityThreshold) return;
+            // Skip any voxel that isn't actually "full" (density >= 0). This is the same zero split
+            // the mesher uses for the case code, so a voxel can never simultaneously count as "empty"
+            // for geometry and "a real material" for this vote. It also guarantees the null/sentinel
+            // material (always negative density, per the core density/material invariant) can never
+            // contribute weight here, and therefore can never be selected as matA/matB above.
+            if (voxel.Density < 0) return;
 
             // Demodulate: material identity (0-127) only. Maturity is resolved separately in
             // ResolveMaturity, checked only against voxel0/voxel1, not this wider neighborhood.
-            var matIndex = (byte)(voxel.MaterialIndex % VoxelData.MatureBitValue);
-            var densityWeight = voxel.Density / 255f;
+            var matIndex = voxel.GetPlainMatIndex();
+            var densityWeight = voxel.Density / (float)sbyte.MaxValue;
             var weight = baseWeight * densityWeight;
 
             // Check if material already exists

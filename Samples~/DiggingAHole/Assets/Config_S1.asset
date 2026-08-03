@@ -12,14 +12,13 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 835c4b155b5ba7544865ac2003a40736, type: 3}
   m_Name: Config_S1
   m_EditorClassIdentifier: 
-  threshold: 128
   cubesPerMarch: 16
   levelsOfDetail: 4
   maxChunkSize: 128
   chunkSize: 128
-  resolution: 0.25
+  resolution: 1
   isFiniteSize: 1
   sizeInChunks: {x: 1, y: 8, z: 1}
   generatesPerFrame: 1
   validatesPerFrame: 1
-  volumeSize: {x: 32, y: 256, z: 32}
+  volumeSize: {x: 128, y: 1024, z: 128}

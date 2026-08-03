@@ -7,12 +7,10 @@ using UnityEngine;
 namespace Spellbound.GeoForge {
     public class SimpleGeoEditStore : IGeoEditStore {
         private readonly GeoForgeChunkData _chunkData;
-        private readonly byte _densityThreshold;
 
-        public SimpleGeoEditStore(byte densityThreshold, GeoForgeChunkData chunkData = null) {
+        public SimpleGeoEditStore(GeoForgeChunkData chunkData = null) {
             chunkData ??= new GeoForgeChunkData();
             _chunkData = chunkData;
-            _densityThreshold = densityThreshold;
         }
 
         public event Action<List<(int, VoxelData)>> OnGeoEditChanged;
@@ -50,8 +48,8 @@ namespace Spellbound.GeoForge {
                 if (!_chunkData.TryReadEdit(voxelDelta.Index, out var voxelData))
                     voxelData = DefaultVoxelDataFunc(voxelDelta.Index);
 
-                var wasFull = voxelData.Density >= _densityThreshold;
-                var existingMatIndex = (byte)(voxelData.MaterialIndex % VoxelData.MatureBitValue);
+                var wasFull = voxelData.Density >= 0;
+                var existingMatIndex = voxelData.GetPlainMatIndex();
 
                 VoxelData resolved;
 
@@ -64,12 +62,12 @@ namespace Spellbound.GeoForge {
                     continue;
                 }
 
-                var density = (byte)Mathf.Clamp(
+                var density = (sbyte)Mathf.Clamp(
                     voxelData.Density + voxelDelta.DensityDelta,
-                    byte.MinValue,
-                    byte.MaxValue);
+                    sbyte.MinValue,
+                    sbyte.MaxValue);
 
-                var isFull = density >= _densityThreshold;
+                var isFull = density >= 0;
 
                 byte matIndex;
 

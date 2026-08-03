@@ -35,7 +35,7 @@ namespace Spellbound.GeoForge {
             var gfManager = SingletonManager.GetSingletonInstance<GeoForgeManager>();
             var voxelData = gfManager.QueryVoxel(position, out var volume);
 
-            return voxelData.Density >= volume.ConfigBlob.Value.DensityThreshold;
+            return voxelData.Density >= 0;
         }
 
         /// <summary>

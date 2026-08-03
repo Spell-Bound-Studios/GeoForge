@@ -14,7 +14,7 @@ namespace Spellbound.GeoForge {
         public GeoChunk GeoChunk => _geoChunk;
 
         public void InitializeGeoChunk(Vector3Int coord) {
-            _geoChunk = new GeoChunk(this, transform, new SimpleGeoEditStore(128), coord);
+            _geoChunk = new GeoChunk(this, transform, new SimpleGeoEditStore(), coord);
             GeoChunk.IGeoEditStore.DefaultVoxelDataFunc = GeoChunk.GetVoxelData;
         }
 

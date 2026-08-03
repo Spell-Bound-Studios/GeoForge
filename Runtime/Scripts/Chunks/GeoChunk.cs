@@ -185,8 +185,7 @@ namespace Spellbound.GeoForge {
                 SparseVoxels = _sparseVoxels
             }.Schedule().Complete();
 
-            _densityRange = new DensityRange(byte.MinValue, byte.MaxValue,
-                _parentGeoVolume.ConfigBlob.Value.DensityThreshold);
+            _densityRange = new DensityRange(sbyte.MinValue, sbyte.MaxValue);
 
             _rootNode = new OctreeNode(Vector3Int.zero, _parentGeoVolume.ConfigBlob.Value.LevelsOfDetail, _implementer,
                 _parentGeoVolume);

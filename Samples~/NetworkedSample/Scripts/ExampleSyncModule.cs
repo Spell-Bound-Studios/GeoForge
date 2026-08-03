@@ -269,7 +269,7 @@ namespace Spellbound.GeoForge.Sample4 {
                     voxelData = DefaultVoxelDataFunc(voxelDelta.Index);
 
                 var wasFull = voxelData.Density >= densityThreshold;
-                var existingMatIndex = (byte)(voxelData.MaterialIndex % VoxelData.MatureBitValue);
+                var existingMatIndex = voxelData.MaterialIndex;
 
                 // Gate: a voxel that's already full and whose current material this operation
                 // isn't permitted to affect (e.g. Impervious, or below the calling tool's tier)
@@ -278,7 +278,7 @@ namespace Spellbound.GeoForge.Sample4 {
                     continue;
                 }
 
-                var density = (byte)Mathf.Clamp(
+                var density = (sbyte)Mathf.Clamp(
                     voxelData.Density + voxelDelta.DensityDelta,
                     byte.MinValue,
                     byte.MaxValue);

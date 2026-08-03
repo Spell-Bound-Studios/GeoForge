@@ -30,10 +30,10 @@ namespace Spellbound.GeoForge {
             );
         }
 
-        protected byte SignedDistanceToDensity(float signedDistance, float gradient, in VolumeConfigBlobAsset config) {
-            var density = config.DensityThreshold - signedDistance * gradient;
+        protected sbyte SignedDistanceToDensity(float signedDistance, float gradient) {
+            var density = -signedDistance * gradient;
 
-            return (byte)Mathf.Clamp(density, byte.MinValue, byte.MaxValue);
+            return (sbyte)Mathf.Clamp(density, sbyte.MinValue, sbyte.MaxValue);
         }
 
         public abstract void FillDataArray(
