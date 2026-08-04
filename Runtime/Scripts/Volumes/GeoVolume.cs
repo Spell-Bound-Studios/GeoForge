@@ -106,7 +106,12 @@ namespace Spellbound.GeoForge {
                 if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out _))
                     continue;
 
-                var lodDistanceTargetVoxelSpace = WorldToVoxelSpace(_ownerAsIGeoVolume.LodTarget.position);
+                var lodTarget = _ownerAsIGeoVolume.LodTarget;
+
+                if (lodTarget == null)
+                    continue;
+
+                var lodDistanceTargetVoxelSpace = WorldToVoxelSpace(lodTarget.position);
                 chunk.ValidateOctreeLods(lodDistanceTargetVoxelSpace);
 
                 if (++count <= ConfigBlob.Value.ValidatesPerFrame)
@@ -212,7 +217,13 @@ namespace Spellbound.GeoForge {
             var chunkList = new List<IGeoChunk>(_chunkDict.Values);
             foreach (var chunk in chunkList) {
                 chunk.GeoChunk.Dispose();
-                Object.DestroyImmediate(chunk.GeoChunk.Transform.gameObject);
+
+                // Destroy (deferred to end-of-frame) instead of DestroyImmediate: DestroyImmediate
+                // synchronously re-enters SimpleGeoChunk.OnDestroy() -> _geoChunk.Dispose() right
+                // here in the middle of this loop, which is the risky ordering this exit criterion
+                // calls out. GeoChunk.Dispose() is now idempotent by design (see its own guard),
+                // so whichever order the deferred OnDestroy fires in, it's safe either way.
+                Object.Destroy(chunk.GeoChunk.Transform.gameObject);
             }
             
             if (SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var mcManager)) {

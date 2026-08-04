@@ -36,6 +36,13 @@ namespace Spellbound.GeoForge {
         [Tooltip("Prefab for the Chunk the Volume will build itself from. Must Implement IGeoChunk"), SerializeField]
         private GameObject chunkPrefab;
 
+        [Tooltip("Optional explicit LOD target (e.g. the player camera). If left unset, falls back " +
+                 "to Camera.main, then any Camera found in the scene. Resolved once and cached on " +
+                 "first access - not re-evaluated per call."), SerializeField]
+        private Transform lodTargetOverride;
+
+        private Transform _resolvedLodTarget;
+
         private GeoVolume _geoVolume;
 
         public GeoVolume GeoVolume => _geoVolume;
@@ -125,8 +132,43 @@ namespace Spellbound.GeoForge {
 
         public Transform VolumeTransform => transform;
 
-        public Transform LodTarget =>
-                Camera.main == null ? FindAnyObjectByType<Camera>().transform : Camera.main.transform;
+        /// <summary>
+        /// Resolved once (lodTargetOverride, then Camera.main, then any Camera in the scene) and
+        /// cached - no repeated scene search per call, and no NullReferenceException if nothing
+        /// resolves (returns null and logs instead). Once resolved, later calls return the cached
+        /// Transform directly regardless of any changes to Camera.main afterward.
+        /// </summary>
+        public Transform LodTarget {
+            get {
+                if (_resolvedLodTarget != null)
+                    return _resolvedLodTarget;
+
+                if (lodTargetOverride != null) {
+                    _resolvedLodTarget = lodTargetOverride;
+
+                    return _resolvedLodTarget;
+                }
+
+                if (Camera.main != null) {
+                    _resolvedLodTarget = Camera.main.transform;
+
+                    return _resolvedLodTarget;
+                }
+
+                var fallbackCamera = FindAnyObjectByType<Camera>();
+
+                if (fallbackCamera != null) {
+                    _resolvedLodTarget = fallbackCamera.transform;
+
+                    return _resolvedLodTarget;
+                }
+
+                Debug.LogError(
+                    $"{name}: LodTarget could not resolve - no lodTargetOverride assigned and no Camera found in the scene.");
+
+                return null;
+            }
+        }
 
         public bool IsMoving {
             get => isMoving;

@@ -22,6 +22,14 @@ namespace GeoForge.Sample4 {
     /// callbacks, NetworkModules, and the visibility system to handle ownership tracking, exchange, and handoffs to allow users
     /// to seamlessly swap between server authoritative and local terraforming based on client proximity. This capability
     /// creates lag-free environment regardless of host ping and location.
+    ///
+    /// Edit application hook: GeoChunk's own constructor subscribes PassVoxelEdits to
+    /// IGeoEditStore.OnGeoEditChanged automatically, every time a GeoChunk is constructed - that
+    /// is the single, canonical path from "the store's data changed" to "the octree gets
+    /// revalidated." Do not add a second subscription for this (e.g. in OnSpawned) - a previous
+    /// version of this sample did exactly that via ApplyEditsToBaseChunk, which duplicated
+    /// PassVoxelEdits's own logic and ran a full unpack/release cycle a second time for every
+    /// edit batch, for no effect beyond wasted work.
     /// </summary>
     public class NetworkedChunk : NetworkIdentity, IGeoChunk {
         [SerializeField] DataFactory dataFactory;
@@ -34,10 +42,27 @@ namespace GeoForge.Sample4 {
         private Vector3Int _chunkCoord;
 
         public GeoChunk GeoChunk { get; private set; }
+
+        /// <summary>
+        /// OnEarlySpawn (server-only) already constructs a placeholder GeoChunk using whatever
+        /// _chunkCoord happens to be at that point - Vector3Int.zero for a server-created chunk,
+        /// since nothing sets it before GeoVolume.CreateChunk calls this method. That placeholder
+        /// was never registered in ChunkDict (RegisterChunk is only ever called from here, with
+        /// the real coord), so a full GeoChunk.Dispose() on it would be unsafe: Dispose() calls
+        /// ChunkDict.Remove(_chunkCoord), which for an unregistered placeholder at (0,0,0) could
+        /// delete a DIFFERENT, legitimate chunk's entry if one genuinely exists at that coordinate.
+        /// Unsubscribing the stale GeoChunk's event handler directly avoids that collision while
+        /// still preventing the leaked subscription that would otherwise keep processing edits
+        /// against stale/default data forever.
+        /// </summary>
         public void InitializeGeoChunk(Vector3Int coord) {
+            if (GeoChunk != null)
+                GeoChunk.IGeoEditStore.OnGeoEditChanged -= GeoChunk.PassVoxelEdits;
+
+            _chunkCoord = coord;
             GeoChunk = new GeoChunk(this, transform, _syncModule, coord);
             GeoChunk.IGeoEditStore.DefaultVoxelDataFunc = GeoChunk.GetVoxelData;
-            GeoChunk.ParentGeoVolume.GeoVolume.RegisterChunk(_chunkCoord, this);
+            GeoChunk.ParentGeoVolume.GeoVolume.RegisterChunk(coord, this);
         }
 
         #region PurrNet Lifecycles, Events and Callbacks
@@ -46,10 +71,6 @@ namespace GeoForge.Sample4 {
             _syncModule.SetChunkData();
             GeoChunk = new GeoChunk(this, transform, _syncModule, _chunkCoord);
         } 
-
-        protected override void OnSpawned() => _syncModule.OnGeoEditChanged += ApplyEditsToBaseChunk;
-
-        protected override void OnDespawned() => _syncModule.OnGeoEditChanged -= ApplyEditsToBaseChunk;
 
         protected override void OnDestroy() {
             base.OnDestroy();
@@ -161,15 +182,6 @@ namespace GeoForge.Sample4 {
                 voxels.Dispose();
         }
         
-        #endregion
-
-        #region Local Methods
-
-        private void ApplyEditsToBaseChunk(List<(int, VoxelData)> edits) {
-            if (GeoChunk.ApplyVoxelEdits(edits, out var editBounds))
-                GeoChunk.ValidateOctreeEdits(editBounds);
-        }
-
         #endregion
     }
 }
