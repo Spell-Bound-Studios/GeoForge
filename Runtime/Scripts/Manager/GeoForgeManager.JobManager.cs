@@ -75,13 +75,17 @@ namespace Spellbound.GeoForge {
 
             _combinedJobHandle.Complete();
 
-            foreach (var kvp in _pendingTransitionMarchJobData) {
-                kvp.Key.ApplyTransitionMarchResults(kvp.Value.Vertices, kvp.Value.Triangles, kvp.Value.Ranges);
+            // Main leaf results MUST be applied before transition results: ApplyMarchResults is
+            // what builds (or releases) each leaf's GameObject/Mesh/transition-Mesh in the first
+            // place, and ApplyTransitionMarchResults needs those to already exist (or to already
+            // know they don't) before it can safely write into them.
+            foreach (var kvp in _pendingMarchJobData) {
+                kvp.Key.ApplyMarchResults(kvp.Value.Vertices, kvp.Value.Triangles);
                 kvp.Value.Dispose();
             }
 
-            foreach (var kvp in _pendingMarchJobData) {
-                kvp.Key.ApplyMarchResults(kvp.Value.Vertices, kvp.Value.Triangles);
+            foreach (var kvp in _pendingTransitionMarchJobData) {
+                kvp.Key.ApplyTransitionMarchResults(kvp.Value.Vertices, kvp.Value.Triangles, kvp.Value.Ranges);
                 kvp.Value.Dispose();
             }
 

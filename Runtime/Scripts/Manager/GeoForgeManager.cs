@@ -170,6 +170,10 @@ namespace Spellbound.GeoForge {
             uint4 allowedMaterialsMask) {
             var editsByChunkCoord = new Dictionary<Vector3Int, List<VoxelDensityDelta>>();
 
+            // Reused across every edit in this call to avoid a per-edit allocation - filled fresh
+            // by GetSharedNeighborDirections each iteration.
+            var neighborDirections = new List<Vector3Int>(7);
+
             ref var config = ref geoVolume.ConfigBlob.Value;
 
             foreach (var rawEdit in rawVoxelEdits) {
@@ -184,8 +188,7 @@ namespace Spellbound.GeoForge {
                 if (chunk == null)
                     continue;
 
-                if (!_denseVoxelDataDict.TryGetValue(geoVolume.ConfigBlob.Value.ChunkSize,
-                        out var denseVoxelData))
+                if (!_denseVoxelDataDict.ContainsKey(geoVolume.ConfigBlob.Value.ChunkSize))
                     return;
 
                 if (!editsByChunkCoord.TryGetValue(centralCoord, out var localEdits)) {
@@ -195,21 +198,23 @@ namespace Spellbound.GeoForge {
 
                 localEdits.Add(new VoxelDensityDelta(index, rawEdit.DensityDelta));
 
-                if (denseVoxelData.SharedIndicesAcrossChunks.TryGetValue(index, out var neighborCoords)) {
-                    foreach (var neighborCoord in neighborCoords) {
-                        var trueNeighborCoord = neighborCoord + centralCoord;
-                        var neighborLocalPos = rawEdit.VoxelSpacePosition - trueNeighborCoord * config.ChunkSize;
+                // Replaces the old SharedIndicesAcrossChunks dictionary lookup with direct
+                // arithmetic - see GfStaticHelper.GetSharedNeighborDirections for the derivation.
+                GfStaticHelper.GetSharedNeighborDirections(centralLocalPos, config.ChunkSize, neighborDirections);
 
-                        var neighborIndex = GfStaticHelper.Coord3DToIndex(neighborLocalPos.x, neighborLocalPos.y,
-                            neighborLocalPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
+                foreach (var neighborCoord in neighborDirections) {
+                    var trueNeighborCoord = neighborCoord + centralCoord;
+                    var neighborLocalPos = rawEdit.VoxelSpacePosition - trueNeighborCoord * config.ChunkSize;
 
-                        if (!editsByChunkCoord.TryGetValue(trueNeighborCoord, out var localNeighborEdits)) {
-                            localNeighborEdits = new List<VoxelDensityDelta>();
-                            editsByChunkCoord[trueNeighborCoord] = localNeighborEdits;
-                        }
+                    var neighborIndex = GfStaticHelper.Coord3DToIndex(neighborLocalPos.x, neighborLocalPos.y,
+                        neighborLocalPos.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
 
-                        localNeighborEdits.Add(new VoxelDensityDelta(neighborIndex, rawEdit.DensityDelta));
+                    if (!editsByChunkCoord.TryGetValue(trueNeighborCoord, out var localNeighborEdits)) {
+                        localNeighborEdits = new List<VoxelDensityDelta>();
+                        editsByChunkCoord[trueNeighborCoord] = localNeighborEdits;
                     }
+
+                    localNeighborEdits.Add(new VoxelDensityDelta(neighborIndex, rawEdit.DensityDelta));
                 }
             }
 
