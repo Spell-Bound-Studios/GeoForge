@@ -64,9 +64,20 @@ namespace Spellbound.GeoForge {
                     transitionMeshCollider.sharedMesh = null;
                 _gfManager.ReleasePooledObject(_transitionGo);
                 _transitionGo = null;
+
+                if (_transitionMesh != null) {
+                    Object.Destroy(_transitionMesh);
+                    _transitionMesh = null;
+                }
+
                 if (_leafGo.TryGetComponent<MeshCollider>(out var meshCollider)) meshCollider.sharedMesh = null;
                 _gfManager.ReleasePooledObject(_leafGo);
                 _leafGo = null;
+
+                if (_mesh != null) {
+                    Object.Destroy(_mesh);
+                    _mesh = null;
+                }
             }
 
             if (_allTransitionTriangles.IsCreated)
@@ -85,9 +96,40 @@ namespace Spellbound.GeoForge {
             if (_children != null)
                 return;
 
+            // Release both pooled objects back through the pool, mirroring Dispose() exactly -
+            // Object.Destroy would permanently destroy them (the pool loses an object every LOD
+            // cycle) and, since _transitionGo is parented under _leafGo, destroying _leafGo would
+            // also destroy _transitionGo as a side effect while leaving the _transitionGo field
+            // pointing at a dead object until the next BuildTransitions() call overwrites it.
             if (_leafGo != null) {
-                Object.Destroy(_leafGo);
+                if (_transitionGo.TryGetComponent<MeshCollider>(out var transitionMeshCollider))
+                    transitionMeshCollider.sharedMesh = null;
+                _gfManager.ReleasePooledObject(_transitionGo);
+                _transitionGo = null;
+
+                if (_transitionMesh != null) {
+                    Object.Destroy(_transitionMesh);
+                    _transitionMesh = null;
+                }
+
+                if (_leafGo.TryGetComponent<MeshCollider>(out var meshCollider)) meshCollider.sharedMesh = null;
+                _gfManager.ReleasePooledObject(_leafGo);
                 _leafGo = null;
+
+                if (_mesh != null) {
+                    Object.Destroy(_mesh);
+                    _mesh = null;
+                }
+
+                // A transition update might still be queued for this node (subscribed via
+                // UpdateTransitionMask) from just before it stopped being a leaf. Unsubscribe and
+                // clear the dirty flag now - otherwise the next OctreeBatchTransitionUpdate
+                // invocation would run HandleTransitionUpdate() against a now-null _transitionMesh
+                // (or a released _transitionGo). _transitionRanges.IsCreated - the guard
+                // HandleTransitionUpdate itself checks - doesn't catch this, since
+                // _transitionRanges is only ever disposed in Dispose(), not here.
+                _gfManager.OctreeBatchTransitionUpdate -= HandleTransitionUpdate;
+                _transitionDirtyFlag = false;
             }
 
             _children = new OctreeNode[8];
@@ -275,6 +317,9 @@ namespace Spellbound.GeoForge {
             _leafGo.transform.localPosition = Vector3.zero;
             _leafGo.transform.localRotation = Quaternion.identity;
 
+            if (_mesh != null)
+                Object.Destroy(_mesh);
+
             _mesh = new Mesh();
             _mesh.MarkDynamic();
             _leafGo.GetComponent<MeshFilter>().mesh = _mesh;
@@ -317,11 +362,15 @@ namespace Spellbound.GeoForge {
             _mesh.SetSubMesh(0, subMesh);
             _mesh.RecalculateBounds();
 
-            if (triangles.Length < 3 || vertices.Length < 3)
+            if (!_leafGo.TryGetComponent<MeshCollider>(out var meshCollider))
                 return;
 
-            if (_leafGo.TryGetComponent<MeshCollider>(out var meshCollider))
-                meshCollider.sharedMesh = _mesh;
+            // If the leaf's geometry has emptied out (fully dug away), clear the collider instead
+            // of leaving PhysX's stale bake data behind - MeshCollider only re-bakes when
+            // sharedMesh is reassigned, so an early-return here without touching it (as before)
+            // left the OLD, solid collision shape standing as an invisible wall after all visible
+            // terrain was removed.
+            meshCollider.sharedMesh = triangles.Length < 3 || vertices.Length < 3 ? null : _mesh;
         }
 
         private void BuildTransitions() {
@@ -329,8 +378,11 @@ namespace Spellbound.GeoForge {
             _transitionGo.transform.localPosition = Vector3.zero;
             _transitionGo.transform.localRotation = Quaternion.identity;
 
+            if (_transitionMesh != null)
+                Object.Destroy(_transitionMesh);
+
             _transitionMesh = new Mesh();
-            _mesh.MarkDynamic();
+            _transitionMesh.MarkDynamic();
             _transitionGo.GetComponent<MeshFilter>().mesh = _transitionMesh;
 
             _transitionGo.name = $"Transition " +

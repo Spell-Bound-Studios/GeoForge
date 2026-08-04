@@ -51,7 +51,18 @@ namespace Spellbound.GeoForge {
 
         /// <summary>
         /// This must be done on ALL IGeoChunk implementers to prevent memory leaks.
+        /// _geoChunk is only assigned in InitializeGeoChunk, which nothing guarantees ran before
+        /// this GameObject can be destroyed (e.g. a chunk prefab instantiated/inspected directly in
+        /// the editor without going through GeoVolume.CreateChunk, then deleted) - guard against
+        /// that instead of assuming initialization always happened first. GeoChunk.Dispose() itself
+        /// is idempotent by design, so it's also safe if this fires after GeoVolume.Dispose()
+        /// already disposed this chunk explicitly - no ordering assumption needed either way.
         /// </summary>
-        private void OnDestroy() => _geoChunk.Dispose();
+        private void OnDestroy() {
+            if (_geoChunk == null)
+                return;
+
+            _geoChunk.Dispose();
+        }
     }
 }

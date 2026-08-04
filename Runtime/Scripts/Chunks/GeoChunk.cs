@@ -21,6 +21,7 @@ namespace Spellbound.GeoForge {
         private Transform _transform;
         private readonly IGeoChunk _implementer;
         private VoxelOverrides _voxelOverrides;
+        private bool _isDisposed;
 
         public Vector3Int ChunkCoord => _chunkCoord;
         public DensityRange DensityRange => _densityRange;
@@ -335,6 +336,18 @@ namespace Spellbound.GeoForge {
         }
 
         public void Dispose() {
+            // Idempotent by design, not by accident: everything this touches downstream (event
+            // -=, Dictionary.Remove, OctreeNode.Dispose's own IsCreated guards) happens to also
+            // be safe to call twice today, but that's a chain of coincidences a future change
+            // could break. GeoVolume.Dispose() calls this explicitly and then destroys the chunk
+            // GameObject, which can re-enter here via SimpleGeoChunk.OnDestroy() - this guard is
+            // what actually makes that safe, rather than relying on every downstream piece to
+            // keep guarding itself correctly forever.
+            if (_isDisposed)
+                return;
+
+            _isDisposed = true;
+
             IGeoEditStore.OnGeoEditChanged -= PassVoxelEdits;
             _parentGeoVolume.GeoVolume.ChunkDict.Remove(_chunkCoord);
             _rootNode?.Dispose();

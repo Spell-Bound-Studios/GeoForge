@@ -20,20 +20,16 @@ namespace Spellbound.GeoForge {
         public static bool IsInitialized() => SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out _);
 
         /// <summary>
-        /// Check for GeoForgeManager being active in the scene
-        /// </summary>
-        public static bool IsActive() {
-            var gfManager = SingletonManager.GetSingletonInstance<GeoForgeManager>();
-
-            return gfManager.IsActive();
-        }
-
-        /// <summary>
         /// Check to facilitate not falling thru the terrain if your collider slips under the terrain collider.
+        /// Returns false whenever nothing is actually queryable (no manager, no primary volume, or
+        /// no loaded chunk at this position) - never treats "couldn't query" as "must be air."
         /// </summary>
         public static bool IsInsideTerrain(Vector3 position) {
-            var gfManager = SingletonManager.GetSingletonInstance<GeoForgeManager>();
-            var voxelData = gfManager.QueryVoxel(position, out var volume);
+            if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager))
+                return false;
+
+            if (!gfManager.TryQueryVoxel(position, out var voxelData, out _))
+                return false;
 
             return voxelData.Density >= 0;
         }

@@ -18,12 +18,6 @@ namespace Spellbound.GeoForge.Sample4 {
     public class ExampleSyncModule : NetworkModule, IGeoEditStore, ITick {
         [SerializeField] private bool ownerAuth;
 
-        // Needed to evaluate the wasFull/isFull crossing rule in ResolveDelta. Set alongside
-        // SetChunkData when this module is initialized — NetworkModule instances are typically
-        // framework-managed, so this is exposed as a serialized field + setter rather than a
-        // required constructor parameter.
-        [SerializeField] private byte densityThreshold;
-
         #region Data
 
         private GeoForgeChunkData _chunkData;
@@ -49,14 +43,6 @@ namespace Spellbound.GeoForge.Sample4 {
         public void SetChunkData(GeoForgeChunkData chunkData = null) {
             chunkData ??= new GeoForgeChunkData();
             _chunkData = chunkData;
-        }
-
-        /// <summary>
-        /// Must be set before any Delta call resolves — needed for the wasFull/isFull crossing
-        /// rule. Should be set to the owning GeoVolume's config.DensityThreshold.
-        /// </summary>
-        public void SetDensityThreshold(byte threshold) {
-            densityThreshold = threshold;
         }
 
         #endregion Initialization
@@ -268,8 +254,8 @@ namespace Spellbound.GeoForge.Sample4 {
                 if (!_chunkData.TryReadEdit(voxelDelta.Index, out var voxelData))
                     voxelData = DefaultVoxelDataFunc(voxelDelta.Index);
 
-                var wasFull = voxelData.Density >= densityThreshold;
-                var existingMatIndex = voxelData.MaterialIndex;
+                var wasFull = voxelData.Density >= 0;
+                var existingMatIndex = voxelData.GetPlainMatIndex();
 
                 // Gate: a voxel that's already full and whose current material this operation
                 // isn't permitted to affect (e.g. Impervious, or below the calling tool's tier)
@@ -280,30 +266,36 @@ namespace Spellbound.GeoForge.Sample4 {
 
                 var density = (sbyte)Mathf.Clamp(
                     voxelData.Density + voxelDelta.DensityDelta,
-                    byte.MinValue,
-                    byte.MaxValue);
+                    sbyte.MinValue,
+                    sbyte.MaxValue);
 
-                var isFull = density >= densityThreshold;
+                var isFull = density >= 0;
 
                 byte matIndex;
+                VoxelData resolved;
 
                 if (!isFull) {
-                    // Core invariant: any voxel ending below threshold is the null/sentinel
-                    // material, no exceptions.
+                    // Core invariant: any voxel ending with negative density is the null/sentinel
+                    // material, no exceptions. Always immature - there's no such thing as mature air.
                     matIndex = VoxelData.NullSentinelValue;
+                    resolved = VoxelData.CreateImmature(density, matIndex);
                 }
                 else if (!wasFull && isFull) {
-                    // Material is only ever claimed at the empty -> full crossing.
+                    // Material is only ever claimed at the empty -> full crossing. Freshly placed
+                    // material always starts immature, regardless of the existing voxel's prior state.
                     matIndex = operation.MaterialIndex;
+                    resolved = VoxelData.CreateImmature(density, matIndex);
                 }
                 else {
-                    // Already solid on both sides of this delta - material persists unchanged.
+                    // Already solid on both sides of this delta - material AND maturity persist
+                    // unchanged. A minor density nudge on long-standing mature terrain shouldn't
+                    // reset it back to immature; only a genuine empty -> full crossing (above)
+                    // counts as "freshly placed." Same rule as SimpleGeoEditStore.
                     matIndex = existingMatIndex;
+                    resolved = voxelData.IsMature()
+                            ? VoxelData.CreateMature(density, matIndex)
+                            : VoxelData.CreateImmature(density, matIndex);
                 }
-
-                var resolved = voxelDelta.DensityDelta != 0
-                        ? VoxelData.CreateImmature(density, matIndex)
-                        : VoxelData.CreateMature(density, matIndex);
 
                 if (resolved == voxelData)
                     continue;

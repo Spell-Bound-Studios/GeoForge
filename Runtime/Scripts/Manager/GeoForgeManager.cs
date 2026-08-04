@@ -5,8 +5,11 @@ using System.Collections.Generic;
 using Spellbound.Core.Tooling;
 using Unity.Collections;
 using Unity.Entities;
+using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
+using UnityEngine.Rendering;
+using Object = UnityEngine.Object;
 
 namespace Spellbound.GeoForge {
     /// <summary>
@@ -42,6 +45,8 @@ namespace Spellbound.GeoForge {
             var lookUp = FlatShadedLookUp;
             for (var i = 0; i < materialDatabase.materials.Count; i++)
                 lookUp[i] = materialDatabase.materials[i].isFlatShaded;
+
+            _isActive = true;
         }
 
         public async void ValidateAllVolumesLodsAsync() {
@@ -66,6 +71,7 @@ namespace Spellbound.GeoForge {
         private void LateUpdate() => OctreeBatchTransitionUpdate?.Invoke();
 
         private void OnDestroy() {
+            _isActive = false;
             _isShuttingDown = true;
 
             if (McTablesBlob.IsCreated)
@@ -217,14 +223,23 @@ namespace Spellbound.GeoForge {
             }
         }
 
-        public VoxelData QueryVoxel(Vector3 position, out IGeoVolume queryvolume) {
-            queryvolume = null;
+        /// <summary>
+        /// Tries to query the voxel at a world position from whichever primary-terrain volume
+        /// actually has data there. Returns false (with voxel/queryVolume left at their defaults)
+        /// if no primary volume exists, or none of them have a loaded chunk with voxel data at
+        /// this position - a default VoxelData (Density == 0) is indistinguishable from real solid
+        /// terrain under the zero-threshold convention, so callers must not treat a false return
+        /// as "voxel is default/empty"; it means "nothing was actually queryable here."
+        /// queryVolume is only ever set on a true return, never left pointing at a volume whose
+        /// data wasn't actually used.
+        /// </summary>
+        public bool TryQueryVoxel(Vector3 position, out VoxelData voxel, out IGeoVolume queryVolume) {
+            voxel = default;
+            queryVolume = null;
 
             foreach (var voxelVolume in _voxelVolumes) {
                 if (!voxelVolume.IsPrimaryTerrain)
                     continue;
-
-                queryvolume = voxelVolume;
 
                 var chunk = voxelVolume.GetChunkByWorldPosition(position);
 
@@ -235,12 +250,13 @@ namespace Spellbound.GeoForge {
                     continue;
 
                 var voxelPosition = voxelVolume.WorldToVoxelSpace(position);
-                var voxel = chunk.GetVoxelDataFromVoxelPosition(voxelPosition);
+                voxel = chunk.GetVoxelDataFromVoxelPosition(voxelPosition);
+                queryVolume = voxelVolume;
 
-                return voxel;
+                return true;
             }
 
-            return new VoxelData();
+            return false;
         }
     }
 }
