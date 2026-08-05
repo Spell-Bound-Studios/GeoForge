@@ -21,6 +21,7 @@ namespace Spellbound.GeoForge {
             NativeArray<VoxelData> voxelArray,
             NativeList<MeshingVertexData> vertices,
             NativeList<int> triangles,
+            NativeReference<Bounds> computedBounds,
             int lod,
             int3 start,
             JobHandle dependency = default) {
@@ -31,6 +32,7 @@ namespace Spellbound.GeoForge {
                 VoxelArray = voxelArray,
                 Vertices = vertices,
                 Triangles = triangles,
+                ComputedBounds = computedBounds,
                 Lod = lod,
                 Start = start
             };

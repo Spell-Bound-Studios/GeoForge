@@ -27,6 +27,7 @@ namespace Spellbound.GeoForge {
             NativeArray<VoxelData> voxelArray,
             NativeList<MeshingVertexData> vertices,
             NativeList<int> triangles,
+            NativeReference<Bounds> computedBounds,
             int lod,
             int3 start,
             JobHandle dependency = default);

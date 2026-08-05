@@ -17,23 +17,43 @@ namespace Spellbound.GeoForge {
     /// </summary>
     [DefaultExecutionOrder(-1000)]
     public partial class GeoForgeManager : MonoBehaviour {
-        public BlobAssetReference<McTablesBlobAsset> McTablesBlob { get; private set; }
+        // Internal: raw MC lookup tables, only ever consumed by the march jobs via
+        // profile.ScheduleMarchingCubes(_gfManager.McTablesBlob, ...) - no external caller needs
+        // direct access to the table blob itself.
+        internal BlobAssetReference<McTablesBlobAsset> McTablesBlob { get; private set; }
 
-        [SerializeField] public GameObject octreePrefab;
+        // Judgment call, leaning internal: no established "pluggable strategy" story for this one
+        // the way jobAndRenderProfile has (see GeoForgeManager.JobManager.cs) - it's just which
+        // GameObject GetPooledObject instantiates. Worth a deliberate look before narrowing though,
+        // in case a consumer legitimately wants to swap this at runtime.
+        [SerializeField] internal GameObject octreePrefab;
+
+        // Judgment call, leaning public: plausibly useful for external code/UI to enumerate or
+        // look up materials by index, not obviously pure-internal the way octreePrefab is.
         [SerializeField] public VoxelMaterialDatabase materialDatabase;
 
         private readonly Stack<GameObject> _objectPool = new();
         private bool _isActive;
         private HashSet<IGeoVolume> _voxelVolumes = new();
 
+        // Judgment call, leaning public: reads as a legitimate external status-check API ("is
+        // GeoForge ready") rather than internal plumbing, though nothing in what I've seen this
+        // session actually calls it - worth confirming it's still wanted at all before deciding
+        // its visibility.
         public bool IsActive() => _isActive;
+
         private bool _isShuttingDown;
         private Transform _objectPoolParent;
 
         private HashSet<byte> _allMaterials;
-        public NativeArray<bool> FlatShadedLookUp { get; private set; }
 
-        public event Action OctreeBatchTransitionUpdate;
+        // Internal: pure input data for the march jobs (profile.ScheduleMarchingCubes(...,
+        // _gfManager.FlatShadedLookUp, ...)) - no reason for external code to read this directly.
+        internal NativeArray<bool> FlatShadedLookUp { get; private set; }
+
+        // Internal: purely an internal coordination mechanism between this manager and OctreeNode
+        // (HandleTransitionUpdate subscribes/unsubscribes to this) - not a public event story.
+        internal event Action OctreeBatchTransitionUpdate;
 
         private void Awake() {
             SingletonManager.RegisterSingleton(this);
@@ -49,7 +69,9 @@ namespace Spellbound.GeoForge {
             _isActive = true;
         }
 
-        public async void ValidateAllVolumesLodsAsync() {
+        // Internal: called once from Awake() and drives its own infinite validation loop - no
+        // legitimate reason for external code to invoke this a second time.
+        internal async void ValidateAllVolumesLodsAsync() {
             try {
                 while (true) {
                     var volumeList = new List<IGeoVolume>(_voxelVolumes);
@@ -82,9 +104,14 @@ namespace Spellbound.GeoForge {
 
             ClearPool();
 
-            foreach (var kvp in _denseVoxelDataDict) kvp.Value.Dispose();
+            DisposeMarchBufferPools();
+            foreach (var kvp in _denseVoxelDataDict) 
+                kvp.Value.Dispose();
         }
 
+        // Left public: IGeoVolume is a public extension point (a custom volume implementation
+        // outside this assembly needs to be able to register/unregister itself), so these two
+        // can't be narrowed the way the rest of this file was.
         public void RegisterVoxelVolume(IGeoVolume geoVolume) {
             _voxelVolumes.Add(geoVolume);
             var chunkSize = geoVolume.ConfigBlob.Value.ChunkSize;
@@ -99,7 +126,10 @@ namespace Spellbound.GeoForge {
             _voxelVolumes.Remove(geoVolume);
         }
 
-        public GameObject GetPooledObject(Transform parent) {
+        // Internal: pooling plumbing specifically tied to OctreeNode's leaf/transition GameObject
+        // lifecycle (BuildLeaf/BuildTransitions/ReleaseLeafObjects) - not a general-purpose object
+        // pool meant for external use.
+        internal GameObject GetPooledObject(Transform parent) {
             GameObject go;
 
             if (_objectPool.Count > 0) {
@@ -121,7 +151,7 @@ namespace Spellbound.GeoForge {
             return go;
         }
 
-        public void ReleasePooledObject(GameObject go) {
+        internal void ReleasePooledObject(GameObject go) {
             if (go == null) return;
 
             go.SetActive(false);
@@ -141,8 +171,11 @@ namespace Spellbound.GeoForge {
         /// For Terraforming Commands that might affect multiple volumes. materialIndex and
         /// allowedMaterialsMask are shared across every volume the action touches; only the
         /// per-volume edits/bounds come from the terraformAction delegate.
+        /// Internal: matches TerraformCommands's own established convention ("should be accessed
+        /// through the public GeoForgeStatic class") - GeoForgeStatic is the one sanctioned public
+        /// entry point for terraform operations, this is the plumbing underneath it.
         /// </summary>
-        public void ExecuteTerraformAll(
+        internal void ExecuteTerraformAll(
             Func<IGeoVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction,
             byte materialIndex,
             uint4 allowedMaterialsMask) {
@@ -162,8 +195,10 @@ namespace Spellbound.GeoForge {
         /// affected chunk. materialIndex and allowedMaterialsMask are properties of the whole
         /// terraform action and are copied onto every chunk's operation unchanged; only the
         /// per-chunk Deltas differ.
+        /// Internal: same reasoning as ExecuteTerraformAll above - reachable only through
+        /// GeoForgeStatic.
         /// </summary>
-        public void DistributeVoxelEdits(
+        internal void DistributeVoxelEdits(
             IGeoVolume geoVolume,
             List<RawVoxelEdit> rawVoxelEdits,
             byte materialIndex,
@@ -237,6 +272,9 @@ namespace Spellbound.GeoForge {
         /// as "voxel is default/empty"; it means "nothing was actually queryable here."
         /// queryVolume is only ever set on a true return, never left pointing at a volume whose
         /// data wasn't actually used.
+        /// Judgment call, leaning public: a safe, read-only gameplay query (checking terrain at a
+        /// position) rather than lifecycle/pooling machinery - doesn't have the same clear
+        /// "route through GeoForgeStatic" signal ExecuteTerraformAll/DistributeVoxelEdits have.
         /// </summary>
         public bool TryQueryVoxel(Vector3 position, out VoxelData voxel, out IGeoVolume queryVolume) {
             voxel = default;

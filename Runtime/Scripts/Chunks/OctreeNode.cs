@@ -14,7 +14,7 @@ namespace Spellbound.GeoForge {
     /// Recursively Subdividing OctreeNode to subdivide a geoChunk at varying LODs.
     /// Either it has 8 children, or it has an Octree leaf (representing actual terrain).
     /// </summary>
-    public class OctreeNode : IDisposable {
+    public sealed class OctreeNode : IDisposable {
         private OctreeNode[] _children;
         private GameObject _leafGo;
         private GameObject _transitionGo;
@@ -158,14 +158,21 @@ namespace Spellbound.GeoForge {
         }
 
         private void SetMaterialOrigin() {
+            // Reuse the existing _materialPropertyBlock field instead of allocating a fresh
+            // MaterialPropertyBlock every call - this runs once per leaf, every frame, for any
+            // volume that's currently moving (via ValidateMaterial -> OnVolumeMovement), so a
+            // per-call allocation here was real, avoidable GC pressure. Clear() resets it for
+            // reuse rather than risking stale state leaking in from whatever it held last.
+            _materialPropertyBlock ??= new MaterialPropertyBlock();
+            _materialPropertyBlock.Clear();
+            _materialPropertyBlock.SetMatrix("_WorldToLocal", _parentGeoVolume.VolumeTransform.worldToLocalMatrix);
+
             var meshRenderer = _leafGo.GetComponent<MeshRenderer>();
-            var materialPropertyBlock = new MaterialPropertyBlock();
-            materialPropertyBlock.SetMatrix("_WorldToLocal", _parentGeoVolume.VolumeTransform.worldToLocalMatrix);
-            meshRenderer.SetPropertyBlock(materialPropertyBlock);
+            meshRenderer.SetPropertyBlock(_materialPropertyBlock);
 
             if (_transitionGo != null) {
                 meshRenderer = _transitionGo.GetComponent<MeshRenderer>();
-                meshRenderer.SetPropertyBlock(materialPropertyBlock);
+                meshRenderer.SetPropertyBlock(_materialPropertyBlock);
             }
         }
 
@@ -258,8 +265,13 @@ namespace Spellbound.GeoForge {
             var profile = _gfManager.jobAndRenderProfile;
             var start = new int3(_localPosition.x, _localPosition.y, _localPosition.z);
 
-            var vertices = new NativeList<MeshingVertexData>(Allocator.Persistent);
-            var triangles = new NativeList<int>(Allocator.Persistent);
+            // Rented from GeoForgeManager's buffer pool instead of freshly allocated - avoids the
+            // per-march Allocator.Persistent churn (up to 6 fresh NativeCollections per call
+            // previously). Returned to the pool (not disposed) once results are applied - see
+            // GeoForgeManager.CompleteAndApplyMarchingCubesJobs / ReturnMarchBuffers.
+            var vertices = _gfManager.RentVertexBuffer();
+            var triangles = _gfManager.RentTriangleBuffer();
+            var computedBounds = _gfManager.RentBoundsBuffer();
 
             var jobHandle = profile.ScheduleMarchingCubes(
                 _gfManager.McTablesBlob,
@@ -268,15 +280,16 @@ namespace Spellbound.GeoForge {
                 voxelArray,
                 vertices,
                 triangles,
+                computedBounds,
                 _lod,
                 start);
 
-            _gfManager.RegisterMarchJob(this, jobHandle, vertices, triangles, _geoChunk.ChunkCoord);
+            _gfManager.RegisterMarchJob(this, jobHandle, vertices, triangles, computedBounds, _geoChunk.ChunkCoord);
 
             if (_lod != 0) {
-                var transitionMeshingVertexData = new NativeList<MeshingVertexData>(Allocator.Persistent);
-                var transitionTriangles = new NativeList<int>(Allocator.Persistent);
-                var transitionRanges = new NativeArray<int2>(6, Allocator.Persistent);
+                var transitionMeshingVertexData = _gfManager.RentVertexBuffer();
+                var transitionTriangles = _gfManager.RentTriangleBuffer();
+                var transitionRanges = _gfManager.RentRangesBuffer();
 
                 var transitionJobHandle = profile.ScheduleTransitionMarchingCubes(
                     _gfManager.McTablesBlob,
@@ -317,7 +330,8 @@ namespace Spellbound.GeoForge {
             MarchAndMesh(voxelArray);
         }
 
-        private void UpdateLeafMesh(NativeList<MeshingVertexData> vertices, NativeList<int> triangles) {
+        private void UpdateLeafMesh(
+            NativeList<MeshingVertexData> vertices, NativeList<int> triangles, Bounds computedBounds) {
             _mesh.SetVertexBufferParams(vertices.Length, MeshingVertexData.VertexBufferMemoryLayout);
 
             _mesh.SetVertexBufferData(
@@ -343,7 +357,10 @@ namespace Spellbound.GeoForge {
             _mesh.subMeshCount = 1;
 
             _mesh.SetSubMesh(0, subMesh);
-            _mesh.RecalculateBounds();
+
+            // Computed by the march job itself (see MarchAndMesh/MarchingCubeJob.ComputedBounds)
+            // instead of scanning every vertex again here via RecalculateBounds().
+            _mesh.bounds = computedBounds;
 
             // ApplyMarchResults only calls this once triangles.Length/vertices.Length are already
             // confirmed >= 3, so there's no "empty mesh" case left to guard against here - that's
@@ -454,7 +471,9 @@ namespace Spellbound.GeoForge {
             _transitionMesh.subMeshCount = 1;
 
             _transitionMesh.SetSubMesh(0, subMesh);
-            _transitionMesh.RecalculateBounds();
+            // No RecalculateBounds() here - bounds are set once in ApplyTransitionMarchResults,
+            // when the vertex buffer actually changes. This method also runs on mask-only changes
+            // where the vertex buffer is untouched, so recomputing here would be redundant.
         }
 
         private NativeList<int> GetFilteredTransitionTriangles(
@@ -523,7 +542,8 @@ namespace Spellbound.GeoForge {
         /// non-empty - matching the original one-time MakeLeaf behavior, just re-anchored to
         /// "first time this leaf actually has geometry" instead of "first time MakeLeaf ran."
         /// </summary>
-        public void ApplyMarchResults(NativeList<MeshingVertexData> vertices, NativeList<int> triangles) {
+        public void ApplyMarchResults(
+            NativeList<MeshingVertexData> vertices, NativeList<int> triangles, Bounds computedBounds) {
             if (triangles.Length < 3 || vertices.Length < 3) {
                 ReleaseLeafObjects();
 
@@ -538,7 +558,7 @@ namespace Spellbound.GeoForge {
                 SetMaterialOrigin();
             }
 
-            UpdateLeafMesh(vertices, triangles);
+            UpdateLeafMesh(vertices, triangles, computedBounds);
 
             if (isFirstBuild)
                 BroadcastNewLeaf();
@@ -568,6 +588,18 @@ namespace Spellbound.GeoForge {
             _allTransitionTriangles.CopyFrom(triangles);
             _transitionRanges.CopyFrom(triangleRanges);
             UpdateTransitionVertexBuffer(vertices);
+
+            // Reuse the main mesh's bounds instead of computing separately in the transition job:
+            // transition geometry re-samples the same boundary the main mesh already covers, just
+            // at higher density to match a neighbor's finer LOD, so it should never extend
+            // meaningfully past the main mesh's own extent. ApplyMarchResults always runs before
+            // this method in the same CompleteAndApplyMarchingCubesJobs pass, so _mesh.bounds is
+            // guaranteed current here. The margin guards against the T-junction correction pass
+            // (bIsLowResFace) nudging a vertex a hair outside that extent.
+            var expandedBounds = _mesh.bounds;
+            expandedBounds.Expand(_parentGeoVolume.ConfigBlob.Value.Resolution);
+            _transitionMesh.bounds = expandedBounds;
+
             HandleTransitionUpdate();
         }
     }

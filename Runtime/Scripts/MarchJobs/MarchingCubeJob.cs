@@ -26,6 +26,11 @@ namespace Spellbound.GeoForge {
         public NativeList<MeshingVertexData> Vertices;
         public NativeList<int> Triangles;
 
+        // Computed inline as vertices are created, instead of calling Mesh.RecalculateBounds() on
+        // the main thread afterward - the job is already touching every unique vertex position
+        // once, so tracking running min/max here is essentially free.
+        public NativeReference<Bounds> ComputedBounds;
+
         public int Lod;
         public int3 Start;
 
@@ -73,32 +78,24 @@ namespace Spellbound.GeoForge {
             var uniqueMaterials = new NativeList<byte>(14, Allocator.Temp);
             var materialWeights = new NativeList<float>(14, Allocator.Temp);
 
+            // Running bounds, updated only at the point a genuinely new vertex is created (see
+            // below) - cache-hit reused vertices and flat-shading clones are exact copies of
+            // already-tracked positions, so re-tracking them would be redundant, not incorrect.
+            var boundsMin = new float3(float.MaxValue);
+            var boundsMax = new float3(float.MinValue);
+
             // Inside this nested for loop is where a single cube is marched.
             for (var y = 0; y < cubesMarchedPerLeaf; y++) {
                 for (var z = 0; z < cubesMarchedPerLeaf; z++) {
                     for (var x = 0; x < cubesMarchedPerLeaf; x++) {
                         var cellPos = Start + new int3(x, y, z) * lodScale;
 
-                        // Inside this loop we are looping through the 8 corners of the cube.
-                        for (var i = 0; i < 8; ++i) {
-                            var voxelPosition = cellPos + new int3(padding, padding, padding) +
-                                                tables.RegularCornerOffset[i] * lodScale;
-
-                            cellValues[i] = VoxelArray[GfStaticHelper.Coord3DToIndex(
-                                voxelPosition.x, voxelPosition.y, voxelPosition.z,
-                                chunkDataAreaSize, chunkDataWidthSize
-                            )];
-                        }
-
-                        // CaseCode indicates what kind of cube it is. Empty, full, or a mixture that needs a mesh.
-                        var caseCode = (byte)((cellValues[0].Density >= 0 ? 0x01 : 0)
-                                              | (cellValues[1].Density >= 0 ? 0x02 : 0)
-                                              | (cellValues[2].Density >= 0 ? 0x04 : 0)
-                                              | (cellValues[3].Density >= 0 ? 0x08 : 0)
-                                              | (cellValues[4].Density >= 0 ? 0x10 : 0)
-                                              | (cellValues[5].Density >= 0 ? 0x20 : 0)
-                                              | (cellValues[6].Density >= 0 ? 0x40 : 0)
-                                              | (cellValues[7].Density >= 0 ? 0x80 : 0));
+                        // Gathers the 8 corner voxels into cellValues and returns the caseCode -
+                        // shared with FlatBaryMarchJob (identical logic; this is also the exact
+                        // site of the sign-extension early-out bug, kept in one place now).
+                        var caseCode = GfMarchHelper.GatherRegularCornersAndComputeCaseCode(
+                            VoxelArray, ref tables, cellPos, padding, lodScale,
+                            chunkDataAreaSize, chunkDataWidthSize, ref cellValues);
 
                         // Uniform-cube early-out: skip cubes that are fully solid (caseCode == 0xFF) or
                         // fully empty (caseCode == 0x00) — the MC tables produce zero triangles for both,
@@ -170,59 +167,28 @@ namespace Spellbound.GeoForge {
                                 var vertLocalPos1 = cellPos + new int3(padding, padding, padding) +
                                                     tables.RegularCornerOffset[cornerIdx1] * lodScale;
 
-                                var p0 = (float3)vertLocalPos0;
-                                var p1 = (float3)vertLocalPos1;
-
                                 // Get voxel data at endpoints early
                                 var index0 = GfStaticHelper.Coord3DToIndex(vertLocalPos0.x, vertLocalPos0.y,
                                     vertLocalPos0.z, chunkDataAreaSize, chunkDataWidthSize);
                                 var voxel0 = VoxelArray[index0];
 
-                                var index1 = GfStaticHelper.Coord3DToIndex(vertLocalPos1.x, vertLocalPos1.y,
-                                    vertLocalPos1.z, chunkDataAreaSize, chunkDataWidthSize);
-                                var voxel1 = VoxelArray[index1];
-
-                                // Cache these for the subdivision loop
+                                // Cache this for the subdivision loop
                                 var isVert0Full = voxel0.Density >= 0;
 
                                 // This consecutively subdivides the coarser LOD to find the exact place Density
-                                // crosses zero.
-                                for (var j = 0; j < Lod; ++j) {
-                                    var mid = (p0 + p1) * 0.5f;
-                                    var samplePos = (int3)math.round(mid);
-
-                                    var midPointDensity =
-                                            VoxelArray[
-                                                        GfStaticHelper.Coord3DToIndex(samplePos.x, +samplePos.y,
-                                                            samplePos.z, chunkDataAreaSize,
-                                                            chunkDataWidthSize)]
-                                                    .Density;
-
-                                    var isMidPointFull =
-                                            midPointDensity >= 0;
-
-                                    var isVertexNearerToVert1 =
-                                            (isMidPointFull && isVert0Full)
-                                            || (!isMidPointFull && !isVert0Full);
-
-                                    if (isVertexNearerToVert1) {
-                                        p0 = samplePos;
-                                        vertLocalPos0 = samplePos;
-                                    }
-                                    else {
-                                        p1 = samplePos;
-                                        vertLocalPos1 = samplePos;
-                                    }
-                                }
+                                // crosses zero. Shared with the other three march jobs.
+                                GfMarchHelper.SubdivideToSurfaceCrossing(
+                                    VoxelArray, chunkDataAreaSize, chunkDataWidthSize, Lod, isVert0Full,
+                                    ref vertLocalPos0, ref vertLocalPos1);
 
                                 // Recompute voxel data after subdivision
                                 index0 = GfStaticHelper.Coord3DToIndex(vertLocalPos0.x, vertLocalPos0.y,
                                     vertLocalPos0.z, chunkDataAreaSize, chunkDataWidthSize);
                                 voxel0 = VoxelArray[index0];
 
-                                index1 = GfStaticHelper.Coord3DToIndex(vertLocalPos1.x, vertLocalPos1.y,
+                                var index1 = GfStaticHelper.Coord3DToIndex(vertLocalPos1.x, vertLocalPos1.y,
                                     vertLocalPos1.z, chunkDataAreaSize, chunkDataWidthSize);
-                                voxel1 = VoxelArray[index1];
+                                var voxel1 = VoxelArray[index1];
 
                                 //Interpolating the vertex position based on the densities at the ends of the edge
                                 //along which the vertex belongs.
@@ -231,76 +197,15 @@ namespace Spellbound.GeoForge {
 
                                 var vertex = math.lerp(vertLocalPos0, vertLocalPos1, t);
 
-                                // Splitting some int3 into components to make math easier.
-                                var vertPosX0 = vertLocalPos0.x;
-                                var vertPosY0 = vertLocalPos0.y;
-                                var vertPosZ0 = vertLocalPos0.z;
-                                var vertPosX1 = vertLocalPos1.x;
-                                var vertPosY1 = vertLocalPos1.y;
-                                var vertPosZ1 = vertLocalPos1.z;
-
-                                var v0011 = VoxelArray[
-                                    GfStaticHelper.Coord3DToIndex(vertPosX0 - 1, vertPosY0, vertPosZ0,
-                                        chunkDataAreaSize, chunkDataWidthSize)];
-
-                                var v0211 = VoxelArray[
-                                    GfStaticHelper.Coord3DToIndex(vertPosX0 + 1, vertPosY0, vertPosZ0,
-                                        chunkDataAreaSize, chunkDataWidthSize)];
-
-                                var v0101 = VoxelArray[
-                                    GfStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 - 1, vertPosZ0,
-                                        chunkDataAreaSize, chunkDataWidthSize)];
-
-                                var v0121 = VoxelArray[
-                                    GfStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0 + 1, vertPosZ0,
-                                        chunkDataAreaSize, chunkDataWidthSize)];
-
-                                var v0110 = VoxelArray[
-                                    GfStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 - 1,
-                                        chunkDataAreaSize, chunkDataWidthSize)];
-
-                                var v0112 = VoxelArray[
-                                    GfStaticHelper.Coord3DToIndex(vertPosX0, vertPosY0, vertPosZ0 + 1,
-                                        chunkDataAreaSize, chunkDataWidthSize)];
-
-                                var v1011 = VoxelArray[
-                                    GfStaticHelper.Coord3DToIndex(vertPosX1 - 1, vertPosY1, vertPosZ1,
-                                        chunkDataAreaSize, chunkDataWidthSize)];
-
-                                var v1211 = VoxelArray[
-                                    GfStaticHelper.Coord3DToIndex(vertPosX1 + 1, vertPosY1, vertPosZ1,
-                                        chunkDataAreaSize, chunkDataWidthSize)];
-
-                                var v1101 = VoxelArray[
-                                    GfStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 - 1, vertPosZ1,
-                                        chunkDataAreaSize, chunkDataWidthSize)];
-
-                                var v1121 = VoxelArray[
-                                    GfStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1 + 1, vertPosZ1,
-                                        chunkDataAreaSize, chunkDataWidthSize)];
-
-                                var v1110 = VoxelArray[
-                                    GfStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 - 1,
-                                        chunkDataAreaSize, chunkDataWidthSize)];
-
-                                var v1112 = VoxelArray[
-                                    GfStaticHelper.Coord3DToIndex(vertPosX1, vertPosY1, vertPosZ1 + 1,
-                                        chunkDataAreaSize, chunkDataWidthSize)];
-
-                                var normal0 = new float3(v0011.Density - v0211.Density,
-                                    v0101.Density - v0121.Density,
-                                    v0110.Density - v0112.Density
-                                );
-
-                                var normal1 = new float3(v1011.Density - v1211.Density,
-                                    v1101.Density - v1121.Density,
-                                    v1110.Density - v1112.Density
-                                );
+                                // The 14-voxel neighborhood (endpoints' 6 axis-neighbors each) plus the two
+                                // endpoint gradient normals derived from it - shared with TransitionMarchingCubeJob.
+                                var sample = GfMarchHelper.SampleNeighborGradient(
+                                    VoxelArray, vertLocalPos0, vertLocalPos1, chunkDataAreaSize, chunkDataWidthSize);
 
                                 // The normal is a weighted average of the normals at the ends of the edges, same as
                                 // the vertex position. For smooth triangles this is the final normal. For flat
                                 // triangles it will be overwritten with the face normal in the triangle loop.
-                                var normal = math.lerp(normal0, normal1, t);
+                                var normal = math.lerp(sample.Normal0, sample.Normal1, t);
                                 normal = math.normalize(normal);
 
                                 // Clear lists for reuse
@@ -312,22 +217,22 @@ namespace Spellbound.GeoForge {
                                 // Add all voxel contributions (14-voxel neighborhood — this decides which
                                 // TWO materials dominate this vertex, purely by material identity). Voxels
                                 // with negative density (including the null/sentinel material) never
-                                // contribute — see AddMaterialWeight.
-                                AddMaterialWeight(voxel0, weight0, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v0011, weight0, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v0211, weight0, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v0101, weight0, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v0121, weight0, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v0110, weight0, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v0112, weight0, ref uniqueMaterials, ref materialWeights);
+                                // contribute — see GfMarchHelper.AddMaterialWeight.
+                                GfMarchHelper.AddMaterialWeight(voxel0, weight0, ref uniqueMaterials, ref materialWeights);
+                                GfMarchHelper.AddMaterialWeight(sample.V0011, weight0, ref uniqueMaterials, ref materialWeights);
+                                GfMarchHelper.AddMaterialWeight(sample.V0211, weight0, ref uniqueMaterials, ref materialWeights);
+                                GfMarchHelper.AddMaterialWeight(sample.V0101, weight0, ref uniqueMaterials, ref materialWeights);
+                                GfMarchHelper.AddMaterialWeight(sample.V0121, weight0, ref uniqueMaterials, ref materialWeights);
+                                GfMarchHelper.AddMaterialWeight(sample.V0110, weight0, ref uniqueMaterials, ref materialWeights);
+                                GfMarchHelper.AddMaterialWeight(sample.V0112, weight0, ref uniqueMaterials, ref materialWeights);
 
-                                AddMaterialWeight(voxel1, t, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v1011, t, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v1211, t, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v1101, t, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v1121, t, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v1110, t, ref uniqueMaterials, ref materialWeights);
-                                AddMaterialWeight(v1112, t, ref uniqueMaterials, ref materialWeights);
+                                GfMarchHelper.AddMaterialWeight(voxel1, t, ref uniqueMaterials, ref materialWeights);
+                                GfMarchHelper.AddMaterialWeight(sample.V1011, t, ref uniqueMaterials, ref materialWeights);
+                                GfMarchHelper.AddMaterialWeight(sample.V1211, t, ref uniqueMaterials, ref materialWeights);
+                                GfMarchHelper.AddMaterialWeight(sample.V1101, t, ref uniqueMaterials, ref materialWeights);
+                                GfMarchHelper.AddMaterialWeight(sample.V1121, t, ref uniqueMaterials, ref materialWeights);
+                                GfMarchHelper.AddMaterialWeight(sample.V1110, t, ref uniqueMaterials, ref materialWeights);
+                                GfMarchHelper.AddMaterialWeight(sample.V1112, t, ref uniqueMaterials, ref materialWeights);
 
                                 // Find top 2 materials (0-127 only — maturity plays no role in this selection).
                                 byte matA = 0;
@@ -356,8 +261,10 @@ namespace Spellbound.GeoForge {
                                 var matIndex1 = voxel1.GetPlainMatIndex();
                                 var isMature1 = voxel1.IsMature();
 
-                                var matAAllMature = ResolveMaturity(matA, matIndex0, isMature0, matIndex1, isMature1);
-                                var matBAllMature = ResolveMaturity(matB, matIndex0, isMature0, matIndex1, isMature1);
+                                var matAAllMature =
+                                        GfMarchHelper.ResolveMaturity(matA, matIndex0, isMature0, matIndex1, isMature1);
+                                var matBAllMature =
+                                        GfMarchHelper.ResolveMaturity(matB, matIndex0, isMature0, matIndex1, isMature1);
 
                                 var colorInterp = new float4((float)matA / byte.MaxValue, 0, 0, 0);
 
@@ -369,6 +276,9 @@ namespace Spellbound.GeoForge {
                                 );
 
                                 var centeredVertex = (vertex + offsetBurst) * resolution;
+
+                                boundsMin = math.min(boundsMin, centeredVertex);
+                                boundsMax = math.max(boundsMax, centeredVertex);
 
                                 Vertices.Add(new MeshingVertexData(centeredVertex, normal, color,
                                     colorInterp));
@@ -396,7 +306,7 @@ namespace Spellbound.GeoForge {
                             var posB = Vertices[ib].Position;
                             var posC = Vertices[ic].Position;
 
-                            if (IsDegenerateTriangle(posA, posB, posC)) continue;
+                            if (GfMarchHelper.IsDegenerateTriangle(posA, posB, posC)) continue;
 
                             // Check if any of the three vertices carries a flat-shaded material.
                             var isFlatShaded = IsFlatShadedLookUp[Vertices[ia].FixedColor.r]
@@ -447,75 +357,13 @@ namespace Spellbound.GeoForge {
                 (currentCache, previousCache) = (previousCache, currentCache);
             }
 
+            ComputedBounds.Value = Vertices.Length > 0
+                    ? new Bounds((Vector3)((boundsMin + boundsMax) * 0.5f), (Vector3)(boundsMax - boundsMin))
+                    : new Bounds();
+
             // Dispose reused structures
             uniqueMaterials.Dispose();
             materialWeights.Dispose();
-        }
-
-        private bool IsDegenerateTriangle(float3 a, float3 b, float3 c) {
-            var area = math.length(math.cross(b - a, c - a));
-
-            return area < 1e-5f; // Tweak epsilon if needed
-        }
-
-        // Returns true only if every endpoint (of voxel0/voxel1) whose demodulated material matches
-        // targetMat is mature. If neither endpoint's material matches targetMat (i.e. targetMat only
-        // came from the wider 14-voxel dominance neighborhood, not the endpoints themselves), this
-        // defaults to false rather than guessing at maturity from data we're not supposed to use.
-        private static bool ResolveMaturity(
-            byte targetMat, byte matIndex0, bool isMature0, byte matIndex1, bool isMature1) {
-            var matched = false;
-            var allMature = true;
-
-            if (matIndex0 == targetMat) {
-                matched = true;
-                allMature &= isMature0;
-            }
-
-            if (matIndex1 == targetMat) {
-                matched = true;
-                allMature &= isMature1;
-            }
-
-            return matched && allMature;
-        }
-
-        [BurstCompile]
-        private static void AddMaterialWeight(
-            in VoxelData voxel,
-            float baseWeight,
-            ref NativeList<byte> uniqueMaterials,
-            ref NativeList<float> materialWeights) {
-            // Skip any voxel that isn't actually "full" (density >= 0). This is the same zero split
-            // the mesher uses for the case code, so a voxel can never simultaneously count as "empty"
-            // for geometry and "a real material" for this vote. It also guarantees the null/sentinel
-            // material (always negative density, per the core density/material invariant) can never
-            // contribute weight here, and therefore can never be selected as matA/matB below.
-            if (voxel.Density < 0) return;
-
-            // Demodulate: material identity (0-127) only. Maturity is resolved separately in
-            // ResolveMaturity, checked only against voxel0/voxel1, not this wider neighborhood.
-            var matIndex = voxel.GetPlainMatIndex();
-            var densityWeight = voxel.Density / (float)sbyte.MaxValue;
-            var weight = baseWeight * densityWeight;
-
-            // Check if material already exists
-            var existingIndex = -1;
-
-            for (var k = 0; k < uniqueMaterials.Length; k++) {
-                if (uniqueMaterials[k] == matIndex) {
-                    existingIndex = k;
-
-                    break;
-                }
-            }
-
-            if (existingIndex >= 0)
-                materialWeights[existingIndex] += weight;
-            else {
-                uniqueMaterials.Add(matIndex);
-                materialWeights.Add(weight);
-            }
         }
     }
 }

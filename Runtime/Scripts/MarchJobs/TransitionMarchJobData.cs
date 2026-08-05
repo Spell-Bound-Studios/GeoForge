@@ -5,10 +5,10 @@ using Unity.Collections;
 using Unity.Mathematics;
 
 namespace Spellbound.GeoForge {
-    public struct TransitionMarchJobData : IDisposable {
-        public NativeList<MeshingVertexData> Vertices;
-        public NativeList<int> Triangles;
-        public NativeArray<int2> Ranges;
+    internal struct TransitionMarchJobData : IDisposable {
+        internal NativeList<MeshingVertexData> Vertices;
+        internal NativeList<int> Triangles;
+        internal NativeArray<int2> Ranges;
 
         public void Dispose() {
             if (Vertices.IsCreated) Vertices.Dispose();

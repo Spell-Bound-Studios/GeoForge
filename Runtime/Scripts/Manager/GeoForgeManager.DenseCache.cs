@@ -11,7 +11,7 @@ namespace Spellbound.GeoForge {
     public partial class GeoForgeManager : MonoBehaviour {
         private Dictionary<int, DenseVoxelData> _denseVoxelDataDict = new();
 
-        public NativeArray<VoxelData> GetOrUnpackVoxelArray(
+        internal NativeArray<VoxelData> GetOrUnpackVoxelArray(
             int dataSizeKey,
             GeoChunk chunk,
             NativeList<SparseVoxelData> sparseData) {
@@ -44,7 +44,6 @@ namespace Spellbound.GeoForge {
             if (chunk == denseVoxelData.CurrentChunk) {
                 // ConsoleLogger.PrintToConsole($"GetOrUnpackVoxelArray - No need to unpack. Getting voxel array for {coord}, sparseVoxels length is {sparseData.Length}.");
                 denseVoxelData.IsArrayInUse = true;
-
                 return denseVoxelData.DenseVoxelArray;
             }
 
@@ -68,7 +67,7 @@ namespace Spellbound.GeoForge {
             return denseVoxelData.DenseVoxelArray;
         }
 
-        public void PackVoxelArray(int dataSizeKey) {
+        internal void PackVoxelArray(int dataSizeKey) {
             if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var denseVoxelData)) {
                 // Same misuse case as GetOrUnpackVoxelArray - throw immediately rather than
                 // falling through and dereferencing a null denseVoxelData on the next line.
@@ -113,7 +112,7 @@ namespace Spellbound.GeoForge {
             sparseData.Dispose();
         }
 
-        public void ReleaseVoxelArray(int dataSizeKey) {
+        internal void ReleaseVoxelArray(int dataSizeKey) {
             if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var denseVoxelData)) {
                 ConsoleLogger.PrintError(
                     $"MarchingCubes Manager does not have a denseVoxelData Array of this size");
@@ -124,14 +123,14 @@ namespace Spellbound.GeoForge {
             denseVoxelData.IsArrayInUse = false;
         }
 
-        public class DenseVoxelData : IDisposable {
-            public NativeArray<VoxelData> DenseVoxelArray;
-            public NativeArray<DensityRange> DensityRange;
-            public Dictionary<int, List<Vector3Int>> SharedIndicesAcrossChunks;
-            public bool IsArrayInUse;
-            public GeoChunk CurrentChunk;
+        internal class DenseVoxelData : IDisposable {
+            internal NativeArray<VoxelData> DenseVoxelArray;
+            internal NativeArray<DensityRange> DensityRange;
+            internal Dictionary<int, List<Vector3Int>> SharedIndicesAcrossChunks;
+            internal bool IsArrayInUse;
+            internal GeoChunk CurrentChunk;
 
-            public DenseVoxelData(
+            internal DenseVoxelData(
                 int chunkSize, GeoChunk currentChunk = null, Allocator allocator = Allocator.Persistent) {
                 var cs = chunkSize + 3;
                 DenseVoxelArray = new NativeArray<VoxelData>(cs * cs * cs, allocator);
@@ -141,7 +140,7 @@ namespace Spellbound.GeoForge {
                 CurrentChunk = null;
             }
 
-            public DenseVoxelData() {
+            internal DenseVoxelData() {
                 DenseVoxelArray = default;
                 DensityRange = default;
                 IsArrayInUse = false;

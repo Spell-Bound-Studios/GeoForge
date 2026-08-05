@@ -262,7 +262,7 @@ namespace Spellbound.GeoForge {
                 _mcManager.GetOrUnpackVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this,
                     _sparseVoxels);
 
-        public void UpdateVoxelData(NativeList<SparseVoxelData> voxels, DensityRange densityRange) {
+        internal void UpdateVoxelData(NativeList<SparseVoxelData> voxels, DensityRange densityRange) {
             if (!_sparseVoxels.IsCreated)
                 return;
 
@@ -333,6 +333,15 @@ namespace Spellbound.GeoForge {
             _rootNode.ValidateOctreeLods(playerPositionChunkSpace, GetVoxelDataArray());
             _mcManager.CompleteAndApplyMarchingCubesJobs();
             _mcManager.ReleaseVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize);
+        }
+        
+        public void ValidateOctreeLods(Vector3 playerPosition, NativeArray<VoxelData> voxels) {
+            if (!_sparseVoxels.IsCreated)
+                return;
+
+            var playerPositionChunkSpace = playerPosition - _bounds.min;
+            _rootNode.ValidateOctreeLods(playerPositionChunkSpace, voxels);
+            _mcManager.CompleteAndApplyMarchingCubesJobs();
         }
 
         public void Dispose() {

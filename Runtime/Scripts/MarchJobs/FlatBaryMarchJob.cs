@@ -31,6 +31,10 @@ namespace Spellbound.GeoForge {
         public NativeList<MeshingVertexData> Vertices;
         public NativeList<int> Triangles;
 
+        // Computed inline as vertices are added, instead of calling Mesh.RecalculateBounds() on
+        // the main thread afterward.
+        public NativeReference<Bounds> ComputedBounds;
+
         public int Lod;
         public int3 Start;
 
@@ -80,29 +84,22 @@ namespace Spellbound.GeoForge {
 
             var cellValues = new NativeArray<VoxelData>(8, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
 
+            // Running bounds, updated once per triangle (every triangle here always creates 3
+            // fresh mesh vertices - unlike MarchingCubeJob there's no vertex-index cache to
+            // dedupe against, so tracking happens at the point all 3 are actually added).
+            var boundsMin = new float3(float.MaxValue);
+            var boundsMax = new float3(float.MinValue);
+
             for (var y = 0; y < cubesMarchedPerLeaf; y++) {
                 for (var z = 0; z < cubesMarchedPerLeaf; z++) {
                     for (var x = 0; x < cubesMarchedPerLeaf; x++) {
                         var cellPos = Start + new int3(x, y, z) * lodScale;
 
-                        for (var i = 0; i < 8; ++i) {
-                            var voxelPosition = cellPos + new int3(padding, padding, padding) +
-                                                tables.RegularCornerOffset[i] * lodScale;
-
-                            cellValues[i] = VoxelArray[GfStaticHelper.Coord3DToIndex(
-                                voxelPosition.x, voxelPosition.y, voxelPosition.z,
-                                chunkDataAreaSize, chunkDataWidthSize
-                            )];
-                        }
-
-                        var caseCode = (byte)((cellValues[0].Density >= 0 ? 0x01 : 0)
-                                              | (cellValues[1].Density >= 0 ? 0x02 : 0)
-                                              | (cellValues[2].Density >= 0 ? 0x04 : 0)
-                                              | (cellValues[3].Density >= 0 ? 0x08 : 0)
-                                              | (cellValues[4].Density >= 0 ? 0x10 : 0)
-                                              | (cellValues[5].Density >= 0 ? 0x20 : 0)
-                                              | (cellValues[6].Density >= 0 ? 0x40 : 0)
-                                              | (cellValues[7].Density >= 0 ? 0x80 : 0));
+                        // Gathers the 8 corner voxels into cellValues and returns the caseCode -
+                        // shared with MarchingCubeJob (identical logic).
+                        var caseCode = GfMarchHelper.GatherRegularCornersAndComputeCaseCode(
+                            VoxelArray, ref tables, cellPos, padding, lodScale,
+                            chunkDataAreaSize, chunkDataWidthSize, ref cellValues);
 
                         // Uniform-cube early-out: skip cubes that are fully solid (caseCode == 0xFF) or
                         // fully empty (caseCode == 0x00) — the MC tables produce zero triangles for both,
@@ -142,9 +139,6 @@ namespace Spellbound.GeoForge {
                                 var vertLocalPos1 = cellPos + new int3(padding, padding, padding) +
                                                     tables.RegularCornerOffset[cornerIdx1] * lodScale;
 
-                                var p0 = (float3)vertLocalPos0;
-                                var p1 = (float3)vertLocalPos1;
-
                                 var index0 = GfStaticHelper.Coord3DToIndex(vertLocalPos0.x, vertLocalPos0.y,
                                     vertLocalPos0.z, chunkDataAreaSize, chunkDataWidthSize);
                                 var voxel0 = VoxelArray[index0];
@@ -166,32 +160,10 @@ namespace Spellbound.GeoForge {
                                 var wasVoxel0Mature = voxel0.IsMature();
                                 var wasVoxel1Mature = voxel1.IsMature();
 
-                                for (var j = 0; j < Lod; ++j) {
-                                    var mid = (p0 + p1) * 0.5f;
-                                    var samplePos = (int3)math.round(mid);
-
-                                    var midPointDensity =
-                                            VoxelArray[
-                                                        GfStaticHelper.Coord3DToIndex(samplePos.x, +samplePos.y,
-                                                            samplePos.z, chunkDataAreaSize,
-                                                            chunkDataWidthSize)]
-                                                    .Density;
-
-                                    var isMidPointFull = midPointDensity >= 0;
-
-                                    var isVertexNearerToVert1 =
-                                            (isMidPointFull && isVert0Full)
-                                            || (!isMidPointFull && !isVert0Full);
-
-                                    if (isVertexNearerToVert1) {
-                                        p0 = samplePos;
-                                        vertLocalPos0 = samplePos;
-                                    }
-                                    else {
-                                        p1 = samplePos;
-                                        vertLocalPos1 = samplePos;
-                                    }
-                                }
+                                // Shared with the other three march jobs.
+                                GfMarchHelper.SubdivideToSurfaceCrossing(
+                                    VoxelArray, chunkDataAreaSize, chunkDataWidthSize, Lod, isVert0Full,
+                                    ref vertLocalPos0, ref vertLocalPos1);
 
                                 index0 = GfStaticHelper.Coord3DToIndex(vertLocalPos0.x, vertLocalPos0.y,
                                     vertLocalPos0.z, chunkDataAreaSize, chunkDataWidthSize);
@@ -211,7 +183,7 @@ namespace Spellbound.GeoForge {
                                 // returns it pre-stripped). Maturity is packed back in additively, matching the
                                 // shader's raw-byte contract - NOT via sign, which can't distinguish material 0
                                 // mature from material 0 immature (there's no negative zero).
-                                var materialIndexOnly = originalFullVoxel.GetPlainMatIndex();
+                                var materialIndexOnly = originalFullVoxel.MaterialIndex;
                                 var combinedIsMature = wasVoxel0Mature && wasVoxel1Mature;
                                 var packedRawMaterial =
                                         (byte)(materialIndexOnly + (combinedIsMature ? VoxelData.MatureBitValue : 0));
@@ -238,7 +210,10 @@ namespace Spellbound.GeoForge {
                             var vB = vertexIndices[cellIndices[i + 1]];
                             var vC = vertexIndices[cellIndices[i + 2]];
 
-                            if (IsDegenerateTriangle(vA.Position, vB.Position, vC.Position)) continue;
+                            if (GfMarchHelper.IsDegenerateTriangle(vA.Position, vB.Position, vC.Position)) continue;
+
+                            boundsMin = math.min(boundsMin, math.min(vA.Position, math.min(vB.Position, vC.Position)));
+                            boundsMax = math.max(boundsMax, math.max(vA.Position, math.max(vB.Position, vC.Position)));
 
                             // Face normal matching the (ic, ib, ia) push order below - same convention
                             // MarchingCubeJob's flat-shaded branch already uses.
@@ -280,12 +255,10 @@ namespace Spellbound.GeoForge {
 
                 (currentCache, previousCache) = (previousCache, currentCache);
             }
-        }
 
-        private bool IsDegenerateTriangle(float3 a, float3 b, float3 c) {
-            var area = math.length(math.cross(b - a, c - a));
-
-            return area < 1e-5f; // Tweak epsilon if needed
+            ComputedBounds.Value = Vertices.Length > 0
+                    ? new Bounds((Vector3)((boundsMin + boundsMax) * 0.5f), (Vector3)(boundsMax - boundsMin))
+                    : new Bounds();
         }
     }
 }

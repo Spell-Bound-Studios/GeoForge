@@ -98,7 +98,7 @@ namespace Spellbound.GeoForge {
         }
 
         [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int BinarySearchVoxelData(
+        internal static int BinarySearchVoxelData(
             int targetIndex, int chunkDataVolumeSize, in NativeList<SparseVoxelData> sparseVoxels) {
             int left = 0, right = sparseVoxels.Length - 1;
             var result = 0;

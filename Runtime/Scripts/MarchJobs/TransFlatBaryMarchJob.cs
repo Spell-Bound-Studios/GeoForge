@@ -1,6 +1,5 @@
 // Copyright 2026 Spellbound Studio Inc.
 
-using System.Runtime.CompilerServices;
 using Unity.Burst;
 using Unity.Collections;
 using Unity.Entities;
@@ -16,7 +15,7 @@ namespace Spellbound.GeoForge {
     /// each vertex's edge (no blending) - same scheme as FlatBaryMarchJob, packed the same way.
     /// </summary>
     [BurstCompile]
-    public struct TransFlatBaryMarchJob : IJob {
+    internal struct TransFlatBaryMarchJob : IJob {
         [ReadOnly] public BlobAssetReference<McTablesBlobAsset> TablesBlob;
         [ReadOnly] public BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob;
 
@@ -88,7 +87,8 @@ namespace Spellbound.GeoForge {
                     for (var i = 0; i < 13; i++) {
                         var offset = tables.TransitionCornerOffset[i];
 
-                        var voxelPosition = Start + new int3(padding, padding, padding) + FaceToLocalSpace(direction,
+                        var voxelPosition = Start + new int3(padding, padding, padding) +
+                                GfMarchHelper.FaceToLocalSpace(direction,
                                     config.CubesMarchedPerOctreeLeaf * 2, x * 2 + offset.x, y * 2 + offset.y,
                                     0) *
                                 (lodScale >> 1);
@@ -154,12 +154,14 @@ namespace Spellbound.GeoForge {
                             var cornerOffset0 = tables.TransitionCornerOffset[cornerIdx0];
                             var cornerOffset1 = tables.TransitionCornerOffset[cornerIdx1];
 
-                            var corner0Copy = Start + new int3(padding, padding, padding) + FaceToLocalSpace(
+                            var corner0Copy = Start + new int3(padding, padding, padding) +
+                                    GfMarchHelper.FaceToLocalSpace(
                                 direction,
                                 config.CubesMarchedPerOctreeLeaf * 2,
                                 x * 2 + cornerOffset0.x, y * 2 + cornerOffset0.y, 0) * (lodScale >> 1);
 
-                            var corner1Copy = Start + new int3(padding, padding, padding) + FaceToLocalSpace(
+                            var corner1Copy = Start + new int3(padding, padding, padding) +
+                                    GfMarchHelper.FaceToLocalSpace(
                                 direction,
                                 config.CubesMarchedPerOctreeLeaf * 2,
                                 x * 2 + cornerOffset1.x, y * 2 + cornerOffset1.y, 0) * (lodScale >> 1);
@@ -185,28 +187,13 @@ namespace Spellbound.GeoForge {
                             var wasVoxel0Mature = initVoxel0.IsMature();
                             var wasVoxel1Mature = initVoxel1.IsMature();
 
-                            for (var j = 0; j < subEdges; ++j) {
-                                var midPointLocalPos = (float3)(corner0Copy + corner1Copy) * 0.5f;
-                                var samplePos = (int3)math.round(midPointLocalPos);
-
-                                var midPointDensity =
-                                        VoxelArray[
-                                                    GfStaticHelper.Coord3DToIndex(samplePos.x, samplePos.y,
-                                                        samplePos.z,
-                                                        config.ChunkDataAreaSize, config.ChunkDataWidthSize)]
-                                                .Density;
-
-                                var isMidPointFull = midPointDensity >= 0;
-
-                                var isVertexNearerToVert1 =
-                                        (isMidPointFull && isVert0Full)
-                                        || (!isMidPointFull && !isVert0Full);
-
-                                if (isVertexNearerToVert1)
-                                    corner0Copy = samplePos;
-                                else
-                                    corner1Copy = samplePos;
-                            }
+                            // Shared with the other three march jobs. isVert0Full is fixed once
+                            // above (matching MarchingCubeJob/FlatBaryMarchJob's pattern) - unlike
+                            // TransitionMarchingCubeJob, which recomputes it every iteration and
+                            // therefore keeps its own inline loop instead of using this helper.
+                            GfMarchHelper.SubdivideToSurfaceCrossing(
+                                VoxelArray, config.ChunkDataAreaSize, config.ChunkDataWidthSize, subEdges,
+                                isVert0Full, ref corner0Copy, ref corner1Copy);
 
                             var index0 = GfStaticHelper.Coord3DToIndex(corner0Copy.x, corner0Copy.y,
                                 corner0Copy.z, config.ChunkDataAreaSize, config.ChunkDataWidthSize);
@@ -270,7 +257,7 @@ namespace Spellbound.GeoForge {
                         var vB = transitionVertexIndices[cellIndices[i + 1]];
                         var vC = transitionVertexIndices[cellIndices[i + 2]];
 
-                        if (IsDegenerateTriangle(vA.Position, vB.Position, vC.Position)) continue;
+                        if (GfMarchHelper.IsDegenerateTriangle(vA.Position, vB.Position, vC.Position)) continue;
 
                         // Face normal depends on the ACTUAL push order below, which flips with
                         // bFlipWinding - unlike FlatBaryMarchJob (always ic,ib,ia), this job pushes
@@ -318,28 +305,5 @@ namespace Spellbound.GeoForge {
                 (transitionCurrentCache, transitionPreviousCache) = (transitionPreviousCache, transitionCurrentCache);
             }
         }
-
-        private bool IsDegenerateTriangle(float3 a, float3 b, float3 c) {
-            var area = math.length(math.cross(b - a, c - a));
-
-            return area < 1e-5f; // Tweak epsilon if needed
-        }
-
-        [BurstCompile, MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private int3 FaceToLocalSpace(
-            GfStaticHelper.TransitionFaceMask direction,
-            int leafSize,
-            int x,
-            int y,
-            int z) =>
-                direction switch {
-                    GfStaticHelper.TransitionFaceMask.XMin => new int3(z, x, y),
-                    GfStaticHelper.TransitionFaceMask.XMax => new int3(leafSize - z, y, x),
-                    GfStaticHelper.TransitionFaceMask.YMin => new int3(y, z, x),
-                    GfStaticHelper.TransitionFaceMask.YMax => new int3(x, leafSize - z, y),
-                    GfStaticHelper.TransitionFaceMask.ZMin => new int3(x, y, z),
-                    GfStaticHelper.TransitionFaceMask.ZMax => new int3(y, x, leafSize - z),
-                    _ => new int3(x, y, z)
-                };
     }
 }

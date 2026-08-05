@@ -5,6 +5,7 @@ using Unity.Collections;
 using Unity.Entities;
 using Unity.Jobs;
 using Unity.Mathematics;
+using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
@@ -16,7 +17,7 @@ namespace Spellbound.GeoForge {
     /// reduction for a value that's already available for free from the single-threaded pack step.
     /// </summary>
     [BurstCompile]
-    public struct SparseToDenseVoxelDataJob : IJobParallelFor {
+    internal struct SparseToDenseVoxelDataJob : IJobParallelFor {
         [ReadOnly] public BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob;
         [NativeDisableParallelForRestriction] public NativeArray<VoxelData> Voxels;
 

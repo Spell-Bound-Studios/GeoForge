@@ -7,9 +7,9 @@ namespace Spellbound.GeoForge {
     /// The Marching Cubes Algorithm CANNOT operate on this representation of voxel data.
     /// It must be unpacked for marching.
     /// </summary>
-    public struct SparseVoxelData {
-        public VoxelData Voxel;
-        public readonly int StartIndex;
+    internal struct SparseVoxelData {
+        internal VoxelData Voxel;
+        internal readonly int StartIndex;
 
         public SparseVoxelData(VoxelData voxel, int startIndex) {
             Voxel = voxel;
