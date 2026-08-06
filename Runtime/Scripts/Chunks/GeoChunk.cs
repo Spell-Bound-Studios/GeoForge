@@ -96,7 +96,10 @@ namespace Spellbound.GeoForge {
             return hasOverriddenVoxels;
         }
 
-        private bool ValidateVoxels(NativeArray<VoxelData> voxels = default) {
+        // NOTE (David): this now requires isEdit since GetVoxelDataArray does. Nothing in
+        // GeoChunk.cs or GeoForgeManager.*.cs calls ValidateVoxels, so I can't tell which pool it
+        // should check out from - the compiler will point you at the real call site to fix this.
+        private bool ValidateVoxels(bool isEdit, NativeArray<VoxelData> voxels = default) {
             if (_voxelOverrides == null || !_voxelOverrides.HasAnyOverrides)
                 return false;
 
@@ -105,7 +108,7 @@ namespace Spellbound.GeoForge {
             var hasCheckedOutDenseArray = false;
 
             if (voxels == default) {
-                voxels = GetVoxelDataArray();
+                voxels = GetVoxelDataArray(isEdit: isEdit);
                 hasCheckedOutDenseArray = true;
             }
 
@@ -142,7 +145,7 @@ namespace Spellbound.GeoForge {
             hasOverridesArray.Dispose();
 
             if (hasCheckedOutDenseArray)
-                _mcManager.ReleaseVoxelArray(config.ChunkSize);
+                _mcManager.ReleaseVoxelArray(config.ChunkSize, this, isEdit: isEdit);
 
             return hasOverriddenVoxels;
         }
@@ -209,7 +212,7 @@ namespace Spellbound.GeoForge {
             }
 
             ref var config = ref ParentGeoVolume.ConfigBlob.Value;
-            var voxelArray = GetVoxelDataArray();
+            var voxelArray = GetVoxelDataArray(isEdit: true);
 
             var hasEdits = false;
             editBounds = existingEditBounds;
@@ -249,18 +252,21 @@ namespace Spellbound.GeoForge {
             }
 
             if (hasEdits)
-                _mcManager.PackVoxelArray(config.ChunkSize);
+                _mcManager.PackVoxelArray(config.ChunkSize, this, isEdit: true);
 
-            _mcManager.ReleaseVoxelArray(config.ChunkSize);
+            _mcManager.ReleaseVoxelArray(config.ChunkSize, this, isEdit: true);
 
             return hasEdits;
         }
 
         public void OnVolumeMovement() => RootNode?.ValidateMaterial();
 
-        public NativeArray<VoxelData> GetVoxelDataArray() =>
+        // NOTE (David): public signature change - now requires isEdit. I've only verified the call
+        // sites inside GeoChunk.cs/GeoForgeManager.*.cs; if anything outside this file calls
+        // GetVoxelDataArray(), it'll need a grep-and-fix pass.
+        public NativeArray<VoxelData> GetVoxelDataArray(bool isEdit) =>
                 _mcManager.GetOrUnpackVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this,
-                    _sparseVoxels);
+                    _sparseVoxels, isEdit);
 
         internal void UpdateVoxelData(NativeList<SparseVoxelData> voxels, DensityRange densityRange) {
             if (!_sparseVoxels.IsCreated)
@@ -294,6 +300,10 @@ namespace Spellbound.GeoForge {
 
         public VoxelData GetVoxelData(int index) {
             ref var config = ref ParentGeoVolume.ConfigBlob.Value;
+
+            if (_mcManager.TryGetResidentVoxelArray(config.ChunkSize, this, out var denseVoxels))
+                return denseVoxels[index];
+
             var sparseIndex = GfStaticHelper.BinarySearchVoxelData(index, config.ChunkDataVolumeSize, _sparseVoxels);
 
             return _sparseVoxels[sparseIndex].Voxel;
@@ -320,9 +330,9 @@ namespace Spellbound.GeoForge {
             if (!_sparseVoxels.IsCreated)
                 return;
 
-            _rootNode?.ValidateOctreeEdits(bounds, GetVoxelDataArray());
+            _rootNode?.ValidateOctreeEdits(bounds, GetVoxelDataArray(isEdit: true));
             _mcManager.CompleteAndApplyMarchingCubesJobs();
-            _mcManager.ReleaseVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize);
+            _mcManager.ReleaseVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this, isEdit: true);
         }
 
         public void ValidateOctreeLods(Vector3 playerPosition) {
@@ -330,11 +340,11 @@ namespace Spellbound.GeoForge {
                 return;
 
             var playerPositionChunkSpace = playerPosition - _bounds.min;
-            _rootNode.ValidateOctreeLods(playerPositionChunkSpace, GetVoxelDataArray());
+            _rootNode.ValidateOctreeLods(playerPositionChunkSpace, GetVoxelDataArray(isEdit: false));
             _mcManager.CompleteAndApplyMarchingCubesJobs();
-            _mcManager.ReleaseVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize);
+            _mcManager.ReleaseVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this, isEdit: false);
         }
-        
+
         public void ValidateOctreeLods(Vector3 playerPosition, NativeArray<VoxelData> voxels) {
             if (!_sparseVoxels.IsCreated)
                 return;

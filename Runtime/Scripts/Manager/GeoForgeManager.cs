@@ -115,11 +115,19 @@ namespace Spellbound.GeoForge {
         public void RegisterVoxelVolume(IGeoVolume geoVolume) {
             _voxelVolumes.Add(geoVolume);
             var chunkSize = geoVolume.ConfigBlob.Value.ChunkSize;
+            var validatesPerFrame = geoVolume.ConfigBlob.Value.ValidatesPerFrame;
 
-            if (!_denseVoxelDataDict.ContainsKey(chunkSize)) {
-                var denseData = new DenseVoxelData(chunkSize);
-                _denseVoxelDataDict.Add(chunkSize, denseData);
+            if (!_denseVoxelDataDict.TryGetValue(chunkSize, out var pool)) {
+                _denseVoxelDataDict.Add(chunkSize, new DenseVoxelDataPool(chunkSize, EditPoolSize, validatesPerFrame));
+
+                return;
             }
+
+            // Another volume already registered this chunk size, possibly with a smaller
+            // ValidatesPerFrame. The Validation pool has to cover the largest ValidatesPerFrame among
+            // every volume sharing this chunk size, since each volume's ValidateChunkLodsAsync throttles
+            // independently and any of them could have this many chunks in flight at once.
+            pool.EnsureValidationCapacity(validatesPerFrame);
         }
 
         public void UnRegisterVoxelVolume(IGeoVolume geoVolume) {
