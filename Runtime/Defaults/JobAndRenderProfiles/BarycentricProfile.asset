@@ -10,6 +10,6 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 2766faac0017b7d48aacbe67c48039e9, type: 3}
-  m_Name: FlatBaryMaterialRenderingProfile
+  m_Name: BarycentricProfile
   m_EditorClassIdentifier: 
-  material: {fileID: 2100000, guid: 4836f5c9b50cb79449d6286b9bbe8b11, type: 2}
+  material: {fileID: 2100000, guid: ae844c6c915534f4e8331c2b20ba1be4, type: 2}

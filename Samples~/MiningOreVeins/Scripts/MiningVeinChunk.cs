@@ -37,7 +37,7 @@ namespace Spellbound.GeoForge.Sample2 {
                 _damagedVoxels[voxelDelta.Index] = totalDamage;
 
                 if (totalDamage >= oreHealth) {
-                    trueEdits.Add((voxelDelta.Index, VoxelData.CreateImmature(0, VoxelData.NullSentinelValue)));
+                    trueEdits.Add((voxelDelta.Index, VoxelData.CreateImmature(sbyte.MinValue, VoxelData.NullSentinelValue)));
                     _damagedVoxels.Remove(voxelDelta.Index); // reset in case this voxel is later refilled
                 }
             }
