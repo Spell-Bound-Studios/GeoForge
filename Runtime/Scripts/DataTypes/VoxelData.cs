@@ -8,19 +8,11 @@ using Unity.Burst;
 namespace Spellbound.GeoForge {
     /// <summary>
     /// Represents a single cubic dimension in the game world. It is a discrete cube that characterizes
-    /// a geoVolume in the game world with a material and Density.
+    /// a small discrete volume in the game world with a material and Density.
     /// This doesn't get sent on the network or saved.
     /// </summary>
     [Serializable]
     public struct VoxelData : IEquatable<VoxelData>, IPacker {
-        /// <summary>
-        /// The mature/undisturbed bit is the high bit of MaterialIndex. Values 0-127 are immature,
-        /// 128-255 are the same material index (mod 128) marked mature. MaterialIndex is the RAW
-        /// packed byte (includes the maturity bit) - use GetPlainMatIndex() whenever you need the
-        /// material's identity alone (e.g. keying a dominance vote or comparing across voxels), and
-        /// IsMature() for the maturity flag. Comparing/keying on MaterialIndex directly treats a
-        /// mature and immature version of the same material as two different materials.
-        /// </summary>
         public const byte MatureBitValue = 128;
         public const byte NullSentinelValue = 127;
 
@@ -42,11 +34,7 @@ namespace Spellbound.GeoForge {
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool IsMature() => MaterialIndex >= MatureBitValue;
-
-        /// <summary>
-        /// The demodulated material identity (0-127), with the maturity bit stripped. Always use
-        /// this instead of MaterialIndex directly when comparing or keying by material identity.
-        /// </summary>
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public byte GetPlainMatIndex() => (byte)(MaterialIndex % MatureBitValue);
 

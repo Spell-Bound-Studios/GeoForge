@@ -6,6 +6,12 @@ using Unity.Mathematics;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
+    /// <summary>
+    /// Runtime store of Voxel Overrides. Voxels will not be edited if they're included in these dictionaries.
+    /// This is where Boundary Overrides ends up.
+    /// Note that they're stored as faces where possible; a Volume with a Boundary override on each face will only
+    /// have 2 entries in each of the _xOverrides, _yOverrides, and _zOverrides dictionary, and none in _pointOverrides.
+    /// </summary>
     public class VoxelOverrides {
         private Dictionary<int, VoxelData> _xOverrides;
         private Dictionary<int, VoxelData> _yOverrides;

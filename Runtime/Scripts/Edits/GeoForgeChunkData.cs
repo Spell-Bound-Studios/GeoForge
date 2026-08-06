@@ -4,7 +4,8 @@ using System.Collections.Generic;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Per-chunk slice for voxel edits layered over seed-procedural voxels.
+    /// Aggregated changes to the voxels in a chunk. Essentically is like a living save-file of how the voxels have
+    /// deviated from its deterministic generation.
     /// </summary>
     public class GeoForgeChunkData {
         public readonly Dictionary<int, VoxelData> Edits = new();

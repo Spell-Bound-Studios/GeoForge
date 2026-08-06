@@ -294,7 +294,7 @@ namespace Spellbound.GeoForge {
                     if (chunk == null)
                         continue;
 
-                    chunk.PassVoxelEdits(new VoxelEditOperation(materialIndex, kvp.Value, allowedMaterialsMask));
+                    chunk.PassVoxelEditOperation(new VoxelEditOperation(materialIndex, kvp.Value, allowedMaterialsMask));
                 }
             }
             finally {

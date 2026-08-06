@@ -5,6 +5,11 @@ using Unity.Entities;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
+    /// <summary>
+    /// Defines the boundaries of a GeoForge Volume.
+    /// This is useful/neccesary because if for example the volume is meant to be a closed shape or shapes,
+    /// then the voxels on the outer boundaries of the volume must be kept "empty".
+    /// </summary>
     [CreateAssetMenu(menuName = "Spellbound/GeoForge/BoundaryOverrides")]
     public class BoundaryOverrides : ScriptableObject {
         [Tooltip(
@@ -90,17 +95,30 @@ namespace Spellbound.GeoForge {
         }
     }
 
+    /// <summary>
+    /// Axis and Side identify a specific boundary of the Volume. There are 6 combinations in total, like the 6 faces
+    /// of a cube.
+    /// </summary>
     public enum Axis {
         X,
         Y,
         Z
     }
 
+    /// <summary>
+    /// Axis and Side identify a specific boundary of the Volume. There are 6 combinations in total, like the 6 faces
+    /// of a cube.
+    /// </summary>
     public enum Side {
         Min,
         Max
     }
 
+    /// <summary>
+    /// BoundaryType indicates what density and material index to set the boundary voxels to.
+    /// Closed means the voxels are full, Open means the Voxels are empty.
+    /// Mature Closed/Open means the material index should be flagged as Mature. 
+    /// </summary>
     public enum BoundaryType {
         Closed,
         Open,
@@ -108,6 +126,9 @@ namespace Spellbound.GeoForge {
         MatureOpen
     }
 
+    /// <summary>
+    /// A single Boundary Override fully describes what to force one boundary of a GeoForgeVolume's voxels to.
+    /// </summary>
     [System.Serializable]
     public struct BoundaryOverride {
         [Tooltip("Boundary is in the direction of which axis")]
@@ -124,6 +145,10 @@ namespace Spellbound.GeoForge {
         public byte materialType;
     }
 
+    /// <summary>
+    /// Runtime representation of a BoundaryOverride.
+    /// Has combined the rules into a specific VoxelData to be copied into all the Boundary Voxels.
+    /// </summary>
     public struct BoundaryOverrideRuntime {
         public Axis Axis;
         public Side Side;

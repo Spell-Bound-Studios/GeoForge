@@ -2,7 +2,9 @@
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Indication of if a region of voxel data can skip marching its cubes or not
+    /// Determines if a GeoForge Chunk can skip marching its cubes.
+    /// If all the voxel densities are above zero or all are below zero, we don't need to march the cubes to know no
+    /// mesh will be required.
     /// </summary>
     public struct DensityRange {
         private sbyte _min;

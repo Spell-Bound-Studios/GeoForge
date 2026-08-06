@@ -5,6 +5,10 @@ using Unity.Entities;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
+    /// <summary>
+    /// Crude data generation for various shapes.
+    /// This is managed C# on the main thread which means it's very slow.
+    /// </summary>
     [CreateAssetMenu(menuName = "Spellbound/GeoForge/DataFactory/SimpleShapes")]
     public class SimpleShapesDataFactory : DataFactory {
         public enum ShapeType {

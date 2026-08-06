@@ -10,22 +10,10 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Contains constants and static methods for the GeoForge library.
+    /// Grab bag of public static helper methods. 
     /// </summary>
     [BurstCompile]
     public static class GfStaticHelper {
-        //public const int MaxLevelOfDetail = 3;
-        //public const int CubesMarchedPerOctreeLeaf = 16; // must be ChunkSize >> MaxLevelOfDetail, eg: 32 /2 /2 = 8
-
-        //public const int ChunkDataWidthSize = SpellboundStaticHelper.ChunkSize + 3;
-        //public const int ChunkDataAreaSize = ChunkDataWidthSize * ChunkDataWidthSize;
-        //public const int ChunkDataVolumeSize = ChunkDataWidthSize * ChunkDataWidthSize * ChunkDataWidthSize;
-
-        //public static readonly Vector3Int ChunkCenter = Vector3Int.one * (1 + SpellboundStaticHelper.ChunkSize / 2);
-        //public static readonly Vector3Int ChunkExtents = Vector3Int.one * SpellboundStaticHelper.ChunkSize;
-
-        //public const byte DensityThreshold = 128;
-
         [Flags]
         public enum TransitionFaceMask {
             None = 0,
@@ -116,23 +104,7 @@ namespace Spellbound.GeoForge {
 
             return result;
         }
-
-        /// <summary>
-        /// For a local voxel position within one chunk's padded data window (size chunkSize + 3
-        /// per axis, 3-voxel padding on each side), computes which of the 26 neighbor directions
-        /// (dx,dy,dz each in {-1,0,1}, excluding (0,0,0)) also contain that same local position in
-        /// their own padded window - i.e. which neighbor chunks an edit at this position needs to
-        /// fan out to. Replaces the old SharedIndicesAcrossChunks precomputed dictionary (built
-        /// once per registered chunk size, ~300k entries for chunkSize 128) with direct arithmetic:
-        /// whether a given axis allows a non-zero delta is independent per axis and purely a
-        /// function of how close that axis's coordinate is to a boundary - value &lt; 3 allows -1,
-        /// value &gt;= chunkSize allows +1, and 0 is always allowed on every axis. A direction is
-        /// valid only when every axis's chosen delta is independently valid (mirroring the original
-        /// BoundsInt.Contains check, which tests all three axes simultaneously). Enumeration order
-        /// matches the original's nested dx -&gt; dy -&gt; dz loop exactly.
-        /// results is cleared and refilled each call - pass a reusable list to avoid repeated
-        /// per-edit allocation in a hot loop.
-        /// </summary>
+        
         public static void GetSharedNeighborDirections(Vector3Int localPos, int chunkSize, List<Vector3Int> results) {
             results.Clear();
 

@@ -8,7 +8,11 @@ using Unity.Jobs;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
-    public class GeoChunk : IDisposable {
+    /// <summary>
+    /// Sealed GeoForge Chunk Logic.
+    /// This class should only be touched externally by an IGeoChunk implementer.
+    /// </summary>
+    public sealed class GeoChunk : IDisposable {
         private Vector3Int _chunkCoord;
         public IGeoEditStore IGeoEditStore { get; private set; }
 
@@ -156,7 +160,7 @@ namespace Spellbound.GeoForge {
         // DistributeVoxelEdits schedule every affected chunk's march jobs before any of them block,
         // so they can actually run concurrently on worker threads. Outside a batch (any other
         // caller of IGeoChunk.PassVoxelEdits), this stays fully synchronous, same as before.
-        public virtual void HandleResolvedVoxelEdits(List<(int, VoxelData)> newVoxelChanges) {
+        public void HandleResolvedVoxelEdits(List<(int, VoxelData)> newVoxelChanges) {
             if (!ApplyVoxelEdits(newVoxelChanges, out var editBounds))
                 return;
 
@@ -172,7 +176,7 @@ namespace Spellbound.GeoForge {
             _mcManager.ReleaseVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this, isEdit: true);
         }
 
-        public void InitializeChunk(NativeArray<VoxelData> voxels = default) {
+        public void ActivateGeoChunk(NativeArray<VoxelData> voxels = default) {
             ParentGeoVolume.GeoVolume.RegisterChunk(ChunkCoord, _implementer);
 
             if (voxels == default) {

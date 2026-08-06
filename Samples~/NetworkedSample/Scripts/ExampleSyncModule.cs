@@ -210,7 +210,7 @@ namespace Spellbound.GeoForge.Sample4 {
             }
         }
 
-        public void Delta(VoxelEditOperation operation) {
+        public void PassVoxelEditOperation(VoxelEditOperation operation) {
             if (IsController(ownerAuth))
                 ResolveDelta(operation);
             else {

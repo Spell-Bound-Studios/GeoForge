@@ -1,12 +1,12 @@
 // Copyright 2026 Spellbound Studio Inc.
 
-using System.Collections.Generic;
 using Unity.Collections;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Defines the contract that a geoChunk must fulfill to integrate with the GeoForge Marching Cubes Voxel System.
+    /// Defines the contract for being a GeoForge Chunk.
+    /// Contains Default Implementations that simply wrap GeoChunk's public methods.
     /// </summary>
     public interface IGeoChunk {
         #region Abstract Methods and Properties
@@ -30,13 +30,13 @@ namespace Spellbound.GeoForge {
         /// <summary>
         /// Method for Chunk to receive a voxel edit operation.
         /// </summary>
-        void PassVoxelEdits(VoxelEditOperation operation) => GeoChunk.IGeoEditStore.Delta(operation);
+        void PassVoxelEditOperation(VoxelEditOperation operation) => GeoChunk.IGeoEditStore.PassVoxelEditOperation(operation);
 
         /// <summary>
         /// Method to kick-off the Chunk being an actively managed Marching Cubes Chunk.
         /// </summary>
         /// <param name="voxels"></param> Can be called with voxels, or can generate voxels in the implementation.
-        void ActivateGeoChunk(NativeArray<VoxelData> voxels = default) => GeoChunk.InitializeChunk(voxels);
+        void ActivateGeoChunk(NativeArray<VoxelData> voxels = default) => GeoChunk.ActivateGeoChunk(voxels);
 
         void InitializeGeoChunk(Vector3Int coord);
 

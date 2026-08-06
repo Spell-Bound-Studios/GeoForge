@@ -6,6 +6,10 @@ using Unity.Mathematics;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
+    /// <summary>
+    /// BlobAsset and BlobAssetCreation for how a GeoForge Volume is configured.
+    /// Packs the config from the VoxelVolumeConfig ScriptableObject into Blob memory. 
+    /// </summary>
     public struct VolumeConfigBlobAsset {
         public int CubesMarchedPerOctreeLeaf;
         public int LevelsOfDetail;

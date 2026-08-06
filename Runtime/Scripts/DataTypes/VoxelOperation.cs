@@ -6,6 +6,10 @@ using Spellbound.Core.Packing;
 using Unity.Mathematics;
 
 namespace Spellbound.GeoForge {
+    /// <summary>
+    /// The density change part of a VoxelEditOperation.
+    /// It is specific to a chunk, because the index is the index of the chunk, not some kind of world position.
+    /// </summary>
     public struct VoxelDensityDelta : IPacker {
         public int Index;
         public short DensityDelta;
@@ -28,6 +32,9 @@ namespace Spellbound.GeoForge {
         public override string ToString() => $"VoxelDensityDelta(Index={Index}, DensityDelta={DensityDelta})";
     }
 
+    /// <summary>
+    /// Describes a terraform operation targeting a specific chunk. 
+    /// </summary>
     public struct VoxelEditOperation : IPacker {
         public byte MaterialIndex;
         public VoxelDensityDelta[] Deltas;

@@ -4,6 +4,10 @@ using Spellbound.Core.Tooling;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
+    /// <summary>
+    /// Serialized Config for a GeoForge Volume.
+    /// On Validate prohibits impossible/illegal configurations
+    /// </summary>
     [CreateAssetMenu(menuName = "Spellbound/GeoForge/VoxelVolumeConfig")]
     public class VoxelVolumeConfig : ScriptableObject {
         [Tooltip("Determines how many voxels are marched at a time, per side. Higher number may affect performance"),

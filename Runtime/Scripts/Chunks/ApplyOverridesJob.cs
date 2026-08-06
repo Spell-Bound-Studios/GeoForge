@@ -6,6 +6,10 @@ using Unity.Jobs;
 using Unity.Mathematics;
 
 namespace Spellbound.GeoForge {
+    /// <summary>
+    /// This is like a final proc gen "pass" to force whatever voxel array has been generated  will obey
+    /// the Boundary Overrides.
+    /// </summary>
     [BurstCompile]
     public struct ApplyBoundaryOverridesJob : IJobParallelFor {
         public NativeArray<VoxelData> voxelArray;

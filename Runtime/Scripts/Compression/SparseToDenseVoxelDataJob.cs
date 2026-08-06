@@ -9,12 +9,10 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Unpacks Sparse Voxel Data to Dense. DensityRange is NOT computed here - it's computed
-    /// once, single-threaded, in DenseToSparseVoxelDataJob (the pack direction) instead. This
-    /// job runs as IJobParallelFor across decks; a shared DensityRange element written from
-    /// every parallel iteration would be a data race (unsynchronized read-modify-write), so
-    /// density-range tracking was moved out entirely rather than attempting a per-deck
-    /// reduction for a value that's already available for free from the single-threaded pack step.
+    /// Unpacks Sparse Run-Length-Encoded Voxel Data to Dense. This
+    /// job runs as IJobParallelFor across decks. A deck is a slice of all x and z voxels with the same y.
+    /// The execution of a Deck begins with a Binary Search to find its start point on the Sparse Run-Length-Encoded
+    /// data.
     /// </summary>
     [BurstCompile]
     internal struct SparseToDenseVoxelDataJob : IJobParallelFor {

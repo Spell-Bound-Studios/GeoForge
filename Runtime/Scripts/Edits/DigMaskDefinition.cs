@@ -13,9 +13,6 @@ namespace Spellbound.GeoForge {
     /// </summary>
     [CreateAssetMenu(menuName = "Spellbound/GeoForge/Dig Mask", fileName = "DigMaskDefinition")]
     public class DigMaskDefinition : ScriptableObject {
-        /// <summary>
-        /// How materials NOT explicitly listed in Exceptions are treated.
-        /// </summary>
         public enum DefaultPolicy {
             DiggableByDefault,
             ImperviousByDefault
@@ -30,11 +27,7 @@ namespace Spellbound.GeoForge {
 
         private bool _isBuilt;
         private uint4 _cachedMask;
-
-        /// <summary>
-        /// Returns the resolved dig mask, building and caching it on first use (or after the
-        /// asset's fields have been edited in the inspector).
-        /// </summary>
+        
         public uint4 GetMask() {
             if (!_isBuilt)
                 Build();
@@ -51,9 +44,6 @@ namespace Spellbound.GeoForge {
                 var bit = 1u << (materialIndex % 32);
                 var lane = materialIndex / 32;
 
-                // Exceptions always flip AGAINST the default: if the default already allows this
-                // material, an exception here means "block it" (clear the bit); if the default
-                // already blocks it, an exception here means "allow it" (set the bit).
                 var settingBit = defaultPolicy == DefaultPolicy.ImperviousByDefault;
 
                 switch (lane) {
@@ -84,8 +74,6 @@ namespace Spellbound.GeoForge {
         }
 
 #if UNITY_EDITOR
-        // Invalidate the cache whenever the asset is edited in the inspector, so play-mode
-        // testing (or a domain reload skip) doesn't hold onto a stale mask.
         private void OnValidate() {
             _isBuilt = false;
         }

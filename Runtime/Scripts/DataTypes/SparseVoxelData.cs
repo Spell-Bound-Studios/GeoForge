@@ -5,7 +5,7 @@ namespace Spellbound.GeoForge {
     /// Represents a run of the same voxels.
     /// A NativeList of these structs can represent the full voxel data of a geoChunk within less memory.
     /// The Marching Cubes Algorithm CANNOT operate on this representation of voxel data.
-    /// It must be unpacked for marching.
+    /// It must be decompressed for marching.
     /// </summary>
     internal struct SparseVoxelData {
         internal VoxelData Voxel;

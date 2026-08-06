@@ -13,7 +13,7 @@ namespace Spellbound.GeoForge.Sample2 {
         [SerializeField] private int oreHealth;
         private Dictionary<int, int> _damagedVoxels = new();
 
-        public override void PassVoxelEdits(VoxelEditOperation operation) {
+        public override void PassVoxelEditOperation(VoxelEditOperation operation) {
             var trueEdits = new List<(int, VoxelData)>();
 
             foreach (var voxelDelta in operation.Deltas) {

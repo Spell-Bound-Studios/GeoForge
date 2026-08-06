@@ -1,10 +1,12 @@
 // Copyright 2026 Spellbound Studio Inc.
 
-using System.Collections.Generic;
 using Unity.Collections;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
+    /// <summary>
+    /// Simple implementation of IGeoChunk for samples, and small projects.
+    /// </summary>
     public class SimpleGeoChunk : MonoBehaviour, IGeoChunk {
         protected DataFactory dataFactory;
 
@@ -18,7 +20,7 @@ namespace Spellbound.GeoForge {
             GeoChunk.IGeoEditStore.DefaultVoxelDataFunc = GeoChunk.GetVoxelData;
         }
 
-        public virtual void PassVoxelEdits(VoxelEditOperation operation) => GeoChunk.IGeoEditStore.Delta(operation);
+        public virtual void PassVoxelEditOperation(VoxelEditOperation operation) => GeoChunk.IGeoEditStore.PassVoxelEditOperation(operation);
 
         public void SetDataFactory(DataFactory factory) => dataFactory = factory;
 
@@ -44,7 +46,7 @@ namespace Spellbound.GeoForge {
             }
 
             dataFactory.FillDataArray(_geoChunk.ChunkCoord, _geoChunk.ParentGeoVolume.ConfigBlob, voxels);
-            _geoChunk.InitializeChunk(voxels);
+            _geoChunk.ActivateGeoChunk(voxels);
         }
 
         /// <summary>

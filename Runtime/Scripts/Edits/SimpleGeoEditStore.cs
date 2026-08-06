@@ -5,6 +5,9 @@ using System.Collections.Generic;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
+    /// <summary>
+    /// Simple implementation of IGeoEditStore for samples and small projects.
+    /// </summary>
     public class SimpleGeoEditStore : IGeoEditStore {
         private readonly GeoForgeChunkData _chunkData;
 
@@ -41,7 +44,7 @@ namespace Spellbound.GeoForge {
             NotifyGeoEditsChanged(changes);
         }
 
-        public void Delta(VoxelEditOperation operation) {
+        public void PassVoxelEditOperation(VoxelEditOperation operation) {
             var changes = new List<(int, VoxelData)>(operation.Deltas.Length);
 
             foreach (var voxelDelta in operation.Deltas) {

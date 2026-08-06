@@ -6,7 +6,8 @@ using UnityEngine.Rendering;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// A struct to hold the data every vertex should have
+    /// A struct to hold the per-vertex data to be sent to the shader.
+    /// TODO Shrink Memory without breaking stuff
     /// </summary>
     public struct MeshingVertexData {
         public float3 Position;

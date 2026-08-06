@@ -5,6 +5,10 @@ using Unity.Entities;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
+    /// <summary>
+    /// Crude data generation for a Perlin Noise terrain.
+    /// This is managed C# on the main thread which means it's very slow.
+    /// </summary>
     [CreateAssetMenu(menuName = "Spellbound/GeoForge/DataFactory/PerlinTerrain")]
     public class PerlinTerrainDataFactory : DataFactory {
         [Header("Data Factory Settings"), Tooltip("Offset of Terrain from Volume Origin"), SerializeField]

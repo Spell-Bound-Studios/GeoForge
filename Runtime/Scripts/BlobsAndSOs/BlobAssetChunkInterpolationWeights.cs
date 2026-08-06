@@ -6,7 +6,8 @@ using Unity.Mathematics;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Blob Asset to hold Marching Cubes Settings.
+    /// Precomputation for interpolation of corner weights across a chunk.
+    /// Just API to help generating smooth biomes.
     /// </summary>
     public struct McChunkInterpolationBlobAsset {
         public BlobArray<float4> ChunkCornerWeights;

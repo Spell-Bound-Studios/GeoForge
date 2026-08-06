@@ -6,7 +6,7 @@ using Unity.Jobs;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Packs Dense VoxelData to Sparse. Also computes the chunk's DensityRange as a byproduct of
+    /// Packs Dense VoxelData to Sparse Run-Length-Encoded. Also computes the chunk's DensityRange as a byproduct of
     /// the same single walk over Voxels - this is the only place DensityRange is computed. This
     /// job is IJob (single-threaded, not IJobParallelFor), so there's no race to guard against,
     /// and it naturally reflects the freshest data since any edits are already written into

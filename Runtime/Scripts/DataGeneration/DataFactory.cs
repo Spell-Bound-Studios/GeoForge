@@ -5,6 +5,9 @@ using Unity.Entities;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
+    /// <summary>
+    /// Abstract for crude data generation. This is managed C# on the main thread which means it's very slow.
+    /// </summary>
     public abstract class DataFactory : ScriptableObject {
         protected Vector3Int GetChunkOrigin(
             Vector3Int chunkCoord, in VolumeConfigBlobAsset config) =>

@@ -3,7 +3,6 @@
 using System;
 using Spellbound.Core.Tooling;
 using Unity.Collections;
-using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -11,7 +10,7 @@ using Object = UnityEngine.Object;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Recursively Subdividing OctreeNode to subdivide a geoChunk at varying LODs.
+    /// Recursively Subdividing OctreeNode to subdivide a GeoChunk at varying LODs.
     /// Either it has 8 children, or it has an Octree leaf (representing actual terrain).
     /// </summary>
     public sealed class OctreeNode : IDisposable {

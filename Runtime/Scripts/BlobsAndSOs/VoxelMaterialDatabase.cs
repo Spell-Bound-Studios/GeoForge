@@ -7,6 +7,7 @@ using UnityEditor;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
+    //TODO Comment Properly
     [CreateAssetMenu(menuName = "Spellbound/GeoForge/VoxelMaterialDatabase")]
     public class VoxelMaterialDatabase : ScriptableObject {
         // Slice 0 of MappingTable: R = Albedo slot, G = MAS slot, B = Normal slot
