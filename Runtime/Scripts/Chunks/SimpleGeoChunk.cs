@@ -47,8 +47,6 @@ namespace Spellbound.GeoForge {
             _geoChunk.InitializeChunk(voxels);
         }
 
-        public void ValidateOctreeLods(Vector3 playerPosition) => GeoChunk.ValidateOctreeLods(playerPosition);
-
         /// <summary>
         /// This must be done on ALL IGeoChunk implementers to prevent memory leaks.
         /// _geoChunk is only assigned in InitializeGeoChunk, which nothing guarantees ran before

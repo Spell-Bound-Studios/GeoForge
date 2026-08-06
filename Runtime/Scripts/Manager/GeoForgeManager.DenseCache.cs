@@ -194,7 +194,7 @@ namespace Spellbound.GeoForge {
                     var jobHandle = unpackJob.Schedule(config.ChunkDataWidthSize, 1);
                     jobHandle.Complete();
 
-                    Log.Verbose(
+                    Debug.Log(
                         $"DenseVoxelDataPool [size {dataSizeKey}, isEdit={isEdit}, slot {claimIndex}] " +
                         $"added chunk {chunk.ChunkCoord} - pool {(wasNeverOccupied ? "growing" : $"steady (evicted chunk {evictedChunk.ChunkCoord}, LRU)")}");
 

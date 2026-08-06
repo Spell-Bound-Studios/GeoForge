@@ -92,9 +92,29 @@ namespace Spellbound.GeoForge {
             );
         }
 
+        // Batches chunks into groups of ConfigBlob.Value.ValidatesPerFrame: schedule each chunk's
+        // LOD validation (checkout + octree cascade, via GeoChunk.ScheduleOctreeLodValidation) but
+        // don't complete or release any of them until the whole batch has been scheduled, so their
+        // march jobs can actually run concurrently on worker threads via one shared Complete()
+        // instead of one Complete() per chunk serializing everything.
+        //
+        // Fixed at exactly ValidatesPerFrame per batch, not "up to and including" - the old
+        // (++count <= ValidatesPerFrame) check let one extra chunk through per batch, which was
+        // harmless when each chunk released before the next was scheduled but would exhaust the
+        // Validation pool now, since that pool is sized to exactly ValidatesPerFrame slots.
         public async Awaitable ValidateChunkLodsAsync() {
             var chunkList = new List<Vector3Int>(_chunkDict.Keys.ToList());
-            var count = 0;
+
+            if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var mcManager))
+                return;
+
+            var lodTarget = _ownerAsIGeoVolume.LodTarget;
+
+            if (lodTarget == null)
+                return;
+
+            var validatesPerFrame = ConfigBlob.Value.ValidatesPerFrame;
+            var scheduledChunks = new List<IGeoChunk>(validatesPerFrame);
 
             foreach (var coord in chunkList) {
                 if (!_chunkDict.TryGetValue(coord, out var chunk))
@@ -103,22 +123,40 @@ namespace Spellbound.GeoForge {
                 if (!chunk.HasVoxelData())
                     continue;
 
-                if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out _))
+                if (chunk.DensityRange.IsSkippable()) {
                     continue;
-
-                var lodTarget = _ownerAsIGeoVolume.LodTarget;
-
-                if (lodTarget == null)
-                    continue;
+                }
+                    
 
                 var lodDistanceTargetVoxelSpace = WorldToVoxelSpace(lodTarget.position);
-                chunk.ValidateOctreeLods(lodDistanceTargetVoxelSpace);
+                chunk.ScheduleOctreeLodValidation(lodDistanceTargetVoxelSpace);
+                scheduledChunks.Add(chunk);
 
-                if (++count <= ConfigBlob.Value.ValidatesPerFrame)
+                if (scheduledChunks.Count < validatesPerFrame)
                     continue;
 
-                count = 0;
+                mcManager.CompleteAndApplyMarchingCubesJobs();
+
+                foreach (var scheduledChunk in scheduledChunks)
+                    scheduledChunk.ReleaseLodValidation();
+
+                scheduledChunks.Clear();
+
                 await Awaitable.NextFrameAsync();
+
+                // Re-check liveness after the yield, once per batch rather than once per chunk
+                // (the old loop re-checked the manager singleton on every single chunk). Bails out
+                // and abandons any remaining chunks in this call if the manager is gone.
+                if (!SingletonManager.TryGetSingletonInstance(out mcManager))
+                    return;
+            }
+
+            // Flush a partial final batch that never reached validatesPerFrame.
+            if (scheduledChunks.Count > 0) {
+                mcManager.CompleteAndApplyMarchingCubesJobs();
+
+                foreach (var scheduledChunk in scheduledChunks)
+                    scheduledChunk.ReleaseLodValidation();
             }
         }
 

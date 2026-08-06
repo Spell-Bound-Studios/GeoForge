@@ -50,7 +50,12 @@ namespace Spellbound.GeoForge {
         void BroadcastNewLeafAcrossChunks(OctreeNode newLeaf, Vector3Int pos, int index) =>
                 GeoChunk.BroadcastNewLeafAcrossChunks(newLeaf, pos, index);
 
-        void ValidateOctreeLods(Vector3 playerPosition) => GeoChunk.ValidateOctreeLods(playerPosition);
+        // Schedule-only half of LOD validation, used by GeoVolume.ValidateChunkLodsAsync to batch
+        // up to ValidatesPerFrame chunks before completing march jobs once for the whole batch.
+        // See GeoChunk.ScheduleOctreeLodValidation for the ordering contract with ReleaseLodValidation.
+        void ScheduleOctreeLodValidation(Vector3 playerPosition) => GeoChunk.ScheduleOctreeLodValidation(playerPosition);
+
+        void ReleaseLodValidation() => GeoChunk.ReleaseLodValidation();
 
         void OnVolumeMovement() => GeoChunk.OnVolumeMovement();
 

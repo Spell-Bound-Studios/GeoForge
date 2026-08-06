@@ -335,15 +335,30 @@ namespace Spellbound.GeoForge {
             _mcManager.ReleaseVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this, isEdit: true);
         }
 
-        public void ValidateOctreeLods(Vector3 playerPosition) {
+        // Schedule-only half: checks out the Validation-pool slot and cascades the LOD check
+        // through the octree, scheduling any resulting march/transition jobs - but does NOT
+        // complete those jobs or release the checkout. Used by GeoVolume.ValidateChunkLodsAsync to
+        // batch up to ValidatesPerFrame chunks' worth of scheduling before completing once, so
+        // their march jobs can actually run concurrently instead of one Complete() serializing
+        // each chunk before the next one is even scheduled.
+        //
+        // Caller MUST NOT call ReleaseLodValidation for this chunk until AFTER
+        // CompleteAndApplyMarchingCubesJobs() has run for the whole batch - releasing any earlier
+        // would let another chunk's LRU claim on the Validation pool overwrite this array while a
+        // still-pending march job on a worker thread is reading it.
+        public void ScheduleOctreeLodValidation(Vector3 playerPosition) {
             if (!_sparseVoxels.IsCreated)
                 return;
 
             var playerPositionChunkSpace = playerPosition - _bounds.min;
             _rootNode.ValidateOctreeLods(playerPositionChunkSpace, GetVoxelDataArray(isEdit: false));
-            _mcManager.CompleteAndApplyMarchingCubesJobs();
-            _mcManager.ReleaseVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this, isEdit: false);
         }
+
+        // Releases this chunk's Validation-pool checkout. Only valid to call after
+        // CompleteAndApplyMarchingCubesJobs() has run for whatever batch this chunk's
+        // ScheduleOctreeLodValidation call was part of.
+        public void ReleaseLodValidation() =>
+                _mcManager.ReleaseVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this, isEdit: false);
 
         public void ValidateOctreeLods(Vector3 playerPosition, NativeArray<VoxelData> voxels) {
             if (!_sparseVoxels.IsCreated)
