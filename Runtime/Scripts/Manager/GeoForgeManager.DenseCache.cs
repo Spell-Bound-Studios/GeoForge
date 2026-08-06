@@ -10,21 +10,14 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     public partial class GeoForgeManager : MonoBehaviour {
-        // Structurally bounded at 8 by geometry, not configurable - the max chunk fan-out
-        // DistributeVoxelEdits can produce for a single terraform action (1 central chunk + up to
-        // 7 shared-boundary neighbors from GetSharedNeighborDirections), given terraform actions
-        // are constrained to chunkSize extent. Raising it wouldn't fix anything since the bound
-        // isn't pool-size-driven, and lowering it would reintroduce the eviction/re-unpack
-        // thrashing this pool exists to kill.
-        private const int EditPoolSize = 8;
-
         private Dictionary<int, DenseVoxelDataPool> _denseVoxelDataDict = new();
 
         // isEdit selects which pool a checkout comes from. Edit-flow work (ApplyVoxelEdits and the
-        // ValidateOctreeEdits that follows it inside PassVoxelEdits) shares the Edit pool - fixed
-        // at 8 slots (see EditPoolSize). Per-frame LOD validation (ValidateOctreeLods) uses the
-        // separate Validation pool, sized per chunk size from the largest ValidatesPerFrame among
-        // volumes registered at that chunk size (see RegisterVoxelVolume in GeoForgeManager.cs).
+        // ValidateOctreeEdits validation that follows it) shares the Edit pool, sized per chunk
+        // size from the largest edit-fan-out geometry among volumes registered at that chunk size
+        // (see ComputeEditPoolSize/RegisterVoxelVolume in GeoForgeManager.cs). Per-frame LOD
+        // validation (ValidateOctreeLods) uses the separate Validation pool, sized from the largest
+        // ValidatesPerFrame among those same volumes.
         internal NativeArray<VoxelData> GetOrUnpackVoxelArray(
             int dataSizeKey,
             GeoChunk chunk,
@@ -57,7 +50,7 @@ namespace Spellbound.GeoForge {
 
         internal void ReleaseVoxelArray(int dataSizeKey, GeoChunk chunk, bool isEdit) {
             if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var pool)) {
-                Log.Error(
+                ConsoleLogger.PrintError(
                     $"MarchingCubes Manager does not have a denseVoxelData Array of this size");
 
                 return;
@@ -94,19 +87,29 @@ namespace Spellbound.GeoForge {
             // there's no cross-pool contamination risk from sharing the counter.
             private long _accessCounter;
 
-            internal DenseVoxelDataPool(int chunkSize, int editPoolSize, int initialValidationPoolSize) {
+            internal DenseVoxelDataPool(int chunkSize, int initialEditPoolSize, int initialValidationPoolSize) {
                 _chunkSize = chunkSize;
 
-                _editSlots = new List<DenseVoxelData>(editPoolSize);
-                for (var i = 0; i < editPoolSize; i++)
-                    _editSlots.Add(new DenseVoxelData(chunkSize));
+                _editSlots = new List<DenseVoxelData>();
+                EnsureEditCapacity(initialEditPoolSize);
 
                 _validationSlots = new List<DenseVoxelData>();
                 EnsureValidationCapacity(initialValidationPoolSize);
 
-                Log.Verbose(
+                Debug.Log(
                     $"DenseVoxelDataPool [size {chunkSize}] constructed - edit slots: {_editSlots.Count}, " +
                     $"initial validation slots: {_validationSlots.Count}");
+            }
+
+            // Called from RegisterVoxelVolume whenever a volume registers at this chunk size whose
+            // geometry (see ComputeEditPoolSize) demands more Edit-pool capacity than the pool
+            // currently has. Grows only, never shrinks - same reasoning as EnsureValidationCapacity
+            // below: a departing volume doesn't signal that the remaining volumes need less.
+            // Appending new slots never touches any existing slot's identity, so this is safe to
+            // call regardless of what's currently checked out.
+            internal void EnsureEditCapacity(int minSize) {
+                while (_editSlots.Count < minSize)
+                    _editSlots.Add(new DenseVoxelData(_chunkSize));
             }
 
             // Called from RegisterVoxelVolume whenever a volume registers at this chunk size with
@@ -128,12 +131,17 @@ namespace Spellbound.GeoForge {
                 // Already resident for this exact chunk - hand it back without touching any other
                 // slot. Still counts as an access for LRU purposes: a chunk being re-checked-out
                 // while still resident is exactly the case LRU exists to protect from eviction.
+                //
+                // Correctness of this fast path depends on Pack keeping a chunk's residency in the
+                // *other* pool in sync whenever it writes fresh sparse data for that chunk (see
+                // SyncOtherPoolResidency below) - otherwise this would happily hand back a stale
+                // pre-edit array for a chunk that's since been edited via the other pool.
                 foreach (var slot in slots) {
                     if (slot.CurrentChunk != chunk)
                         continue;
 
                     if (slot.IsArrayInUse) {
-                        Log.Error(
+                        Debug.LogError(
                             $"GetOrUnpackVoxelArray - Trying to unpack voxel array but array is in use for the same geoChunk. This is unexpected and bad.");
 
                         return slot.DenseVoxelArray;
@@ -194,19 +202,21 @@ namespace Spellbound.GeoForge {
                     var jobHandle = unpackJob.Schedule(config.ChunkDataWidthSize, 1);
                     jobHandle.Complete();
 
-                    Debug.Log(
-                        $"DenseVoxelDataPool [size {dataSizeKey}, isEdit={isEdit}, slot {claimIndex}] " +
-                        $"added chunk {chunk.ChunkCoord} - pool {(wasNeverOccupied ? "growing" : $"steady (evicted chunk {evictedChunk.ChunkCoord}, LRU)")}");
+                    if (isEdit) {
+                        Log.Verbose(
+                            $"DenseVoxelDataPool [size {dataSizeKey}, isEdit={isEdit}, slot {claimIndex}] " +
+                            $"added chunk {chunk.ChunkCoord} - pool {(wasNeverOccupied ? "growing" : $"steady (evicted chunk {evictedChunk.ChunkCoord}, LRU)")}");
+                    }
 
                     return slot.DenseVoxelArray;
                 }
 
                 // Every slot in use and none resident for this chunk - a genuine exhaustion, not
-                // contention on a single shared slot. Edit is capped by terraform's chunkSize-
-                // extent limit; Validation is sized against ValidatesPerFrame at RegisterVoxelVolume
-                // time. Throw instead of silently blocking, queuing, or handing back a different
-                // chunk's data - if this ever fires, the caller (or the pool's sizing contract) has
-                // a real bug, not something a bigger pool number papers over blindly.
+                // contention on a single shared slot. Both pools are sized per volume geometry at
+                // RegisterVoxelVolume time, so this should be structurally impossible. Throw
+                // instead of silently blocking, queuing, or handing back a different chunk's data -
+                // if this ever fires, the caller (or the pool's sizing contract) has a real bug,
+                // not something a bigger pool number papers over blindly.
                 throw new InvalidOperationException(
                     $"DenseVoxelDataPool.GetOrUnpack (isEdit={isEdit}): all {slots.Count} slots in " +
                     $"use and none resident for chunk {chunk.ChunkCoord}. This should be structurally " +
@@ -217,7 +227,7 @@ namespace Spellbound.GeoForge {
                 var slot = FindSlot(chunk, isEdit);
 
                 if (slot == null) {
-                    Log.Error(
+                    Debug.LogError(
                         $"PackVoxelArray - Trying to pack but chunk {chunk.ChunkCoord} has no resident slot (isEdit={isEdit})");
 
                     return;
@@ -227,7 +237,7 @@ namespace Spellbound.GeoForge {
                     // Was falling through and packing anyway even though nothing currently has
                     // this array checked out - same "log then continue as if nothing happened"
                     // pattern the single-slot version had. Stop here instead.
-                    Log.Error(
+                    Debug.LogError(
                         $"PackVoxelArray - Trying to pack but _isArrayInUse is false which is unexpected and bad");
 
                     return;
@@ -248,13 +258,47 @@ namespace Spellbound.GeoForge {
 
                 slot.CurrentChunk.UpdateVoxelData(sparseData, slot.DensityRange[0]);
                 sparseData.Dispose();
+
+                SyncOtherPoolResidency(chunk, isEdit, slot.DenseVoxelArray);
+            }
+
+            // If `chunk` also happens to be resident (but not checked out) in the *other* pool -
+            // e.g. it was LOD-validated a moment ago and its Validation-pool slot never got touched
+            // since - that slot's dense array is now stale relative to the edit Pack just wrote.
+            // Rather than invalidating it (CurrentChunk = null) and letting the next checkout there
+            // pay for a full SparseToDenseVoxelDataJob re-unpack, copy the dense data we already
+            // have in hand straight across - both pools' slots end up correct and still resident,
+            // for the cost of one NativeArray.Copy instead of a job schedule+complete later.
+            private void SyncOtherPoolResidency(GeoChunk chunk, bool packedIsEdit, NativeArray<VoxelData> freshVoxels) {
+                foreach (var slot in SlotsFor(!packedIsEdit)) {
+                    if (slot.CurrentChunk != chunk)
+                        continue;
+
+                    if (slot.IsArrayInUse) {
+                        // Shouldn't be reachable under today's fully-synchronous checkout model -
+                        // nothing else can be holding a checkout on this chunk in the other pool
+                        // while an edit is being packed for it on the same thread. Logged rather
+                        // than silently ignored in case that assumption stops holding later (e.g.
+                        // once P1 makes checkouts span frames).
+                        Debug.LogError(
+                            $"SyncOtherPoolResidency: chunk {chunk.ChunkCoord} is checked out in " +
+                            "the other pool while being packed - can't safely overwrite a slot " +
+                            "that's in use.");
+
+                        return;
+                    }
+
+                    NativeArray<VoxelData>.Copy(freshVoxels, slot.DenseVoxelArray);
+
+                    return;
+                }
             }
 
             internal void Release(GeoChunk chunk, bool isEdit) {
                 var slot = FindSlot(chunk, isEdit);
 
                 if (slot == null) {
-                    Log.Error(
+                    ConsoleLogger.PrintError(
                         $"MarchingCubes Manager does not have a denseVoxelData Array for chunk {chunk.ChunkCoord} (isEdit={isEdit})");
 
                     return;
@@ -293,9 +337,9 @@ namespace Spellbound.GeoForge {
                 return false;
             }
 
-            // Linear scan over a small list (8, or however big ValidatesPerFrame has pushed the
-            // validation pool) - cheaper and simpler than threading an opaque slot handle back out
-            // through GetOrUnpackVoxelArray's callers to save what's noise-level cost at this N.
+            // Linear scan over a small list - cheaper and simpler than threading an opaque slot
+            // handle back out through GetOrUnpackVoxelArray's callers to save what's noise-level
+            // cost at this N.
             private DenseVoxelData FindSlot(GeoChunk chunk, bool isEdit) {
                 foreach (var slot in SlotsFor(isEdit)) {
                     if (slot.CurrentChunk == chunk)

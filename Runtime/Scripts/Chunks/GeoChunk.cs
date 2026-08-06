@@ -37,7 +37,7 @@ namespace Spellbound.GeoForge {
             _implementer = implementer;
             _transform = transform;
             IGeoEditStore = iGeoEditStore;
-            IGeoEditStore.OnGeoEditChanged += PassVoxelEdits;
+            IGeoEditStore.OnGeoEditChanged += HandleResolvedVoxelEdits;
             _chunkCoord = chunkCoord;
             _parentGeoVolume = _transform.GetComponentInParent<IGeoVolume>();
             ref var config = ref ParentGeoVolume.ConfigBlob.Value;
@@ -150,9 +150,26 @@ namespace Spellbound.GeoForge {
             return hasOverriddenVoxels;
         }
 
-        public virtual void PassVoxelEdits(List<(int, VoxelData)> newVoxelChanges) {
-            if (ApplyVoxelEdits(newVoxelChanges, out var editBounds))
-                ValidateOctreeEdits(editBounds);
+        // Applies the edit and schedules its octree/march validation. If GeoForgeManager is
+        // currently batching (see BeginEditBatch/EndEditBatch), this chunk registers itself for a
+        // shared Complete()+release later instead of completing/releasing right here - lets
+        // DistributeVoxelEdits schedule every affected chunk's march jobs before any of them block,
+        // so they can actually run concurrently on worker threads. Outside a batch (any other
+        // caller of IGeoChunk.PassVoxelEdits), this stays fully synchronous, same as before.
+        public virtual void HandleResolvedVoxelEdits(List<(int, VoxelData)> newVoxelChanges) {
+            if (!ApplyVoxelEdits(newVoxelChanges, out var editBounds))
+                return;
+
+            ScheduleOctreeEditValidation(editBounds);
+
+            if (_mcManager.IsBatchingEdits) {
+                _mcManager.RegisterPendingEditRelease(this);
+
+                return;
+            }
+
+            _mcManager.CompleteAndApplyMarchingCubesJobs();
+            _mcManager.ReleaseVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this, isEdit: true);
         }
 
         public void InitializeChunk(NativeArray<VoxelData> voxels = default) {
@@ -326,13 +343,15 @@ namespace Spellbound.GeoForge {
 
         public bool HasVoxelData() => _sparseVoxels.IsCreated;
 
-        public void ValidateOctreeEdits(BoundsInt bounds) {
+        // Schedule-only half of octree edit validation: cascades the edit through the octree,
+        // scheduling any resulting march/transition jobs via GeoForgeManager.RegisterMarchJob/
+        // RegisterTransitionJob - but does NOT complete or release anything. See
+        // HandleResolvedVoxelEdits for the caller and the batching/non-batching split.
+        public void ScheduleOctreeEditValidation(BoundsInt bounds) {
             if (!_sparseVoxels.IsCreated)
                 return;
 
             _rootNode?.ValidateOctreeEdits(bounds, GetVoxelDataArray(isEdit: true));
-            _mcManager.CompleteAndApplyMarchingCubesJobs();
-            _mcManager.ReleaseVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this, isEdit: true);
         }
 
         // Schedule-only half: checks out the Validation-pool slot and cascades the LOD check
@@ -382,7 +401,7 @@ namespace Spellbound.GeoForge {
 
             _isDisposed = true;
 
-            IGeoEditStore.OnGeoEditChanged -= PassVoxelEdits;
+            IGeoEditStore.OnGeoEditChanged -= HandleResolvedVoxelEdits;
             _parentGeoVolume.GeoVolume.ChunkDict.Remove(_chunkCoord);
             _rootNode?.Dispose();
 

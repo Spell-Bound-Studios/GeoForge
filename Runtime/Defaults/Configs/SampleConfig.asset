@@ -12,7 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 835c4b155b5ba7544865ac2003a40736, type: 3}
   m_Name: SampleConfig
   m_EditorClassIdentifier: 
-  threshold: 128
   cubesPerMarch: 16
   levelsOfDetail: 4
   maxChunkSize: 128
@@ -20,4 +19,6 @@ MonoBehaviour:
   resolution: 1
   isFiniteSize: 1
   sizeInChunks: {x: 2, y: 1, z: 2}
+  generatesPerFrame: 1
+  validatesPerFrame: 1
   volumeSize: {x: 256, y: 128, z: 256}

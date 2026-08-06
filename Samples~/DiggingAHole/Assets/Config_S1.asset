@@ -18,7 +18,7 @@ MonoBehaviour:
   chunkSize: 128
   resolution: 1
   isFiniteSize: 1
-  sizeInChunks: {x: 1, y: 8, z: 1}
+  sizeInChunks: {x: 2, y: 8, z: 2}
   generatesPerFrame: 1
   validatesPerFrame: 1
-  volumeSize: {x: 128, y: 1024, z: 128}
+  volumeSize: {x: 256, y: 1024, z: 256}

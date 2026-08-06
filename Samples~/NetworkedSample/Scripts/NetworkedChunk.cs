@@ -57,7 +57,7 @@ namespace GeoForge.Sample4 {
         /// </summary>
         public void InitializeGeoChunk(Vector3Int coord) {
             if (GeoChunk != null)
-                GeoChunk.IGeoEditStore.OnGeoEditChanged -= GeoChunk.PassVoxelEdits;
+                GeoChunk.IGeoEditStore.OnGeoEditChanged -= GeoChunk.HandleResolvedVoxelEdits;
 
             _chunkCoord = coord;
             GeoChunk = new GeoChunk(this, transform, _syncModule, coord);

@@ -116,18 +116,37 @@ namespace Spellbound.GeoForge {
             _voxelVolumes.Add(geoVolume);
             var chunkSize = geoVolume.ConfigBlob.Value.ChunkSize;
             var validatesPerFrame = geoVolume.ConfigBlob.Value.ValidatesPerFrame;
+            var editPoolSize = ComputeEditPoolSize(geoVolume.ConfigBlob.Value.SizeInChunks);
 
             if (!_denseVoxelDataDict.TryGetValue(chunkSize, out var pool)) {
-                _denseVoxelDataDict.Add(chunkSize, new DenseVoxelDataPool(chunkSize, EditPoolSize, validatesPerFrame));
+                _denseVoxelDataDict.Add(chunkSize, new DenseVoxelDataPool(chunkSize, editPoolSize, validatesPerFrame));
 
                 return;
             }
 
-            // Another volume already registered this chunk size, possibly with a smaller
-            // ValidatesPerFrame. The Validation pool has to cover the largest ValidatesPerFrame among
-            // every volume sharing this chunk size, since each volume's ValidateChunkLodsAsync throttles
-            // independently and any of them could have this many chunks in flight at once.
+            // Another volume already registered this chunk size, possibly with smaller
+            // requirements. Both pools have to cover the largest requirement among every volume
+            // sharing this chunk size, since each volume's edits/LOD validation are independent
+            // and any of them could need this much capacity at once.
+            pool.EnsureEditCapacity(editPoolSize);
             pool.EnsureValidationCapacity(validatesPerFrame);
+        }
+
+        // Edit pool capacity is geometry-derived, not a flat constant: for each axis (x/y/z) where
+        // the volume spans more than one chunk, a terraform action can fan out to a neighbor along
+        // that axis; the worst case is a corner where all three axes are straddled at once. That
+        // gives 2^(axes with more than one chunk) as the max distinct chunks a single terraform
+        // action can touch - 8 when the volume is genuinely 3D (matching the old fixed constant),
+        // but less for a volume that's only one chunk deep along some axis, since edits can never
+        // fan out along an axis that doesn't exist to fan out into.
+        private static int ComputeEditPoolSize(Vector3Int sizeInChunks) {
+            var axesWithMultipleChunks = 0;
+
+            if (sizeInChunks.x > 1) axesWithMultipleChunks++;
+            if (sizeInChunks.y > 1) axesWithMultipleChunks++;
+            if (sizeInChunks.z > 1) axesWithMultipleChunks++;
+
+            return 1 << axesWithMultipleChunks;
         }
 
         public void UnRegisterVoxelVolume(IGeoVolume geoVolume) {
@@ -261,13 +280,25 @@ namespace Spellbound.GeoForge {
                 }
             }
 
-            foreach (var kvp in editsByChunkCoord) {
-                var chunk = geoVolume.GetChunkByCoord(kvp.Key);
+            // Batched so every affected chunk's edit is applied and its march jobs scheduled
+            // (synchronously, via HandleResolvedVoxelEdits reacting to PassVoxelEdits below) before
+            // any of them complete or release - see GeoForgeManager.EditBatch.cs. try/finally
+            // guarantees EndEditBatch runs even if a chunk lookup or PassVoxelEdits throws
+            // partway through, so IsBatchingEdits can never get stuck true.
+            BeginEditBatch();
 
-                if (chunk == null)
-                    continue;
+            try {
+                foreach (var kvp in editsByChunkCoord) {
+                    var chunk = geoVolume.GetChunkByCoord(kvp.Key);
 
-                chunk.PassVoxelEdits(new VoxelEditOperation(materialIndex, kvp.Value, allowedMaterialsMask));
+                    if (chunk == null)
+                        continue;
+
+                    chunk.PassVoxelEdits(new VoxelEditOperation(materialIndex, kvp.Value, allowedMaterialsMask));
+                }
+            }
+            finally {
+                EndEditBatch();
             }
         }
 

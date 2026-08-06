@@ -43,7 +43,7 @@ namespace Spellbound.GeoForge.Sample2 {
             }
 
             if (_geoChunk.ApplyVoxelEdits(trueEdits, out var editBounds))
-                _geoChunk.ValidateOctreeEdits(editBounds);
+                _geoChunk.ScheduleOctreeEditValidation(editBounds);
         }
     }
 }
