@@ -98,8 +98,19 @@ namespace Spellbound.Sample4 {
                         transform.forward,
                         out var hit,
                         terraformRange,
-                        ~0))
-                    GeoForgeStatic.RemoveSphere(hit, terraformSize, terraformStrength, digMaskDefinition.GetMask());
+                        ~0)) {
+                    var iVolume = hit.collider.transform.GetComponentInParent<IGeoVolume>();
+
+                    if (iVolume != null) {
+                        GeoForgeCommands.RemoveSphere(
+                            iVolume,
+                            hit.point,   // worldPosition - sphere centers here
+                            radius: terraformSize, // world units, same convention as GeoForgeStatic.RemoveSphere's radius
+                            delta: terraformStrength,    // magnitude to subtract - RemoveSphere negates this internally
+                            allowedMaterialsMask: digMaskDefinition.GetMask()
+                        );
+                    }
+                }
 
                 else if (keyboard.digit2Key.wasPressedThisFrame
                          && Physics.Raycast(
@@ -107,8 +118,20 @@ namespace Spellbound.Sample4 {
                              transform.forward,
                              out hit,
                              terraformRange,
-                             ~0))
-                    GeoForgeStatic.AddSphere(hit, terraformSize, terraformStrength, addableMaterial, digMaskDefinition.GetMask());
+                             ~0)) {
+                    var iVolume = hit.collider.transform.GetComponentInParent<IGeoVolume>();
+
+                    if (iVolume != null) {
+                        GeoForgeCommands.AddSphere(
+                            iVolume,
+                            hit.point,
+                            radius: terraformSize,
+                            delta: terraformStrength,
+                            material: addableMaterial,
+                            allowedMaterialsMask: digMaskDefinition.GetMask()
+                        );
+                    }
+                }
             }
 #else
             if (Input.GetKeyDown(KeyCode.Alpha1)
@@ -118,7 +141,17 @@ namespace Spellbound.Sample4 {
                         out var hit,
                         terraformRange,
                         ~0)){
-                GeoForgeStatic.RemoveSphereAll(hit, terraformSize, terraformStrength, diggableMaterialList);
+               var iVolume = hit.collider.transform.GetComponentInParent<IGeoVolume>();
+
+                    if (iVolume != null) {
+                        GeoForgeCommands.RemoveSphere(
+                            iVolume,
+                            hit.point,   // worldPosition - sphere centers here
+                            radius: terraformSize, // world units, same convention as GeoForgeStatic.RemoveSphere's radius
+                            delta: terraformStrength,    // magnitude to subtract - RemoveSphere negates this internally
+                            allowedMaterialsMask: digMaskDefinition.GetMask()
+                        );
+                    }
             }
                     
                 else if (Input.GetKeyDown(KeyCode.Alpha2
@@ -128,7 +161,18 @@ namespace Spellbound.Sample4 {
                         out hit,
                         terraformRange,
                         ~0)){
-                GeoForgeStatic.AddSphere(hit, terraformSize, terraformStrength, addableMaterial);
+                var iVolume = hit.collider.transform.GetComponentInParent<IGeoVolume>();
+
+                    if (iVolume != null) {
+                        GeoForgeCommands.AddSphere(
+                            iVolume,
+                            hit.point,
+                            radius: terraformSize,
+                            delta: terraformStrength,
+                            material: addableMaterial,
+                            allowedMaterialsMask: digMaskDefinition.GetMask()
+                        );
+                    }
                 }
 
 #endif

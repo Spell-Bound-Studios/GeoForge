@@ -101,21 +101,47 @@ namespace Spellbound.GeoForge {
                     transform.forward,
                     out var hit,
                     float.MaxValue,
-                    ~0))
-                GeoForgeStatic.RemoveSphere(hit, 6, byte.MaxValue);
+                    ~0)) {
+                var iVolume = hit.collider.transform.GetComponentInParent<IGeoVolume>();
+
+                if (iVolume != null) {
+                    var success = GeoForgeCommands.RemoveSphere(
+                        iVolume,
+                        hit.point,   // worldPosition - sphere centers here
+                        radius: 2.5f, // world units, same convention as GeoForgeStatic.RemoveSphere's radius
+                        delta: 255     // magnitude to subtract - RemoveSphere negates this internally
+                    );
+                }
+            }
         }
 
         /// <summary>
         /// Raycasts and Terraforms Add at the hit location.
         /// </summary>
         private void RaycastTerraformAdd() {
-            if (Physics.Raycast(
+            /*if (Physics.Raycast(
                     transform.position,
                     transform.forward,
                     out var hit,
                     float.MaxValue,
-                    ~0))
-                GeoForgeStatic.AddSphere(hit, 6, byte.MaxValue, addableMaterial);
+                    ~0)) {
+                var iVolume = hit.collider.transform.GetComponentInParent<IGeoVolume>();
+
+                if (iVolume != null) {
+                    var success = GeoForgeCommands.AddSphere(
+                        iVolume,
+                        hit.point,   // worldPosition - sphere centers here
+                        radius: 2.5f, // world units, same convention as GeoForgeStatic.RemoveSphere's radius
+                        delta: 50     // magnitude to subtract - RemoveSphere negates this internally
+                    );
+
+                    if (!success) {
+                        // Rejected - check console for the warning (pool capacity or, for a non-finite
+                        // volume, a missing chunk in range). Nothing was applied.
+                    }
+                }
+            }
+            */
         }
     }
 }

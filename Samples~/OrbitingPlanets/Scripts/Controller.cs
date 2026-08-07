@@ -103,7 +103,17 @@ namespace Spellbound.GeoForge.Sample3 {
                         out var hit,
                         terraformRange,
                         ~0)) {
-                    GeoForgeStatic.RemoveSphere(hit, terraformSize, terraformStrength, digMaskDefinition.GetMask());
+                    var iVolume = hit.collider.transform.GetComponentInParent<IGeoVolume>();
+
+                    if (iVolume != null) {
+                        GeoForgeCommands.RemoveSphere(
+                            iVolume,
+                            hit.point,   // worldPosition - sphere centers here
+                            radius: terraformSize, // world units, same convention as GeoForgeStatic.RemoveSphere's radius
+                            delta: terraformStrength,    // magnitude to subtract - RemoveSphere negates this internally
+                            allowedMaterialsMask: digMaskDefinition.GetMask()
+                        );
+                    }
                     lineRenderer.enabled = true;
                     lineRenderer.SetPosition(0, transform.position - transform.up * lineRendererStartOffset);
                     lineRenderer.SetPosition(1, hit.point);
@@ -116,7 +126,18 @@ namespace Spellbound.GeoForge.Sample3 {
                              out hit,
                              terraformRange,
                              ~0)) {
-                    GeoForgeStatic.AddSphere(hit, terraformSize, terraformStrength, addableMaterial, digMaskDefinition.GetMask());
+                    var iVolume = hit.collider.transform.GetComponentInParent<IGeoVolume>();
+
+                    if (iVolume != null) {
+                        GeoForgeCommands.AddSphere(
+                            iVolume,
+                            hit.point,
+                            radius: terraformSize,
+                            delta: terraformStrength,
+                            material: addableMaterial,
+                            allowedMaterialsMask: digMaskDefinition.GetMask()
+                        );
+                    }
                     lineRenderer.enabled = true;
                     lineRenderer.SetPosition(0, transform.position - transform.up * lineRendererStartOffset);
                     lineRenderer.SetPosition(1, hit.point);

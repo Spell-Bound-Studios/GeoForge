@@ -102,12 +102,12 @@ namespace Spellbound.GeoForge.Sample1 {
                     var iVolume = hit.collider.transform.GetComponentInParent<IGeoVolume>();
 
                     if (iVolume != null) {
-                        var success = TerraformCubeCommand.Execute(
+                        GeoForgeCommands.RemoveSphere(
                             iVolume,
-                            hit.point, // worldPosition - cube centers on nearest voxel to this
-                            halfExtent: (int)terraformSize, // 2 -> a 5x5x5 voxel cube (halfExtent*2+1 per axis)
-                            delta: -255, // negative = remove/dig, positive = add/fill
-                            materialIndex: 0 // unused for a pure dig, since density never crosses empty->full
+                            hit.point,
+                            radius: terraformSize,
+                            delta: terraformStrength,
+                            allowedMaterialsMask: digMaskDefinition.GetMask()
                         );
                     }
                 }
@@ -118,8 +118,20 @@ namespace Spellbound.GeoForge.Sample1 {
                              transform.forward,
                              out hit,
                              terraformRange,
-                             ~0))
-                    GeoForgeStatic.AddSphere(hit, terraformSize, terraformStrength, addableMaterial, digMaskDefinition.GetMask());
+                             ~0)) {
+                    var iVolume = hit.collider.transform.GetComponentInParent<IGeoVolume>();
+
+                    if (iVolume != null) {
+                        GeoForgeCommands.AddSphere(
+                            iVolume,
+                            hit.point,
+                            radius: terraformSize,
+                            delta: terraformStrength,
+                            material: addableMaterial,
+                            allowedMaterialsMask: digMaskDefinition.GetMask()
+                        );
+                    }
+                }
             }
 #else
             if (Input.GetKeyDown(KeyCode.Alpha1)

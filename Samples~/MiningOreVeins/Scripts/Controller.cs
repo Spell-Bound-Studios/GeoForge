@@ -103,12 +103,21 @@ namespace Spellbound.GeoForge.Sample2 {
                         out var hit,
                         terraformRange,
                         ~0)) {
-                    GeoForgeStatic.RemoveSphere(hit, terraformSize, terraformStrength, digMaskDefinition.GetMask());
                     AudioSource.PlayClipAtPoint(miningAudioClip, hit.point);
                     var direction = Vector3.Slerp(-transform.forward, hit.normal, 0.5f);
-                    var geoVolume = hit.collider.gameObject.GetComponentInParent<IGeoVolume>();
+                    var iVolume = hit.collider.transform.GetComponentInParent<IGeoVolume>();
 
-                    if (geoVolume != null) {
+                    if (iVolume != null) {
+                        GeoForgeCommands.RemoveSphere(
+                            iVolume,
+                            hit.point,   // worldPosition - sphere centers here
+                            radius: terraformSize, // world units, same convention as GeoForgeStatic.RemoveSphere's radius
+                            delta: terraformStrength,    // magnitude to subtract - RemoveSphere negates this internally
+                            allowedMaterialsMask: digMaskDefinition.GetMask()
+                        );
+                    }
+
+                    if (iVolume != null) {
                         var ps = Instantiate(miningParticle, hit.point, Quaternion.LookRotation(direction, Vector3.up));
                         Destroy(ps.gameObject, ps.main.duration);
                     }
@@ -122,15 +131,25 @@ namespace Spellbound.GeoForge.Sample2 {
                         out var hit,
                         terraformRange,
                         ~0)){
-                GeoForgeStatic.RemoveSphereAll(hit, terraformSize, terraformStrength, _diggableMaterialList);
                     AudioSource.PlayClipAtPoint(miningAudioClip, hit.point);
                     var direction = Vector3.Slerp(-transform.forward, hit.normal, 0.5f);
-                    var geoVolume = hit.collider.gameObject.GetComponentInParent<IVolume>();
+                    var iVolume = hit.collider.transform.GetComponentInParent<IGeoVolume>();
+
+                    if (iVolume != null) {
+                        GeoForgeCommands.RemoveSphere(
+                            iVolume,
+                            hit.point,   // worldPosition - sphere centers here
+                            radius: terraformSize, // world units, same convention as GeoForgeStatic.RemoveSphere's radius
+                            delta: terraformStrength,    // magnitude to subtract - RemoveSphere negates this internally
+                            allowedMaterialsMask: digMaskDefinition.GetMask()
+                        );
+                    }
 
                     if (geoVolume != null) {
                         var ps = Instantiate(miningParticle, hit.point, Quaternion.LookRotation(direction, Vector3.up));
                         Destroy(ps.gameObject, ps.main.duration);
                     }
+                }
             }
 #endif
         }

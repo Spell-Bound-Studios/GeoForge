@@ -248,12 +248,6 @@ namespace Spellbound.GeoForge {
 
         public bool ApplyVoxelEdits(
             List<(int, VoxelData)> voxelChanges, out BoundsInt editBounds, BoundsInt existingEditBounds = default) {
-            if (!_sparseVoxels.IsCreated) {
-                editBounds = existingEditBounds;
-
-                return false;
-            }
-
             ref var config = ref ParentGeoVolume.ConfigBlob.Value;
             var voxelArray = GetVoxelDataArray(isEdit: true);
 
@@ -268,12 +262,6 @@ namespace Spellbound.GeoForge {
                 var voxelPos = new Vector3Int(x, y, z);
 
                 if (_voxelOverrides.HasOverride(voxelPos))
-                    continue;
-
-                var existingVoxel = voxelArray[index];
-
-                if (voxelChange.Item2.Density == existingVoxel.Density &&
-                    voxelChange.Item2.MaterialIndex == existingVoxel.MaterialIndex)
                     continue;
 
                 voxelArray[index] = VoxelData.CreateImmature(voxelChange.Item2.Density, voxelChange.Item2.MaterialIndex);
