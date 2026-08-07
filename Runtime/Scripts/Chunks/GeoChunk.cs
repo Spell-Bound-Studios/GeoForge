@@ -295,7 +295,7 @@ namespace Spellbound.GeoForge {
             }
 
             if (hasEdits) {
-                _mcManager.PackVoxelArray(config.ChunkSize, this, isEdit: true);
+                _mcManager.PackVoxelArray(config.ChunkSize, this, isEdit: true, editBounds);
 
                 // Any cached "empty" result may no longer hold once the underlying voxel data has
                 // changed - wipe the whole cache rather than figuring out which addresses actually

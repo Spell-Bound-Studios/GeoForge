@@ -3,7 +3,6 @@
 using System;
 using System.Collections.Generic;
 using Spellbound.Core.Console;
-using Spellbound.Core.Logging;
 using Unity.Collections;
 using Unity.Jobs;
 using UnityEngine;
@@ -36,7 +35,7 @@ namespace Spellbound.GeoForge {
             return pool.GetOrUnpack(dataSizeKey, chunk, sparseData, isEdit);
         }
 
-        internal void PackVoxelArray(int dataSizeKey, GeoChunk chunk, bool isEdit) {
+        internal void PackVoxelArray(int dataSizeKey, GeoChunk chunk, bool isEdit, BoundsInt editBounds) {
             if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var pool)) {
                 // Same misuse case as GetOrUnpackVoxelArray - throw immediately rather than
                 // falling through and dereferencing a null pool on the next line.
@@ -45,7 +44,7 @@ namespace Spellbound.GeoForge {
                     "Was RegisterVoxelVolume called for this volume's chunk size?");
             }
 
-            pool.Pack(chunk, isEdit);
+            pool.Pack(chunk, isEdit, editBounds);
         }
 
         internal void ReleaseVoxelArray(int dataSizeKey, GeoChunk chunk, bool isEdit) {
@@ -72,6 +71,16 @@ namespace Spellbound.GeoForge {
 
             return pool.TryGetResident(chunk, out voxels);
         }
+
+        // Number of Edit-pool slots for the given chunk size - the hard ceiling on how many
+        // distinct chunks a single terraform action can touch before GetOrUnpack's exhaustion
+        // throw would fire. Exposed so a caller that fans an action out across chunks BEFORE
+        // scheduling any checkout (e.g. TerraformCubeCommand's Burst-parallelized pre-validation)
+        // can reject cleanly ahead of time, rather than letting the exhaustion throw happen
+        // mid-job. Returns 0 if this chunk size was never registered - callers must treat that as
+        // "reject," not "unlimited."
+        internal int GetEditPoolCapacity(int chunkSize) =>
+                _denseVoxelDataDict.TryGetValue(chunkSize, out var pool) ? pool.EditSlotCount : 0;
 
         // One pool per chunk size, holding two independent slot lists (edit, validation) rather
         // than two separate dictionaries - keeps the "which pool for this chunk size" and "which
@@ -100,6 +109,10 @@ namespace Spellbound.GeoForge {
                     $"DenseVoxelDataPool [size {chunkSize}] constructed - edit slots: {_editSlots.Count}, " +
                     $"initial validation slots: {_validationSlots.Count}");
             }
+
+            // Number of Edit slots this pool currently has - see GeoForgeManager.GetEditPoolCapacity
+            // for the reasoning on why this needs to be externally visible.
+            internal int EditSlotCount => _editSlots.Count;
 
             // Called from RegisterVoxelVolume whenever a volume registers at this chunk size whose
             // geometry (see ComputeEditPoolSize) demands more Edit-pool capacity than the pool
@@ -203,7 +216,7 @@ namespace Spellbound.GeoForge {
                     jobHandle.Complete();
 
                     if (isEdit) {
-                        Log.Verbose(
+                        Debug.Log(
                             $"DenseVoxelDataPool [size {dataSizeKey}, isEdit={isEdit}, slot {claimIndex}] " +
                             $"added chunk {chunk.ChunkCoord} - pool {(wasNeverOccupied ? "growing" : $"steady (evicted chunk {evictedChunk.ChunkCoord}, LRU)")}");
                     }
@@ -223,7 +236,7 @@ namespace Spellbound.GeoForge {
                     "impossible under the current pool sizing - investigate the caller.");
             }
 
-            internal void Pack(GeoChunk chunk, bool isEdit) {
+            internal void Pack(GeoChunk chunk, bool isEdit, BoundsInt editBounds) {
                 var slot = FindSlot(chunk, isEdit);
 
                 if (slot == null) {
@@ -247,14 +260,15 @@ namespace Spellbound.GeoForge {
 
                 // DensityRange is computed fresh here, single-threaded, from the dense array as it
                 // currently stands - which already has any pending edits written into it by the
-                // time Pack is called. This is the only place DensityRange gets computed.
-                var packJob = new DenseToSparseVoxelDataJob {
+                // time Pack is called. This is the only place the whole-chunk DensityRange gets
+                // computed.
+                var packJobHandle = new DenseToSparseVoxelDataJob {
                     Voxels = slot.DenseVoxelArray,
                     SparseVoxels = sparseData,
                     DensityRange = slot.DensityRange
-                };
-                var jobHandle = packJob.Schedule();
-                jobHandle.Complete();
+                }.Schedule();
+
+                packJobHandle.Complete();
 
                 slot.CurrentChunk.UpdateVoxelData(sparseData, slot.DensityRange[0]);
                 sparseData.Dispose();
