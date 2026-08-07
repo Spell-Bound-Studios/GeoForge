@@ -52,9 +52,8 @@ namespace Spellbound.GeoForge {
                     voxelData = DefaultVoxelDataFunc(voxelDelta.Index);
 
                 var wasFull = voxelData.Density >= 0;
+                var wasMature = voxelData.IsMature();
                 var existingMatIndex = voxelData.GetPlainMatIndex();
-
-                VoxelData resolved;
 
                 // Gate: a voxel that's already full and whose current material this operation isn't
                 // permitted to affect (e.g. Impervious, or below the calling tool's tier) rejects
@@ -73,23 +72,39 @@ namespace Spellbound.GeoForge {
                 var isFull = density >= 0;
 
                 byte matIndex;
+                bool isMature;
 
                 if (!isFull) {
                     // Core invariant: any voxel ending below threshold is the null/sentinel
                     // material, no exceptions.
                     matIndex = VoxelData.NullSentinelValue;
+                    isMature = false;
                 }
                 else if (!wasFull && isFull) {
-                    // Material is only ever claimed at the empty -> full crossing.
+                    // Material is only ever claimed at the empty -> full crossing - this is new
+                    // growth, so it always starts immature regardless of anything about the
+                    // previous (empty) voxel.
                     matIndex = operation.MaterialIndex;
+                    isMature = false;
                 }
                 else {
-                    // Already solid on both sides of this delta - material persists unchanged.
+                    // Already solid on both sides of this delta - material AND maturity persist
+                    // unchanged. existingMatIndex is already demodulated (GetPlainMatIndex()
+                    // strips the mature bit), so maturity has to be carried forward separately via
+                    // wasMature or it silently gets lost on every solid-to-solid edit - e.g.
+                    // AddSphere onto an already-full, already-mature region would otherwise flip
+                    // everything it touches back to immature.
                     matIndex = existingMatIndex;
+                    isMature = wasMature;
                 }
 
-                resolved = VoxelData.CreateImmature(density, matIndex);
+                var resolved = isMature
+                        ? VoxelData.CreateMature(density, matIndex)
+                        : VoxelData.CreateImmature(density, matIndex);
 
+                // If density didn't actually change (e.g. clamp saturated at the same extreme
+                // despite a nonzero delta), and maturity/material also didn't change, resolved
+                // comes out identical to voxelData - nothing new to write.
                 if (resolved == voxelData)
                     continue;
 

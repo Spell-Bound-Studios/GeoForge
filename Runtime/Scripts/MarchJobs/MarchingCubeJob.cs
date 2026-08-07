@@ -165,6 +165,11 @@ namespace Spellbound.GeoForge {
                                 var wasVoxel0Mature = voxel0.IsMature();
                                 var wasVoxel1Mature = voxel1.IsMature();
 
+                                // Maturity of the ORIGINAL empty corner (the complement of originalFullVoxel,
+                                // above) - used below to decide whether the full voxel's raw material index
+                                // needs demodulating.
+                                var wasEmptyVoxelMature = isVert0Full ? wasVoxel1Mature : wasVoxel0Mature;
+
                                 // Shared with the other three march jobs.
                                 GfMarchHelper.SubdivideToSurfaceCrossing(
                                     VoxelArray, chunkDataAreaSize, chunkDataWidthSize, Lod, isVert0Full,
@@ -194,14 +199,21 @@ namespace Spellbound.GeoForge {
                                 var normal = math.lerp(sample.Normal0, sample.Normal1, t);
                                 normal = math.normalize(normal);
 
-                                // materialIndexOnly is already the demodulated 0-127 index (VoxelData.MaterialIndex
-                                // returns it pre-stripped). Maturity is packed back in additively, matching the
-                                // shader's raw-byte contract - NOT via sign, which can't distinguish material 0
-                                // mature from material 0 immature (there's no negative zero).
-                                var materialIndexOnly = originalFullVoxel.MaterialIndex;
-                                var combinedIsMature = wasVoxel0Mature && wasVoxel1Mature;
-                                var packedRawMaterial =
-                                        (byte)(materialIndexOnly + (combinedIsMature ? VoxelData.MatureBitValue : 0));
+                                // Final material is mature IFF both the full voxel and the empty voxel it's
+                                // interpolated against were mature. Rather than adding MatureBitValue onto
+                                // originalFullVoxel's raw index (the old approach - which could overflow past
+                                // 255 if the full voxel's raw index already carried the mature bit AND the
+                                // combined result was also meant to be mature), this conditionally strips the
+                                // bit instead:
+                                //  - empty voxel mature -> keep the full voxel's raw index as-is. If the full
+                                //    voxel is also mature, its raw value already has the bit set (correctly
+                                //    mature); if the full voxel is immature, its raw value is already < 128
+                                //    (correctly immature) - either way, no bit needs adding.
+                                //  - empty voxel immature -> demodulate (GetPlainMatIndex()) to force the
+                                //    result immature, regardless of the full voxel's own maturity.
+                                var packedRawMaterial = wasEmptyVoxelMature
+                                        ? originalFullVoxel.MaterialIndex
+                                        : originalFullVoxel.GetPlainMatIndex();
 
                                 edgeVertex = new EdgeVertex {
                                     Position = centeredVertex,
@@ -230,34 +242,26 @@ namespace Spellbound.GeoForge {
 
                             boundsMin = math.min(boundsMin, math.min(vA.Position, math.min(vB.Position, vC.Position)));
                             boundsMax = math.max(boundsMax, math.max(vA.Position, math.max(vB.Position, vC.Position)));
-
-                            // The three vertices share the same RawMaterial triple in their Color32 rgb
-                            // (triangle-constant, safe to "interpolate" since it never varies across the
-                            // triangle); alpha carries the per-vertex barycentric marker u (exactly 0 or
-                            // 255 at any given vertex - the GPU interpolates the in-between values across
-                            // the triangle for us). densityTriple carries the same three corner densities
-                            // into ColorInterp/float4 for shader-side confidence weighting. Each vertex
-                            // uses its OWN smooth normal (vA/vB/vC.Normal) rather than one shared face
-                            // normal - this is the only thing that changed from the flat-shaded version.
-                            var densityTriple = new float3(vA.Density, vB.Density, vC.Density);
+                            
 
                             var iaIndex = Vertices.Length;
+                            
                             Vertices.Add(new MeshingVertexData(
                                 vA.Position, vA.Normal,
                                 new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 255),
-                                new float4(densityTriple, 0)));
+                                new Color32((byte)(vA.Density + 1), (byte)(vB.Density +1), (byte)(vC.Density + 1), 0)));
 
                             var ibIndex = Vertices.Length;
                             Vertices.Add(new MeshingVertexData(
                                 vB.Position, vB.Normal,
                                 new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 0),
-                                new float4(densityTriple, 1)));
+                                new Color32((byte)(vA.Density + 1), (byte)(vB.Density +1), (byte)(vC.Density + 1), 255)));
 
                             var icIndex = Vertices.Length;
                             Vertices.Add(new MeshingVertexData(
                                 vC.Position, vC.Normal,
                                 new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 0),
-                                new float4(densityTriple, 0)));
+                                new Color32((byte)(vA.Density + 1), (byte)(vB.Density +1), (byte)(vC.Density + 1), 0)));
 
                             Triangles.Add(icIndex);
                             Triangles.Add(ibIndex);

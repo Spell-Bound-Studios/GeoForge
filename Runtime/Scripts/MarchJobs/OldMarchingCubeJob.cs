@@ -266,7 +266,7 @@ namespace Spellbound.GeoForge {
                                 var matBAllMature =
                                         GfMarchHelper.ResolveMaturity(matB, matIndex0, isMature0, matIndex1, isMature1);
 
-                                var colorInterp = new float4((float)matA / byte.MaxValue, 0, 0, 0);
+                                var colorInterp = new Color32(matA, 0, 0, 0);
 
                                 var color = new Color32(
                                     matA,
@@ -307,47 +307,10 @@ namespace Spellbound.GeoForge {
                             var posC = Vertices[ic].Position;
 
                             if (GfMarchHelper.IsDegenerateTriangle(posA, posB, posC)) continue;
-
-                            // Check if any of the three vertices carries a flat-shaded material.
-                            var isFlatShaded = IsFlatShadedLookUp[Vertices[ia].FixedColor.r]
-                                               || IsFlatShadedLookUp[Vertices[ib].FixedColor.r]
-                                               || IsFlatShadedLookUp[Vertices[ic].FixedColor.r];
-
-                            if (isFlatShaded) {
-                                // Clone all three vertices so this triangle owns them exclusively.
-                                // The clones are never written to the cache; they exist only for this triangle.
-                                var newIa = Vertices.Length;
-                                Vertices.Add(Vertices[ia]);
-                                var newIb = Vertices.Length;
-                                Vertices.Add(Vertices[ib]);
-                                var newIc = Vertices.Length;
-                                Vertices.Add(Vertices[ic]);
-
-                                // Compute the face normal matching the (ic, ib, ia) winding order.
-                                var faceNormal = math.normalize(math.cross(posB - posC, posA - posC));
-
-                                var vertA = Vertices[newIa];
-                                var vertB = Vertices[newIb];
-                                var vertC = Vertices[newIc];
-
-                                vertA.Normal = faceNormal;
-                                vertB.Normal = faceNormal;
-                                vertC.Normal = faceNormal;
-
-                                Vertices[newIa] = vertA;
-                                Vertices[newIb] = vertB;
-                                Vertices[newIc] = vertC;
-
-                                Triangles.Add(newIc);
-                                Triangles.Add(newIb);
-                                Triangles.Add(newIa);
-                            }
-                            else {
-                                // Smooth shading: reuse the shared vertices and their gradient normals as-is.
-                                Triangles.Add(ic);
-                                Triangles.Add(ib);
-                                Triangles.Add(ia);
-                            }
+                            
+                            Triangles.Add(ic);
+                            Triangles.Add(ib);
+                            Triangles.Add(ia);
                         }
                     }
                 }

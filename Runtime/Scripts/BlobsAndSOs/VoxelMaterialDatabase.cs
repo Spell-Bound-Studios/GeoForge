@@ -7,134 +7,39 @@ using UnityEditor;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
-    //TODO Comment Properly
     [CreateAssetMenu(menuName = "Spellbound/GeoForge/VoxelMaterialDatabase")]
     public class VoxelMaterialDatabase : ScriptableObject {
-        // Slice 0 of MappingTable: R = Albedo slot, G = MAS slot, B = Normal slot
-        // Slice 1 of MappingTable: R = AltAlbedo slot, G = AltMAS slot, B = AltNormal slot
-        public enum MapType { Albedo, MAS, Normal, AltAlbedo, AltMAS, AltNormal }
-        private const int MapTypeCount = 6;
-        private const int MappingSliceCount = 2;
-
-        public enum ConstantType { FlatColor, FallbackMAS, AltFlatColor, AltFallbackMAS }
-        private const int ConstantTypeCount = 4;
-
         private const byte NotPresent = 255;
 
         [System.Serializable]
         public class MaterialEntry {
             public string materialName;
-            
-            // ---- Flat shading ----
-            [Tooltip("If you want every part of a given mesh triangle to share the same normal. Gives a 'crystalline' kind of look")]
-            public bool isFlatShaded;
 
-            // ================= BASE =================
-            
-            [Header("Main Textures/Fallbacks")]
-
-            // ---- Base color ----
-            [Tooltip("Tint/base color. Used directly if Has Albedo Texture is false, or as a multiplicative tint over the texture if true.")]
-            public Color flatColor = Color.white;
-
-            // ---- Fallback PBR constants ----
-            [Tooltip("Used when Has MAS Map is false")]
-            [Range(0f, 1f)] public float fallbackMetallic;
-            [Range(0f, 1f)] public float fallbackAO = 1f;
-            [Range(0f, 1f)] public float fallbackSmoothness = 0.5f;
-
-            [Tooltip("If true, samples albedoTexture and tints it by flatColor. If false, flatColor is the base color directly.")]
-            public bool hasAlbedoTexture;
-
-            [Tooltip("Albedo/Color texture, used when Has Albedo Texture is true")]
+            [Tooltip("Albedo/Color texture")]
             public Texture2D albedoTexture;
 
-            // ---- MAS (Metallic / AO / Smoothness) ----
-            [Tooltip("If false, uses the fallback constants above instead of sampling a texture")]
-            public bool hasMASMap;
-
-            [Tooltip("Metallic (R), AO (G), Smoothness (B) packed texture")]
-            public Texture2D masTexture;
-
-            // ---- Normal map ----
-            [Tooltip("If false, uses a flat-up normal instead of sampling a texture")]
-            public bool hasNormalMap;
-
-            [Tooltip("Normal map texture")]
-            public Texture2D normalTexture;
-
-            // ================= ALT (normal-aware / stratified variant, e.g. moss/snow/sand layers) =================
-
-            [Header("Alt Textures/Fallbacks")]
-
-            [Tooltip("Tint/base color for the Alt variant. Used directly if Alt Has Albedo Texture is false, or as a multiplicative tint over the alt texture if true.")]
-            public Color altFlatColor = Color.white;
-
-            [Tooltip("Used when Alt Has MAS Map is false")]
-            [Range(0f, 1f)] public float altFallbackMetallic;
-            [Range(0f, 1f)] public float altFallbackAO = 1f;
-            [Range(0f, 1f)] public float altFallbackSmoothness = 0.5f;
-
-            [Tooltip("If true, samples altAlbedoTexture and tints it by altFlatColor. If false, altFlatColor is the Alt base color directly.")]
-            public bool altHasAlbedoTexture;
-
-            [Tooltip("Alt albedo texture, used when Alt Has Albedo Texture is true")]
+            [Tooltip("Alt albedo texture (normal-aware/stratified variant, e.g. moss/snow/sand layers)")]
             public Texture2D altAlbedoTexture;
-
-            [Tooltip("If false, uses the alt fallback constants above instead of sampling a texture")]
-            public bool altHasMASMap;
-
-            [Tooltip("Alt MAS texture")]
-            public Texture2D altMasTexture;
-
-            [Tooltip("If false, uses a flat-up normal instead of sampling a texture")]
-            public bool altHasNormalMap;
-
-            [Tooltip("Alt normal texture")]
-            public Texture2D altNormalTexture;
 
             public MaterialEntry(string name = "New Material") {
                 materialName = name;
             }
-
-            // NOTE: material-capability flags (hasMASMap, hasNormalMap, etc.) used to be packed
-            // into a GetFlagByte() for the shader to read from vertex colors. That's gone —
-            // MappingTable already answers "does this material have this map" via its 255
-            // sentinel, so baking the same answer into vertex colors was pure duplication.
-            // Vertex color B/A channels are free for genuine per-vertex runtime state instead
-            // (e.g. "is this voxel undisturbed"), which MappingTable can't express since it's
-            // static per-materialIndex, not per-voxel.
         }
 
         [Header("Material Definitions")] public List<MaterialEntry> materials = new();
 
         [Header("Generated Content Arrays")]
+        [Tooltip("One slice per material index - materialIndex indexes directly into this array.")]
         public Texture2DArray albedoTextureArray;
-        public Texture2DArray masTextureArray;
-        public Texture2DArray normalTextureArray;
+
+        [Tooltip("Same indexing as albedoTextureArray, built from altAlbedoTexture instead.")]
         public Texture2DArray altAlbedoTextureArray;
-        public Texture2DArray altMASTextureArray;
-        public Texture2DArray altNormalTextureArray;
-
-        [Header("Generated Mapping Table")]
-        [Tooltip("256x1, 2 slices, RGBA32. Slice 0: R=Albedo slot, G=MAS slot, B=Normal slot. Slice 1: R=AltAlbedo slot, G=AltMAS slot, B=AltNormal slot. 255 = not present.")]
-        public Texture2DArray mappingTable;
-
-        [Header("Generated Material Constants")]
-        [Tooltip("256x1, 4 slices (one per ConstantType), RGBA32. Holds flatColor and fallback MAS constants per materialIndex, for when no texture is used.")]
-        public Texture2DArray materialConstantsArray;
-
-        [Header("Fallback")]
-        [Tooltip("1x1 dummy array bound to the shader whenever a content array is null (no materials use that map), so the sampler always has something valid bound.")]
-        public Texture2DArray dummyTextureArray;
 
         [Header("Texture Array Settings")] public bool generateMipmaps = true;
         public FilterMode filterMode = FilterMode.Trilinear;
         public int anisoLevel = 8;
 
         [Header("Texture Type Settings")] public bool albedoIsLinear = false;
-        public bool masIsLinear = true;    // MAS should typically be linear
-        public bool normalIsLinear = true; // Normal maps should be linear
 
         // Runtime lookup cache
         private Dictionary<string, byte> _nameToIndex;
@@ -156,7 +61,7 @@ namespace Spellbound.GeoForge {
             Debug.LogWarning(
                 $"Material '{materialName}' not found in {name}. Available materials: {string.Join(", ", _nameToIndex.Keys)}");
 
-            return 255;
+            return NotPresent;
         }
 
         public string GetMaterialName(int index) {
@@ -185,42 +90,8 @@ namespace Spellbound.GeoForge {
                 return;
             }
 
-            EnsureDummyArray();
-
-            var mappings = new byte[MapTypeCount][];
-
-            (albedoTextureArray, mappings[(int)MapType.Albedo]) = BuildCompactArray(
-                m => m.hasAlbedoTexture ? m.albedoTexture : null,
-                m => m.hasAlbedoTexture,
-                "AlbedoArray", albedoIsLinear);
-
-            (masTextureArray, mappings[(int)MapType.MAS]) = BuildCompactArray(
-                m => m.masTexture,
-                m => m.hasMASMap,
-                "MASArray", masIsLinear);
-
-            (normalTextureArray, mappings[(int)MapType.Normal]) = BuildCompactArray(
-                m => m.normalTexture,
-                m => m.hasNormalMap,
-                "NormalArray", normalIsLinear);
-
-            (altAlbedoTextureArray, mappings[(int)MapType.AltAlbedo]) = BuildCompactArray(
-                m => m.altHasAlbedoTexture ? m.altAlbedoTexture : null,
-                m => m.altHasAlbedoTexture,
-                "AltAlbedoArray", albedoIsLinear);
-
-            (altMASTextureArray, mappings[(int)MapType.AltMAS]) = BuildCompactArray(
-                m => m.altMasTexture,
-                m => m.altHasMASMap,
-                "AltMASArray", masIsLinear);
-
-            (altNormalTextureArray, mappings[(int)MapType.AltNormal]) = BuildCompactArray(
-                m => m.altNormalTexture,
-                m => m.altHasNormalMap,
-                "AltNormalArray", normalIsLinear);
-
-            BuildMappingTable(mappings);
-            BuildMaterialConstantsArray();
+            BuildDirectArray(ref albedoTextureArray, m => m.albedoTexture, "AlbedoArray");
+            BuildDirectArray(ref altAlbedoTextureArray, m => m.altAlbedoTexture, "AltAlbedoArray");
 
             EditorUtility.SetDirty(this);
             AssetDatabase.SaveAssets();
@@ -230,207 +101,94 @@ namespace Spellbound.GeoForge {
         }
 
         /// <summary>
-        /// Builds one compacted Texture2DArray for a given map type: only materials that pass
-        /// hasFlag AND have a non-null texture get a slot. Everything else maps to 255 (not present)
-        /// in the returned per-materialIndex mapping array. This keeps the array's slice count equal
-        /// to real content only, instead of one slice per materialIndex regardless of whether it's used.
+        /// Builds one Texture2DArray with exactly materials.Count slices, one per material index
+        /// directly (no compaction, no mapping table) - the shader just samples
+        /// arrayName[materialIndex]. Every material is expected to have a real texture assigned;
+        /// a missing texture logs an error and that slice is left blank rather than silently
+        /// substituted, since there's no fallback color to generate one from anymore.
         /// </summary>
-        private (Texture2DArray array, byte[] mapping) BuildCompactArray(
-            System.Func<MaterialEntry, Texture2D> selector,
-            System.Func<MaterialEntry, bool> hasFlag,
-            string arrayName, bool isLinear) {
-
-            var mapping = new byte[256];
-            for (var i = 0; i < 256; i++) mapping[i] = NotPresent;
-
-            var realTextures = new List<Texture2D>();
-
-            for (var i = 0; i < materials.Count; i++) {
-                var entry = materials[i];
-                if (!hasFlag(entry)) continue; // stays NotPresent — shader branches around this material for this map
-
-                var tex = selector(entry);
-                if (tex == null) {
-                    Debug.LogError($"'{entry.materialName}': flag set but texture missing for {arrayName}!");
-                    continue; // stays NotPresent — logged as an error, not silently substituted
-                }
-
-                mapping[i] = (byte)realTextures.Count;
-                realTextures.Add(tex);
-            }
-
-            Texture2DArray array = null;
-            if (realTextures.Count > 0)
-                BuildTextureArray(ref array, realTextures, arrayName, isLinear);
-            else
-                Debug.Log($"{arrayName}: no materials use this map, array not created.");
-
-            return (array, mapping);
-        }
-
-        private void BuildTextureArray(
-            ref Texture2DArray textureArray, List<Texture2D> sourceTextures, string arrayName, bool isLinear) {
-            if (sourceTextures.Count == 0) {
-                Debug.LogError($"No valid textures found for {arrayName}!");
-                return;
-            }
-
+        private void BuildDirectArray(
+            ref Texture2DArray textureArray,
+            System.Func<MaterialEntry, Texture2D> textureSelector,
+            string arrayName) {
             if (textureArray != null) {
                 AssetDatabase.RemoveObjectFromAsset(textureArray);
                 DestroyImmediate(textureArray);
                 textureArray = null;
             }
 
-            var width = sourceTextures[0].width;
-            var height = sourceTextures[0].height;
-            var format = sourceTextures[0].format;
+            var width = 4;
+            var height = 4;
+            var format = TextureFormat.RGBA32;
+            var foundRealTexture = false;
 
-            for (var i = 0; i < sourceTextures.Count; i++) {
-                if (sourceTextures[i].width != width || sourceTextures[i].height != height) {
+            foreach (var entry in materials) {
+                var tex = textureSelector(entry);
+                if (tex == null) continue;
+
+                width = tex.width;
+                height = tex.height;
+                format = tex.format;
+                foundRealTexture = true;
+
+                break;
+            }
+
+            if (!foundRealTexture) {
+                Debug.LogError($"{arrayName}: no materials have a texture assigned - array not built.");
+                return;
+            }
+
+            foreach (var entry in materials) {
+                var tex = textureSelector(entry);
+
+                if (tex == null) {
+                    Debug.LogError($"'{entry.materialName}': no texture assigned for {arrayName}!");
+                    continue;
+                }
+
+                if (tex.width != width || tex.height != height) {
                     Debug.LogError(
-                        $"Texture '{sourceTextures[i].name}' in {arrayName} has different dimensions! All textures must be {width}x{height}");
+                        $"Texture '{tex.name}' in {arrayName} has different dimensions! All textures must be {width}x{height}");
                     return;
                 }
 
-                var path = AssetDatabase.GetAssetPath(sourceTextures[i]);
+                var path = AssetDatabase.GetAssetPath(tex);
                 var importer = AssetImporter.GetAtPath(path) as TextureImporter;
 
                 if (importer != null && !importer.isReadable) {
-                    Debug.LogWarning($"Making texture '{sourceTextures[i].name}' readable...");
+                    Debug.LogWarning($"Making texture '{tex.name}' readable...");
                     importer.isReadable = true;
                     AssetDatabase.ImportAsset(path);
                 }
             }
 
-            textureArray = new Texture2DArray(width, height, sourceTextures.Count, format, generateMipmaps, isLinear);
+            textureArray = new Texture2DArray(width, height, materials.Count, format, generateMipmaps, albedoIsLinear);
             textureArray.name = $"{name}_{arrayName}";
             textureArray.filterMode = filterMode;
             textureArray.anisoLevel = anisoLevel;
             textureArray.wrapMode = TextureWrapMode.Repeat;
 
-            for (var i = 0; i < sourceTextures.Count; i++) {
-                var mipCount = generateMipmaps ? sourceTextures[i].mipmapCount : 1;
+            for (var i = 0; i < materials.Count; i++) {
+                var tex = textureSelector(materials[i]);
+                if (tex == null) continue; // already logged above; slice left blank
+
+                var mipCount = generateMipmaps ? tex.mipmapCount : 1;
                 for (var mip = 0; mip < mipCount; mip++)
-                    Graphics.CopyTexture(sourceTextures[i], 0, mip, textureArray, i, mip);
+                    Graphics.CopyTexture(tex, 0, mip, textureArray, i, mip);
             }
 
-            textureArray.Apply(true, false);
+            // updateMipmaps = false: mips are already populated directly above via per-mip
+            // Graphics.CopyTexture from each source texture's own pre-baked mip chain. Passing
+            // true here would tell Unity to regenerate mips by downsampling mip 0, which isn't
+            // possible for a compressed format and throws "Rebuilding mipmaps of compressed
+            // 2DArray textures is not supported" - false skips that step entirely, which is
+            // correct since there's nothing left for it to do.
+            textureArray.Apply(false, false);
 
             if (!AssetDatabase.Contains(textureArray)) AssetDatabase.AddObjectToAsset(textureArray, this);
 
-            Debug.Log($"{arrayName} created with {sourceTextures.Count} textures, {textureArray.mipmapCount} mip levels!");
-        }
-
-        /// <summary>
-        /// Packs all 6 per-materialIndex mapping arrays into a single 256x1, 2-slice RGBA32
-        /// Texture2DArray. Slice 0 channels: R=Albedo, G=MAS, B=Normal. Slice 1 channels:
-        /// R=AltAlbedo, G=AltMAS, B=AltNormal. This gives the shader 3 map types per sample
-        /// instead of 1, so resolving all 6 map types costs 2 samples instead of 6.
-        /// Shader: sample slice, split channel, multiply by 255 and round to recover the
-        /// compacted slot (or 255 = not present).
-        /// </summary>
-        private void BuildMappingTable(byte[][] mappingsPerType) {
-            if (mappingTable != null) {
-                AssetDatabase.RemoveObjectFromAsset(mappingTable);
-                DestroyImmediate(mappingTable);
-                mappingTable = null;
-            }
-
-            mappingTable = new Texture2DArray(256, 1, MappingSliceCount, TextureFormat.RGBA32, false, true);
-            mappingTable.name = $"{name}_MappingTable";
-            mappingTable.filterMode = FilterMode.Point;
-            mappingTable.wrapMode = TextureWrapMode.Clamp;
-
-            WriteMappingSlice(0,
-                mappingsPerType[(int)MapType.Albedo],
-                mappingsPerType[(int)MapType.MAS],
-                mappingsPerType[(int)MapType.Normal]);
-
-            WriteMappingSlice(1,
-                mappingsPerType[(int)MapType.AltAlbedo],
-                mappingsPerType[(int)MapType.AltMAS],
-                mappingsPerType[(int)MapType.AltNormal]);
-
-            mappingTable.Apply(false, false);
-
-            if (!AssetDatabase.Contains(mappingTable)) AssetDatabase.AddObjectToAsset(mappingTable, this);
-
-            Debug.Log("Mapping table built (256x1, 2 slices, RGB-packed).");
-        }
-
-        private void WriteMappingSlice(int slice, byte[] rMap, byte[] gMap, byte[] bMap) {
-            var tex = new Texture2D(256, 1, TextureFormat.RGBA32, false, true);
-            var pixels = new Color32[256];
-            for (var i = 0; i < 256; i++)
-                pixels[i] = new Color32(rMap[i], gMap[i], bMap[i], 0);
-            tex.SetPixels32(pixels);
-            tex.Apply(false, false);
-            Graphics.CopyTexture(tex, 0, 0, mappingTable, slice, 0);
-            DestroyImmediate(tex);
-        }
-
-        /// <summary>
-        /// Packs per-materialIndex fallback constants (flatColor, fallback MAS, and Alt equivalents)
-        /// into one 256x1, 4-slice RGBA32 Texture2DArray. Slice index = (int)ConstantType.
-        /// Used by the shader when the corresponding mapping slot is 255 (not present), so no
-        /// separate branch data is needed to pick "sample a texture" vs "read a constant" —
-        /// both are just array samples resolved from the same materialIndex.
-        /// </summary>
-        private void BuildMaterialConstantsArray() {
-            if (materialConstantsArray != null) {
-                AssetDatabase.RemoveObjectFromAsset(materialConstantsArray);
-                DestroyImmediate(materialConstantsArray);
-                materialConstantsArray = null;
-            }
-
-            materialConstantsArray = new Texture2DArray(256, 1, ConstantTypeCount, TextureFormat.RGBA32, false, true);
-            materialConstantsArray.name = $"{name}_MaterialConstants";
-            materialConstantsArray.filterMode = FilterMode.Point;
-            materialConstantsArray.wrapMode = TextureWrapMode.Clamp;
-
-            WriteConstantSlice((int)ConstantType.FlatColor, m => m.flatColor);
-            WriteConstantSlice((int)ConstantType.FallbackMAS, m => new Color(m.fallbackMetallic, m.fallbackAO, m.fallbackSmoothness));
-            WriteConstantSlice((int)ConstantType.AltFlatColor, m => m.altFlatColor);
-            WriteConstantSlice((int)ConstantType.AltFallbackMAS, m => new Color(m.altFallbackMetallic, m.altFallbackAO, m.altFallbackSmoothness));
-
-            materialConstantsArray.Apply(false, false);
-
-            if (!AssetDatabase.Contains(materialConstantsArray)) AssetDatabase.AddObjectToAsset(materialConstantsArray, this);
-
-            Debug.Log("Material constants array built (256x1, 4 slices).");
-        }
-
-        private void WriteConstantSlice(int slice, System.Func<MaterialEntry, Color> selector) {
-            var tex = new Texture2D(256, 1, TextureFormat.RGBA32, false, true);
-            var pixels = new Color32[256];
-            for (var i = 0; i < 256; i++)
-                pixels[i] = i < materials.Count ? (Color32)selector(materials[i]) : new Color32(0, 0, 0, 0);
-            tex.SetPixels32(pixels);
-            tex.Apply(false, false);
-            Graphics.CopyTexture(tex, 0, 0, materialConstantsArray, slice, 0);
-            DestroyImmediate(tex);
-        }
-
-        /// <summary>
-        /// Ensures a 1x1, 1-slice dummy Texture2DArray exists. Bind this to the shader in place
-        /// of any content array that came back null (no materials use that map) — MappingTable
-        /// will only ever return 255 for that map type in that case, so the real content
-        /// branch is provably dead code and the dummy's actual content is irrelevant.
-        /// </summary>
-        private void EnsureDummyArray() {
-            if (dummyTextureArray != null) return;
-
-            var tex = new Texture2D(1, 1, TextureFormat.RGBA32, false, true);
-            tex.SetPixel(0, 0, Color.black);
-            tex.Apply(false, false);
-
-            dummyTextureArray = new Texture2DArray(1, 1, 1, TextureFormat.RGBA32, false, true);
-            dummyTextureArray.name = $"{name}_DummyArray";
-            Graphics.CopyTexture(tex, 0, 0, dummyTextureArray, 0, 0);
-            dummyTextureArray.Apply(false, false);
-            DestroyImmediate(tex);
-
-            if (!AssetDatabase.Contains(dummyTextureArray)) AssetDatabase.AddObjectToAsset(dummyTextureArray, this);
+            Debug.Log($"{arrayName} created with {materials.Count} slices ({materials.Count} materials).");
         }
 
         [ContextMenu("Clear Generated Assets")]
@@ -439,7 +197,7 @@ namespace Spellbound.GeoForge {
             var allSubAssets = AssetDatabase.LoadAllAssetsAtPath(path);
 
             foreach (var asset in allSubAssets) {
-                if (asset == this) continue; // don't delete the database itself
+                if (asset == this) continue;
                 if (asset is Texture2DArray) {
                     AssetDatabase.RemoveObjectFromAsset(asset);
                     DestroyImmediate(asset, true);
@@ -447,14 +205,7 @@ namespace Spellbound.GeoForge {
             }
 
             albedoTextureArray = null;
-            masTextureArray = null;
-            normalTextureArray = null;
             altAlbedoTextureArray = null;
-            altMASTextureArray = null;
-            altNormalTextureArray = null;
-            mappingTable = null;
-            materialConstantsArray = null;
-            dummyTextureArray = null;
 
             EditorUtility.SetDirty(this);
             AssetDatabase.SaveAssets();

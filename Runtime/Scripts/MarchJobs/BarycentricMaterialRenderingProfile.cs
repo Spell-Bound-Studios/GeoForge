@@ -19,7 +19,6 @@ namespace Spellbound.GeoForge {
         public override JobHandle ScheduleMarchingCubes(
             BlobAssetReference<McTablesBlobAsset> tablesBlob,
             BlobAssetReference<VolumeConfigBlobAsset> configBlob,
-            NativeArray<bool> isFlatShadedLookUp,
             NativeArray<VoxelData> voxelArray,
             NativeList<MeshingVertexData> vertices,
             NativeList<int> triangles,

@@ -269,25 +269,23 @@ namespace Spellbound.GeoForge {
                                 ? math.normalize(math.cross(vB.Position - vC.Position, vA.Position - vC.Position))
                                 : math.normalize(math.cross(vB.Position - vA.Position, vC.Position - vA.Position));
 
-                        var densityTriple = new float3(vA.Density, vB.Density, vC.Density);
-
                         var newIa = TransitionMeshingVertexData.Length;
                         TransitionMeshingVertexData.Add(new MeshingVertexData(
                             vA.Position, normal,
                             new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 255),
-                            new float4(densityTriple, 0)));
+                            new Color32((byte)(vA.Density + 1), (byte)(vB.Density +1), (byte)(vC.Density + 1), 0)));
 
                         var newIb = TransitionMeshingVertexData.Length;
                         TransitionMeshingVertexData.Add(new MeshingVertexData(
                             vB.Position, normal,
                             new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 0),
-                            new float4(densityTriple, 1)));
+                            new Color32((byte)(vA.Density + 1), (byte)(vB.Density +1), (byte)(vC.Density + 1), 255)));
 
                         var newIc = TransitionMeshingVertexData.Length;
                         TransitionMeshingVertexData.Add(new MeshingVertexData(
                             vC.Position, normal,
                             new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 0),
-                            new float4(densityTriple, 0)));
+                            new Color32((byte)(vA.Density + 1), (byte)(vB.Density +1), (byte)(vC.Density + 1), 0)));
 
                         if (bFlipWinding) {
                             TransitionTriangles.Add(newIc);

@@ -47,10 +47,6 @@ namespace Spellbound.GeoForge {
 
         private HashSet<byte> _allMaterials;
 
-        // Internal: pure input data for the march jobs (profile.ScheduleMarchingCubes(...,
-        // _gfManager.FlatShadedLookUp, ...)) - no reason for external code to read this directly.
-        internal NativeArray<bool> FlatShadedLookUp { get; private set; }
-
         // Internal: purely an internal coordination mechanism between this manager and OctreeNode
         // (HandleTransitionUpdate subscribes/unsubscribes to this) - not a public event story.
         internal event Action OctreeBatchTransitionUpdate;
@@ -61,11 +57,6 @@ namespace Spellbound.GeoForge {
             _objectPoolParent = new GameObject("OctreeLeafPool").transform;
             _objectPoolParent.SetParent(transform);
             ValidateAllVolumesLodsAsync();
-            FlatShadedLookUp = new NativeArray<bool>(256, Allocator.Persistent);
-            var lookUp = FlatShadedLookUp;
-            for (var i = 0; i < materialDatabase.materials.Count; i++)
-                lookUp[i] = materialDatabase.materials[i].isFlatShaded;
-
             _isActive = true;
         }
 
@@ -98,9 +89,6 @@ namespace Spellbound.GeoForge {
 
             if (McTablesBlob.IsCreated)
                 McTablesBlob.Dispose();
-
-            if (FlatShadedLookUp.IsCreated)
-                FlatShadedLookUp.Dispose();
 
             ClearPool();
 

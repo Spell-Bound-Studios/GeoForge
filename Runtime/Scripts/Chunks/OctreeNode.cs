@@ -314,7 +314,6 @@ namespace Spellbound.GeoForge {
             var jobHandle = profile.ScheduleMarchingCubes(
                 _gfManager.McTablesBlob,
                 _parentGeoVolume.ConfigBlob,
-                _gfManager.FlatShadedLookUp,
                 voxelArray,
                 vertices,
                 triangles,
