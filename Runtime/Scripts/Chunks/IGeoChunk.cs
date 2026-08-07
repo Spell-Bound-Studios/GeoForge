@@ -27,6 +27,14 @@ namespace Spellbound.GeoForge {
         /// </summary>
         DensityRange DensityRange => GeoChunk.DensityRange;
 
+        // Known-empty march cache - see GeoChunk.IsKnownEmpty/MarkKnownEmpty for the full
+        // reasoning. IsKnownEmpty is consulted before marching/subdividing at an octree address;
+        // MarkKnownEmpty is recorded after a march at an address produces zero triangles. Wiped
+        // wholesale on any edit to the chunk.
+        bool IsKnownEmpty(int lod, Vector3Int localPosition) => GeoChunk.IsKnownEmpty(lod, localPosition);
+
+        void MarkKnownEmpty(int lod, Vector3Int localPosition) => GeoChunk.MarkKnownEmpty(lod, localPosition);
+
         /// <summary>
         /// Method for Chunk to receive a voxel edit operation.
         /// </summary>

@@ -20,6 +20,28 @@ namespace Spellbound.GeoForge {
         private NativeList<SparseVoxelData> _sparseVoxels;
         private OctreeNode _rootNode;
         private DensityRange _densityRange;
+
+        // Addresses (lod, localPosition) of octree nodes that produced zero triangles the last
+        // time they were marched, and haven't been invalidated since. Presence in the set means
+        // "known empty, safe to skip re-marching"; absence means "unknown" (never marched at this
+        // address since the last edit, or it produced real geometry) - not "known non-empty" -
+        // so the correct default on a miss is to march it, never to assume it has mesh.
+        //
+        // A HashSet rather than a Dictionary<_, bool> because there's never a reason to store a
+        // false/non-empty entry - the "not present" state already means exactly that, for free.
+        //
+        // Keyed by exact (lod, localPosition) address, not by lod alone or by voxel region:
+        // marching the same address again would always reproduce the same result off unchanged
+        // data, which is what makes this safe to reuse - it says nothing about a *different*
+        // address (a finer or coarser subdivision covering the same physical space), which needs
+        // its own march and its own cache entry.
+        //
+        // Wiped wholesale on any edit to this chunk (see ApplyVoxelEdits) rather than only
+        // invalidating addresses that overlap the edited bounds - simplest correct thing to do,
+        // and a chunk that was just edited will have most of its cache invalidated by the edit's
+        // meshing pass anyway, so partial invalidation would save little for real complexity.
+        private HashSet<(int Lod, Vector3Int LocalPosition)> _knownEmptyOctreeAddresses = new();
+
         private readonly GeoForgeManager _mcManager;
         private IGeoVolume _parentGeoVolume;
         private Transform _transform;
@@ -272,8 +294,15 @@ namespace Spellbound.GeoForge {
                 _densityRange.Encapsulate(voxelChange.Item2.Density);
             }
 
-            if (hasEdits)
+            if (hasEdits) {
                 _mcManager.PackVoxelArray(config.ChunkSize, this, isEdit: true);
+
+                // Any cached "empty" result may no longer hold once the underlying voxel data has
+                // changed - wipe the whole cache rather than figuring out which addresses actually
+                // overlap editBounds. See the field's own comment for why whole-chunk invalidation
+                // is the right tradeoff here.
+                _knownEmptyOctreeAddresses.Clear();
+            }
 
             _mcManager.ReleaseVoxelArray(config.ChunkSize, this, isEdit: true);
 
@@ -346,6 +375,25 @@ namespace Spellbound.GeoForge {
         }
 
         public bool HasVoxelData() => _sparseVoxels.IsCreated;
+
+        // Whether the octree node at this exact address was found empty (zero triangles) the last
+        // time it was marched, and hasn't been invalidated by an edit since. A miss (false) means
+        // "unknown" - never marched at this address since the last edit, or it had real geometry -
+        // never "known non-empty", so callers must treat a miss as "go ahead and march it", not as
+        // proof of anything.
+        public bool IsKnownEmpty(int lod, Vector3Int localPosition) =>
+                _knownEmptyOctreeAddresses.Contains((lod, localPosition));
+
+        // Records that the octree node at this address marched to zero triangles. Overwriting an
+        // existing entry is a no-op (HashSet.Add just returns false) - fine, since re-marching the
+        // same address always reproduces the same result off unchanged data.
+        public void MarkKnownEmpty(int lod, Vector3Int localPosition) =>
+                _knownEmptyOctreeAddresses.Add((lod, localPosition));
+
+        // Explicit clear for callers that need to invalidate outside of an edit (none exist yet -
+        // ApplyVoxelEdits above handles the normal case directly). Kept public in case that
+        // changes; safe to call even when the cache is already empty.
+        public void ClearKnownEmptyOctreeAddresses() => _knownEmptyOctreeAddresses.Clear();
 
         // Schedule-only half of octree edit validation: cascades the edit through the octree,
         // scheduling any resulting march/transition jobs via GeoForgeManager.RegisterMarchJob/

@@ -105,6 +105,38 @@ namespace Spellbound.GeoForge {
             }
         }
 
+        // Whether all 8 finer-LOD addresses this node would subdivide into (see Subdivide's own
+        // offset math, mirrored exactly here) are already known-empty in the cache. Doesn't
+        // require those child OctreeNode objects to actually exist - it's a pure address lookup,
+        // so it works whether this subtree was ever subdivided or not.
+        //
+        // Sound in the bottom-up direction only: if every finer address genuinely has no
+        // geometry, this coarser address can't have any either, since the finer addresses
+        // partition the exact same voxel region this node covers. This is never used to justify
+        // skipping something FINER than what was actually evaluated (that direction is unsound -
+        // see the earlier fix to ValidateOctreeLods, which never lets a cache hit skip the
+        // Subdivide()/recursion decision). Only meaningful when _lod > 0; lod 0 has no finer
+        // children to check, so it always returns false there and falls through to a real march.
+        private bool AreAllChildAddressesKnownEmpty() {
+            if (_lod == 0) return false;
+
+            var childLod = _lod - 1;
+            var childSize = _parentGeoVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << childLod;
+
+            for (var i = 0; i < 8; i++) {
+                var offset = new Vector3Int(
+                    (i & 1) == 0 ? 0 : childSize,
+                    (i & 2) == 0 ? 0 : childSize,
+                    (i & 4) == 0 ? 0 : childSize
+                );
+
+                if (!_geoChunk.IsKnownEmpty(childLod, _localPosition + offset))
+                    return false;
+            }
+
+            return true;
+        }
+
         /// <summary>
         /// Releases the pooled leaf/transition GameObjects (if any exist) and destroys their
         /// Meshes, mirroring what used to be duplicated inline in both Dispose() and Subdivide().
@@ -181,6 +213,14 @@ namespace Spellbound.GeoForge {
             if (_geoChunk.DensityRange.IsSkippable()) return;
 
             if (_lod <= targetLod) {
+                if (_geoChunk.IsKnownEmpty(_lod, _localPosition)) 
+                    return;
+
+                if (AreAllChildAddressesKnownEmpty()) {
+                    _geoChunk.MarkKnownEmpty(_lod, _localPosition);
+                    return;
+                }
+
                 if (!_leafInitialized)
                     MakeLeaf(voxelArray);
 
@@ -188,9 +228,8 @@ namespace Spellbound.GeoForge {
 
                 return;
             }
-
-            if (_lod > targetLod)
-                Subdivide();
+ 
+            Subdivide();
 
             foreach (var child in _children)
                 child.ValidateOctreeLods(playerPosition, voxelArray);
@@ -545,6 +584,15 @@ namespace Spellbound.GeoForge {
             NativeList<MeshingVertexData> vertices, NativeList<int> triangles, Bounds computedBounds) {
             if (triangles.Length < 3 || vertices.Length < 3) {
                 ReleaseLeafObjects();
+
+                // Record this exact address as known-empty, so a future ValidateOctreeLods pass at
+                // the same (lod, localPosition) - e.g. the player walks away and back, or a
+                // Subdivide/collapse cycle tears this node down and later rebuilds it to the
+                // identical address - can skip re-marching it entirely. Only sound because
+                // re-marching the same address off unchanged voxel data always reproduces the same
+                // result; any edit invalidates the whole cache (see GeoChunk.ApplyVoxelEdits), so
+                // this can never go stale silently.
+                _geoChunk.MarkKnownEmpty(_lod, _localPosition);
 
                 return;
             }
