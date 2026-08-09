@@ -2,6 +2,7 @@
 
 using System;
 using System.Collections.Generic;
+using UnityEditor.PackageManager.Requests;
 
 namespace Spellbound.GeoForge {
     /// <summary>
@@ -18,5 +19,7 @@ namespace Spellbound.GeoForge {
         void PassVoxelEditOperation(VoxelEditOperation operation);
 
         IEnumerable<(int, VoxelData)> ReadAllEdits();
+
+        void Clear();
     }
 }

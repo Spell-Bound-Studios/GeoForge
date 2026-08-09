@@ -9,15 +9,32 @@ namespace Spellbound.GeoForge.Sample2 {
     /// Aggregates requested changes as if the voxels have a "Health Pool".
     /// Makes no changes until voxel runs out of health, at which point it empties the voxel entirely. 
     /// </summary>
-    public class MiningVeinChunk : SimpleGeoChunk {
+    public class MiningVeinChunk : MonoBehaviour, IGeoChunk {
         [SerializeField] private int oreHealth;
         private Dictionary<int, int> _damagedVoxels = new();
+        
+        public GeoChunkEngine GeoChunkEngine { get; private set; }
+        
+        public void InitializeGeoChunk(Vector3Int coord, IGeoEditStore geoEditStore) {
+            GeoChunkEngine = new GeoChunkEngine(this, transform, geoEditStore, coord);
+            GeoChunkEngine.IGeoEditStore.DefaultVoxelDataFunc = GeoChunkEngine.GetVoxelData;
+        }
 
-        public override void PassVoxelEditOperation(VoxelEditOperation operation) {
+        public void HandleMeshReady() {
+        }
+
+        private void OnDestroy() {
+            if (GeoChunkEngine == null)
+                return;
+
+            GeoChunkEngine.Dispose();
+        }
+
+        public void PassVoxelEditOperation(VoxelEditOperation operation) {
             var trueEdits = new List<(int, VoxelData)>();
 
             foreach (var voxelDelta in operation.Deltas) {
-                var voxelData = _geoChunk.GetVoxelData(voxelDelta.Index);
+                var voxelData = GeoChunkEngine.GetVoxelData(voxelDelta.Index);
                 var existingMatIndex = voxelData.MaterialIndex;
                 var wasFull = voxelData.Density >= 0;
 
@@ -42,8 +59,8 @@ namespace Spellbound.GeoForge.Sample2 {
                 }
             }
 
-            if (_geoChunk.ApplyVoxelEdits(trueEdits, out var editBounds))
-                _geoChunk.ScheduleOctreeEditValidation(editBounds);
+            if (GeoChunkEngine.ApplyVoxelEdits(trueEdits, out var editBounds))
+                GeoChunkEngine.ScheduleOctreeEditValidation(editBounds);
         }
     }
 }

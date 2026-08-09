@@ -26,20 +26,20 @@ namespace Spellbound.GeoForge {
             }
         }
 
-        [Header("Material Definitions")] public List<MaterialEntry> materials = new();
+        [Header("Material Definitions"), SerializeField] private List<MaterialEntry> materials = new();
 
-        [Header("Generated Content Arrays")]
+        [Header("Generated Content Arrays"), SerializeField]
         [Tooltip("One slice per material index - materialIndex indexes directly into this array.")]
-        public Texture2DArray albedoTextureArray;
+        private Texture2DArray albedoTextureArray;
 
-        [Tooltip("Same indexing as albedoTextureArray, built from altAlbedoTexture instead.")]
-        public Texture2DArray altAlbedoTextureArray;
+        [Tooltip("Same indexing as albedoTextureArray, built from altAlbedoTexture instead."), SerializeField]
+        private Texture2DArray altAlbedoTextureArray;
 
-        [Header("Texture Array Settings")] public bool generateMipmaps = true;
-        public FilterMode filterMode = FilterMode.Trilinear;
-        public int anisoLevel = 8;
+        [Header("Texture Array Settings"), SerializeField] private bool generateMipmaps = true;
+        [SerializeField] private FilterMode filterMode = FilterMode.Trilinear;
+        [SerializeField] private int anisoLevel = 8;
 
-        [Header("Texture Type Settings")] public bool albedoIsLinear = false;
+        [Header("Texture Type Settings")] private bool albedoIsLinear = false;
 
         // Runtime lookup cache
         private Dictionary<string, byte> _nameToIndex;
@@ -84,7 +84,7 @@ namespace Spellbound.GeoForge {
 
 #if UNITY_EDITOR
         [ContextMenu("Build Texture Arrays")]
-        public void BuildTextureArrays() {
+        private void BuildTextureArrays() {
             if (materials == null || materials.Count == 0) {
                 Debug.LogError("No materials defined!");
                 return;
@@ -192,7 +192,7 @@ namespace Spellbound.GeoForge {
         }
 
         [ContextMenu("Clear Generated Assets")]
-        public void ClearGeneratedAssets() {
+        private void ClearGeneratedAssets() {
             var path = AssetDatabase.GetAssetPath(this);
             var allSubAssets = AssetDatabase.LoadAllAssetsAtPath(path);
 

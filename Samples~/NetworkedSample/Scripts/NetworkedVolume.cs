@@ -4,6 +4,7 @@ using System;
 using System.Collections;
 using PurrNet;
 using Spellbound.GeoForge;
+using Spellbound.GeoForge.Sample4;
 using UnityEngine;
 
 namespace GeoForge.Sample4 {
@@ -25,9 +26,9 @@ namespace GeoForge.Sample4 {
         [Tooltip("Prefab for the Chunk the Volume will build itself from. Must Implement IChunk"), SerializeField]
         private GameObject chunkPrefab;
 
-        private GeoVolume _geoVolume;
+        private GeoVolumeEngine _geoVolumeEngine;
 
-        public GeoVolume GeoVolume => _geoVolume;
+        public GeoVolumeEngine GeoVolumeEngine => _geoVolumeEngine;
 
 #if UNITY_EDITOR
         /// <summary>
@@ -41,7 +42,7 @@ namespace GeoForge.Sample4 {
                 return;
             }
 
-            viewDistanceLodRanges = GeoVolume.ValidateLodRanges(viewDistanceLodRanges, config);
+            viewDistanceLodRanges = GeoVolumeEngine.ValidateLodRanges(viewDistanceLodRanges, config);
         }
 #endif
 
@@ -56,12 +57,12 @@ namespace GeoForge.Sample4 {
                 return;
             }
 
-            _geoVolume = new GeoVolume(this, this, config);
+            _geoVolumeEngine = new GeoVolumeEngine(this, this, config);
         }
 
         protected override void OnSpawned(bool asServer) {
             Debug.Log("NetworkedVolume.Spawned");
-            GeoVolume.RegisterVolume();
+            GeoVolumeEngine.RegisterVolume();
             
             if (!isServer)
                 return;
@@ -78,13 +79,13 @@ namespace GeoForge.Sample4 {
         /// One NativeArray of Voxels is maintained for all the chunks and simply overriden with new data.
         /// </summary>
         protected virtual IEnumerator InitializeChunks() {
-            var size = _geoVolume.ConfigBlob.Value.SizeInChunks;
+            var size = _geoVolumeEngine.ConfigBlob.Value.SizeInChunks;
             var offset = new Vector3Int(size.x / 2, size.y / 2, size.z / 2);
             for (var x = 0; x < size.x; x++) {
                 for (var y = 0; y < size.y; y++) {
                     for (var z = 0; z < size.z; z++) {
                         var chunkCoord = new Vector3Int(x, y, z) - offset;
-                        _geoVolume.CreateChunk<IGeoChunk>(chunkCoord, chunkPrefab);
+                        _geoVolumeEngine.CreateChunk<IGeoChunk, IGeoEditStore>(chunkCoord, chunkPrefab, new ExampleSyncModule());
                         yield return null;
                     }
                 }
@@ -100,18 +101,21 @@ namespace GeoForge.Sample4 {
             if (!isMoving)
                 return;
 
-            _geoVolume.UpdateVolumeOrigin();
+            _geoVolumeEngine.UpdateVolumeOrigin();
         }
 
         /// <summary>
         /// GeoVolume implements IDisposable to dispose it's BlobAssets. 
         /// </summary>
-        protected override void OnDestroy() => _geoVolume?.Dispose();
+        protected override void OnDestroy() => _geoVolumeEngine?.Dispose();
 
         // IGeoVolume implementations
         public Vector2[] ViewDistanceLodRanges => viewDistanceLodRanges;
 
         public Transform VolumeTransform => transform;
+        public void ResetEditedChunksToProcedural() {
+            
+        }
 
         public Transform LodTarget =>
                 Camera.main == null

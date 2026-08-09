@@ -11,45 +11,43 @@ namespace Spellbound.GeoForge {
     [CreateAssetMenu(menuName = "Spellbound/GeoForge/VoxelVolumeConfig")]
     public class VoxelVolumeConfig : ScriptableObject {
         [Tooltip("Determines how many voxels are marched at a time, per side. Higher number may affect performance"),
-         Range(8, 32)]
-        public int cubesPerMarch = 16;
+         Range(8, 32), SerializeField]
+        internal int cubesPerMarch = 16;
 
         [Tooltip("Max number of Levels of Details"),
-         Range(1, 5)]
-        public int levelsOfDetail = 3;
+         Range(1, 5), SerializeField]
+        internal int levelsOfDetail = 3;
 
         [Tooltip("Size in voxels of one geoChunk of data. Higher number may affect performance."),
-         Range(8, 128)]
-        public int maxChunkSize = 128;
+         Range(8, 128), SerializeField]
+        internal int maxChunkSize = 128;
 
         [Tooltip("Actual geoChunk size, generated from maxChunkSize and Levels of Detail"),
          SerializeField, Immutable]
-        private int chunkSize;
+        internal int chunkSize;
 
-        public int ChunkSize => chunkSize;
+        internal int ChunkSize => chunkSize;
 
         [Tooltip("Number of Voxels per one unit/meter. Lower number may affect performance."),
-         Range(0.1f, 10f)]
-        public float resolution = 1;
+         Range(0.1f, 10f), SerializeField]
+        internal float resolution = 1;
 
-        [Tooltip("Indicates if the geoVolume is finite, rather than like an endless terrain")]
-        public bool isFiniteSize = true;
+        [Tooltip("Indicates if the geoVolume is finite, rather than like an endless terrain"), SerializeField]
+        internal bool isFiniteSize = true;
 
-        [Tooltip("For a finite geoVolume, how many chunks it is in each axis")]
-        public Vector3Int sizeInChunks;
+        [Tooltip("For a finite geoVolume, how many chunks it is in each axis"), SerializeField]
+        internal Vector3Int sizeInChunks;
 
-        [Tooltip("How many chunks are procedurally generated per frame"), Range(1, 10)]
-        public int generatesPerFrame = 1;
+        [Tooltip("How many chunks are procedurally generated per frame"), Range(1, 10), SerializeField]
+        internal int generatesPerFrame = 1;
 
-        [Tooltip("How many chunks have their LODs validated per frame"), Range(1, 10)]
-        public int validatesPerFrame = 1;
+        [Tooltip("How many chunks have their LODs validated per frame"), Range(1, 10), SerializeField]
+        internal int validatesPerFrame = 1;
 
         [Tooltip(
              "This dimension is derived from your other settings. Indicates actual size of geoVolume, if its finite."),
          SerializeField, Immutable]
-        private Vector3 volumeSize;
-
-        public Vector3 VolumeSize => volumeSize;
+        internal Vector3 volumeSize;
 
         private void OnValidate() {
             ValidateChunkSize();

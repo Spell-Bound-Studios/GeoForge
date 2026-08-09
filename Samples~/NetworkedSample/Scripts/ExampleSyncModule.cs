@@ -226,6 +226,8 @@ namespace Spellbound.GeoForge.Sample4 {
                 yield return (idx, voxelData);
         }
 
+        public void Clear() => _chunkData.ClearEdits();
+
         #endregion IGeoEditStore Implementation
 
         #region Resolve Logic

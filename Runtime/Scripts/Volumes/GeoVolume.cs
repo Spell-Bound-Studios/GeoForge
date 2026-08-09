@@ -1,275 +1,203 @@
 // Copyright 2026 Spellbound Studio Inc.
 
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using Spellbound.Core.Tooling;
-using Unity.Entities;
+using System.Collections;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace Spellbound.GeoForge {
-    public class GeoVolume : IDisposable {
-        private readonly MonoBehaviour _owner;
-        private readonly IGeoVolume _ownerAsIGeoVolume;
-        private Dictionary<Vector3Int, IGeoChunk> _chunkDict = new();
-        private Bounds _bounds;
-        public BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob { get; private set; }
+    /// <summary>
+    /// Basic Implementation of IGeoVolume for a Volume of Finite Size.
+    /// Initializes Chunks one per frame until all are initialized.
+    /// All other management is the baseline wrappers for GeoVolume.
+    /// Note IGeoVolume implementations are NOT virtual. The intent of GeoVolume is to be extendable,
+    /// but not in terms of altering it how it implements IGeoVolume. If you want a unique implementation of IGeoVolume,
+    /// create a new class instead of inheriting from GeoVolume.
+    /// </summary>
+    public class GeoVolume : MonoBehaviour, IGeoVolume {
+        [field: Tooltip("Preset for what voxel data is generated in the geoVolume"), SerializeField]
+        protected DataFactory DataFactory { get; set; }
 
-        public Transform Transform => _owner.transform;
-        public Dictionary<Vector3Int, IGeoChunk> ChunkDict => _chunkDict;
+        [field: Tooltip("Rules for immutable voxels on the external faces of the geoVolume"), SerializeField]
+        protected BoundaryOverrides BoundaryOverrides { get; set; }
 
-        public GeoVolume(MonoBehaviour owner, IGeoVolume ownerAsIGeoVolume, VoxelVolumeConfig config) {
-            _owner = owner;
-            _ownerAsIGeoVolume = ownerAsIGeoVolume;
-            ConfigBlob = VolumeConfigBlobCreator.CreateVolumeConfigBlobAsset(config);
-            _bounds = CalculateVolumeBounds();
-        }
+        [field: Header("Volume Settings"), Tooltip("Config for ChunkSize, VolumeSize, etc"), SerializeField]
+        protected VoxelVolumeConfig Config { get; set; }
 
-        public bool AllChunksReady() {
-            if (!ConfigBlob.Value.IsFiniteSize)
-                return false;
-            
-            if (ConfigBlob.Value.TotalChunks != _chunkDict.Count)
-                return false;
-            
-            return true;
-        }
+        [field: Tooltip("Initial State for if the geoVolume is moving. " +
+                        "If true it updates the origin of the triplanar material shader"), SerializeField]
+        public bool IsMoving { get; set; }
 
-        public Vector3Int WorldToVoxelSpace(Vector3 worldPosition) {
-            ref var config = ref ConfigBlob.Value;
-            var localPos = Transform.InverseTransformPoint(worldPosition);
+        [field: Tooltip("Initial State for if the geoVolume is the Primary Terrain. " +
+                        "Affects whether it can be globally queried or not"), SerializeField]
+        public bool IsPrimaryTerrain { get; set; }
 
-            return new Vector3Int(
-                Mathf.RoundToInt(localPos.x / config.Resolution) - config.Offset.x,
-                Mathf.RoundToInt(localPos.y / config.Resolution) - config.Offset.y,
-                Mathf.RoundToInt(localPos.z / config.Resolution) - config.Offset.z
-            );
-        }
-        
-        public Vector3 WorldToVoxelSpaceContinuous(Vector3 worldPosition) {
-            ref var config = ref ConfigBlob.Value;
-            var localPos = Transform.InverseTransformPoint(worldPosition);
+        [field: Tooltip("View Distances to each Level of Detail. Enforces a floor to prohibit abrupt changes"), SerializeField]
+        public Vector2[] ViewDistanceLodRanges { get; protected set; }
 
-            return new Vector3(
-                localPos.x / config.Resolution - config.Offset.x,
-                localPos.y / config.Resolution - config.Offset.y,
-                localPos.z / config.Resolution - config.Offset.z
-            );
-        }
+        [field: Tooltip("Prefab for the Chunk the Volume will build itself from. Must Implement IGeoChunk"), SerializeField]
+        private GameObject ChunkPrefab { get; set; }
 
-        public void RegisterVolume() {
-            if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var mcManager)) {
-                Debug.LogError("GeoForgeManager is null." + this);
+        [field: Tooltip("Optional explicit LOD target (e.g. the player camera). If left unset, falls back " +
+                        "to Camera.main, then any Camera found in the scene. Resolved once and cached on " +
+                        "first access - not re-evaluated per call."), SerializeField]
+        private Transform LodTargetOverride { get; set; }
+
+        private Transform _resolvedLodTarget;
+
+        public GeoVolumeEngine GeoVolumeEngine { get; private set; }
+
+#if UNITY_EDITOR
+        /// <summary>
+        /// Enforces a floor on view distances to prohibit abrupt changes.
+        /// The TransVoxel Algorithm does not handle abrupt changes so they would leave visible seams.
+        /// </summary>
+        protected virtual void OnValidate() {
+            if (Config == null) {
+                ViewDistanceLodRanges = null;
 
                 return;
             }
 
-            mcManager.RegisterVoxelVolume(_ownerAsIGeoVolume);
+            ViewDistanceLodRanges = GeoVolumeEngine.ValidateLodRanges(ViewDistanceLodRanges, Config);
+        }
+#endif
+        /// <summary>
+        /// Chunk Prefab must have a IGeoChunk component.
+        /// All IVolumes should create VoxelCoreLogic on Awake.
+        /// </summary>
+        protected virtual void Awake() {
+            if (ChunkPrefab == null || !ChunkPrefab.TryGetComponent<IGeoChunk>(out _)) {
+                Debug.LogError($"{name}: _chunkPrefab is null or does not have IGeoChunk Component");
+                enabled = false;
+
+                return;
+            }
+
+            CreateGeoVolume(Config);
         }
 
-        public IGeoChunk GetChunkByCoord(Vector3Int coord) => _chunkDict.GetValueOrDefault(coord);
-
-        public IGeoChunk GetChunkByWorldPosition(Vector3 worldPos) {
-            var voxelPos = WorldToVoxelSpace(worldPos);
-
-            return GetChunkByVoxelPosition(voxelPos);
+        protected virtual void CreateGeoVolume(VoxelVolumeConfig voxelVolumeConfig) {
+            GeoVolumeEngine = new GeoVolumeEngine(this, this, voxelVolumeConfig);
+            GeoVolumeEngine.RegisterVolume();
+            OnVolumeRegistered();
+            StartCoroutine(InitializeChunks());
         }
 
-        public IGeoChunk GetChunkByVoxelPosition(Vector3Int voxelPos) {
-            var coord = GetCoordByVoxelPosition(voxelPos);
-
-            return GetChunkByCoord(coord);
-        }
-
-        public Vector3Int GetCoordByVoxelPosition(Vector3Int voxelPos) {
-            ref var config = ref ConfigBlob.Value;
-
-            return new Vector3Int(
-                Mathf.FloorToInt((voxelPos.x - 1f) / config.ChunkSize),
-                Mathf.FloorToInt((voxelPos.y - 1f) / config.ChunkSize),
-                Mathf.FloorToInt((voxelPos.z - 1f) / config.ChunkSize)
-            );
-        }
-
-        // Batches chunks into groups of ConfigBlob.Value.ValidatesPerFrame: schedule each chunk's
-        // LOD validation (checkout + octree cascade, via GeoChunk.ScheduleOctreeLodValidation) but
-        // don't complete or release any of them until the whole batch has been scheduled, so their
-        // march jobs can actually run concurrently on worker threads via one shared Complete()
-        // instead of one Complete() per chunk serializing everything.
-        //
-        // Fixed at exactly ValidatesPerFrame per batch, not "up to and including" - the old
-        // (++count <= ValidatesPerFrame) check let one extra chunk through per batch, which was
-        // harmless when each chunk released before the next was scheduled but would exhaust the
-        // Validation pool now, since that pool is sized to exactly ValidatesPerFrame slots.
-        public async Awaitable ValidateChunkLodsAsync() {
-            var chunkList = new List<Vector3Int>(_chunkDict.Keys.ToList());
-
-            if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var mcManager))
+        public void ResetEditedChunksToProcedural() {
+            if (GeoVolumeEngine == null)
                 return;
 
-            var lodTarget = _ownerAsIGeoVolume.LodTarget;
+            GeoVolumeEngine.ResetEditedChunksToProcedural(DataFactory);
+        }
 
-            if (lodTarget == null)
-                return;
+        void IGeoVolume.HandleAllChunksMeshed() => OnAllChunksMeshed();
 
-            var validatesPerFrame = ConfigBlob.Value.ValidatesPerFrame;
-            var scheduledChunks = new List<IGeoChunk>(validatesPerFrame);
+        protected virtual void OnAllChunksMeshed() { }
 
-            foreach (var coord in chunkList) {
-                if (!_chunkDict.TryGetValue(coord, out var chunk))
-                    continue;
 
-                if (!chunk.HasVoxelData())
-                    continue;
+        /// <summary>
+        /// Initializes Chunks one per frame, centered on the Volume's transform
+        /// One NativeArray of Voxels is maintained for all the chunks and simply overriden with new data.
+        /// </summary>
+        protected virtual IEnumerator InitializeChunks() {
+            var size = GeoVolumeEngine.ConfigBlob.Value.SizeInChunks;
+            var offset = new Vector3Int(size.x / 2, size.y / 2, size.z / 2);
 
-                if (chunk.DensityRange.IsSkippable()) {
-                    continue;
+            for (var x = 0; x < size.x; x++) {
+                for (var y = 0; y < size.y; y++) {
+                    for (var z = 0; z < size.z; z++) {
+                        var chunkCoord = new Vector3Int(x, y, z) - offset;
+                        var chunk = GeoVolumeEngine.CreateChunk<IGeoChunk, GeoEditStore>(chunkCoord, ChunkPrefab, new GeoEditStore());
+
+                        if (!GeoVolumeEngine.RegisterChunk(chunkCoord, chunk)) {
+                            Debug.LogError($"{name}: failed to register chunk at {chunkCoord} - duplicate coord?");
+                            Destroy(chunk.GeoChunkEngine.Transform.gameObject);
+
+                            yield return null;
+
+                            continue;
+                        }
+
+                        chunk.SetBoundaryOverrides(chunkCoord, GeoVolumeEngine.ConfigBlob, BoundaryOverrides);
+                        chunk.SetVoxels(chunkCoord, GeoVolumeEngine.ConfigBlob, DataFactory);
+
+                        yield return null;
+                    }
                 }
-                    
-
-                var lodDistanceTargetVoxelSpace = WorldToVoxelSpace(lodTarget.position);
-                chunk.ScheduleOctreeLodValidation(lodDistanceTargetVoxelSpace);
-                scheduledChunks.Add(chunk);
-
-                if (scheduledChunks.Count < validatesPerFrame)
-                    continue;
-
-                mcManager.CompleteAndApplyMarchingCubesJobs();
-
-                foreach (var scheduledChunk in scheduledChunks)
-                    scheduledChunk.ReleaseLodValidation();
-
-                scheduledChunks.Clear();
-
-                await Awaitable.NextFrameAsync();
-
-                // Re-check liveness after the yield, once per batch rather than once per chunk
-                // (the old loop re-checked the manager singleton on every single chunk). Bails out
-                // and abandons any remaining chunks in this call if the manager is gone.
-                if (!SingletonManager.TryGetSingletonInstance(out mcManager))
-                    return;
             }
 
-            // Flush a partial final batch that never reached validatesPerFrame.
-            if (scheduledChunks.Count > 0) {
-                mcManager.CompleteAndApplyMarchingCubesJobs();
-
-                foreach (var scheduledChunk in scheduledChunks)
-                    scheduledChunk.ReleaseLodValidation();
-            }
+            OnChunksInitialized();
         }
 
-        public bool RegisterChunk(Vector3Int chunkCoord, IGeoChunk geoChunk) {
-            if (geoChunk == null)
-                return false;
+        /// <summary>
+        /// Called once GeoVolumeEngine has been created and registered with GeoForgeManager, but
+        /// before any chunks exist yet - the earliest point external systems can safely read
+        /// GeoVolumeEngine/ConfigBlob/bounds off this volume.
+        /// </summary>
+        protected virtual void OnVolumeRegistered() { }
 
-            if (_chunkDict.TryAdd(chunkCoord, geoChunk)) {
-                return true;
-            }
-                
+        /// <summary>
+        /// Called once every chunk in the volume has been created, registered, had its boundary
+        /// overrides applied, and had its initial voxel data set - i.e. once
+        /// GeoVolumeEngine.AllChunksReady() is guaranteed true. Safe point to call
+        /// TryLoadFromByteArray.
+        /// </summary>
+        protected virtual void OnChunksInitialized() { }
 
-            return false;
+        /// <summary>
+        /// Marching Cubes meshes utilize a triplanar shader. In order for textures to "stick to" their gemometry
+        /// as the geoVolume moves, the geoVolume origin must be updated. This is costly so should be avoided for volumes
+        /// that reliably will not move.
+        /// </summary>
+        protected virtual void Update() {
+            if (!IsMoving)
+                return;
+
+            GeoVolumeEngine.UpdateVolumeOrigin();
         }
 
-        public T CreateChunk<T>(Vector3Int chunkCoord, GameObject chunkPrefab) where T : class, IGeoChunk {
-            ref var config = ref ConfigBlob.Value;
+        /// <summary>
+        /// This must be done on ALL IGeoVolume implementers to prevent memory leaks.
+        /// </summary>
+        protected virtual void OnDestroy() => GeoVolumeEngine?.Dispose();
 
-            var localChunkPos = (Vector3)chunkCoord * (config.ChunkSize * config.Resolution);
-            var worldChunkPos = Transform.TransformPoint(localChunkPos);
+        public Transform VolumeTransform => transform;
 
-            var chunkObj = Object.Instantiate(
-                chunkPrefab,
-                worldChunkPos,
-                Transform.rotation,
-                Transform
-            );
+        /// <summary>
+        /// Resolved once (lodTargetOverride, then Camera.main, then any Camera in the scene) and
+        /// cached - no repeated scene search per call, and no NullReferenceException if nothing
+        /// resolves (returns null and logs instead). Once resolved, later calls return the cached
+        /// Transform directly regardless of any changes to Camera.main afterward.
+        /// </summary>
+        public Transform LodTarget {
+            get {
+                if (_resolvedLodTarget != null)
+                    return _resolvedLodTarget;
 
-            if (!chunkObj.TryGetComponent(out T chunk)) {
-                Debug.LogError($"Chunk bakePrefab missing component of type {typeof(T).Name}");
-                Object.Destroy(chunkObj); // Clean up failed instantiation
+                if (LodTargetOverride != null) {
+                    _resolvedLodTarget = LodTargetOverride;
+
+                    return _resolvedLodTarget;
+                }
+
+                if (Camera.main != null) {
+                    _resolvedLodTarget = Camera.main.transform;
+
+                    return _resolvedLodTarget;
+                }
+
+                var fallbackCamera = FindAnyObjectByType<Camera>();
+
+                if (fallbackCamera != null) {
+                    _resolvedLodTarget = fallbackCamera.transform;
+
+                    return _resolvedLodTarget;
+                }
+
+                Debug.LogError(
+                    $"{name}: LodTarget could not resolve - no lodTargetOverride assigned and no Camera found in the scene.");
 
                 return null;
             }
-
-            chunk.InitializeGeoChunk(chunkCoord);
-
-            return chunk;
-        }
-
-        public void UpdateVolumeOrigin() {
-            foreach (var chunk in _chunkDict.Values)
-                chunk.OnVolumeMovement();
-        }
-
-        public static Vector2[] ValidateLodRanges(Vector2[] lodRanges, VoxelVolumeConfig config) {
-            // Ensure correct array length
-            if (lodRanges == null || lodRanges.Length != config.levelsOfDetail)
-                lodRanges = new Vector2[config.levelsOfDetail];
-
-            var dist = 0f;
-
-            for (var i = 0; i < lodRanges.Length; i++) {
-                lodRanges[i].x = dist;
-
-                lodRanges[i].y = Mathf.Max(lodRanges[i].y,
-                    lodRanges[i].x + 2 * config.resolution * (config.cubesPerMarch << i));
-                dist = lodRanges[i].y;
-            }
-
-            return lodRanges;
-        }
-
-        public bool IntersectsVolume(Bounds voxelBounds) => _bounds.Intersects(voxelBounds);
-
-        private Bounds CalculateVolumeBounds() {
-            ref var config = ref ConfigBlob.Value;
-
-            var sizeInVoxels = new Vector3(
-                config.SizeInChunks.x * config.ChunkSize,
-                config.SizeInChunks.y * config.ChunkSize,
-                config.SizeInChunks.z * config.ChunkSize
-            );
-
-            var center = Vector3.zero - config.Offset;
-
-            return new Bounds(center, sizeInVoxels);
-        }
-
-        public (Vector3, Quaternion) SnapToGrid(Vector3 pos) {
-            var localPos = Transform.InverseTransformPoint(pos);
-            var resolution = ConfigBlob.Value.Resolution;
-
-            var snappedLocal = resolution * new Vector3(
-                Mathf.Round(localPos.x / resolution),
-                Mathf.Round(localPos.y / resolution),
-                Mathf.Round(localPos.z / resolution)
-            );
-
-            var snappedWorld = Transform.TransformPoint(snappedLocal);
-
-            return (snappedWorld, Transform.rotation);
-        }
-
-        public void Dispose() {
-            var chunkList = new List<IGeoChunk>(_chunkDict.Values);
-            foreach (var chunk in chunkList) {
-                chunk.GeoChunk.Dispose();
-
-                // Destroy (deferred to end-of-frame) instead of DestroyImmediate: DestroyImmediate
-                // synchronously re-enters SimpleGeoChunk.OnDestroy() -> _geoChunk.Dispose() right
-                // here in the middle of this loop, which is the risky ordering this exit criterion
-                // calls out. GeoChunk.Dispose() is now idempotent by design (see its own guard),
-                // so whichever order the deferred OnDestroy fires in, it's safe either way.
-                Object.Destroy(chunk.GeoChunk.Transform.gameObject);
-            }
-            
-            if (SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var mcManager)) {
-                mcManager.UnRegisterVoxelVolume(_ownerAsIGeoVolume);
-            }
-            
-            if (ConfigBlob.IsCreated)
-                ConfigBlob.Dispose();
         }
     }
 }

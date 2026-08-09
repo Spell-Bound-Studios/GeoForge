@@ -568,9 +568,29 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 11400000, guid: 6c104175e8233804db9a3d7f25ab9ede, type: 2}
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <Config>k__BackingField
+      value: 
+      objectReference: {fileID: 11400000, guid: 39925c2de80ab8648aeda53056440ded, type: 2}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <IsMoving>k__BackingField
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ChunkPrefab>k__BackingField
+      value: 
+      objectReference: {fileID: 4065535263056542906, guid: 4af8e799ce530654588b63eb3c2a9d0d, type: 3}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <DataFactory>k__BackingField
+      value: 
+      objectReference: {fileID: 11400000, guid: 075d3add0af663f40bf88c01defcf9c5, type: 2}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: viewDistanceLodRanges.Array.size
       value: 4
       objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <BoundaryOverrides>k__BackingField
+      value: 
+      objectReference: {fileID: 11400000, guid: 6c104175e8233804db9a3d7f25ab9ede, type: 2}
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: viewDistanceLodRanges.Array.data[0].y
       value: 100.5
@@ -598,6 +618,38 @@ PrefabInstance:
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: viewDistanceLodRanges.Array.data[3].y
       value: 324.5
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[0].y
+      value: 16
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[1].x
+      value: 16
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[1].y
+      value: 48
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[2].x
+      value: 48
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[2].y
+      value: 112
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[3].x
+      value: 112
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[3].y
+      value: 240
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -924,9 +976,29 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 11400000, guid: 41322c6c94d7f084996d9ab83b6144d2, type: 2}
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <Config>k__BackingField
+      value: 
+      objectReference: {fileID: 11400000, guid: 39925c2de80ab8648aeda53056440ded, type: 2}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <IsMoving>k__BackingField
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ChunkPrefab>k__BackingField
+      value: 
+      objectReference: {fileID: 4065535263056542906, guid: 4af8e799ce530654588b63eb3c2a9d0d, type: 3}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <DataFactory>k__BackingField
+      value: 
+      objectReference: {fileID: 11400000, guid: ad296472e01616144b347827a6f0cc6d, type: 2}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: viewDistanceLodRanges.Array.size
       value: 4
       objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <BoundaryOverrides>k__BackingField
+      value: 
+      objectReference: {fileID: 11400000, guid: 41322c6c94d7f084996d9ab83b6144d2, type: 2}
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: viewDistanceLodRanges.Array.data[0].y
       value: 99.3
@@ -954,6 +1026,38 @@ PrefabInstance:
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: viewDistanceLodRanges.Array.data[3].y
       value: 323.3
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[0].y
+      value: 16
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[1].x
+      value: 16
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[1].y
+      value: 48
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[2].x
+      value: 48
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[2].y
+      value: 112
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[3].x
+      value: 112
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[3].y
+      value: 240
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
@@ -1396,9 +1500,29 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 11400000, guid: 4c805e95933963245873d4988a20c9ab, type: 2}
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <Config>k__BackingField
+      value: 
+      objectReference: {fileID: 11400000, guid: 39925c2de80ab8648aeda53056440ded, type: 2}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <IsMoving>k__BackingField
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ChunkPrefab>k__BackingField
+      value: 
+      objectReference: {fileID: 4065535263056542906, guid: 4af8e799ce530654588b63eb3c2a9d0d, type: 3}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <DataFactory>k__BackingField
+      value: 
+      objectReference: {fileID: 11400000, guid: 8192ed758c4cb034fb770899dd402a49, type: 2}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: viewDistanceLodRanges.Array.size
       value: 4
       objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <BoundaryOverrides>k__BackingField
+      value: 
+      objectReference: {fileID: 11400000, guid: 4c805e95933963245873d4988a20c9ab, type: 2}
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: viewDistanceLodRanges.Array.data[0].y
       value: 101.9
@@ -1426,6 +1550,38 @@ PrefabInstance:
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: viewDistanceLodRanges.Array.data[3].y
       value: 325.9
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.size
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[0].y
+      value: 16
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[1].x
+      value: 16
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[1].y
+      value: 48
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[2].x
+      value: 48
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[2].y
+      value: 112
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[3].x
+      value: 112
+      objectReference: {fileID: 0}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <ViewDistanceLodRanges>k__BackingField.Array.data[3].y
+      value: 240
       objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []

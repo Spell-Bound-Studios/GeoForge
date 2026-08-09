@@ -15,7 +15,7 @@ MonoBehaviour:
   BoundaryOverridesList:
   - axis: 1
     side: 1
-    boundaryType: 1
+    boundaryType: 3
     materialType: 0
   - axis: 1
     side: 0

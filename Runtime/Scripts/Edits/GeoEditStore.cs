@@ -8,10 +8,10 @@ namespace Spellbound.GeoForge {
     /// <summary>
     /// Simple implementation of IGeoEditStore for samples and small projects.
     /// </summary>
-    public class SimpleGeoEditStore : IGeoEditStore {
+    public class GeoEditStore : IGeoEditStore {
         private readonly GeoForgeChunkData _chunkData;
 
-        public SimpleGeoEditStore(GeoForgeChunkData chunkData = null) {
+        public GeoEditStore(GeoForgeChunkData chunkData = null) {
             chunkData ??= new GeoForgeChunkData();
             _chunkData = chunkData;
         }
@@ -28,17 +28,9 @@ namespace Spellbound.GeoForge {
             return false;
         }
 
-        public void Write(List<(int, VoxelData)> voxelDatas) {
-            var changes = new List<(int, VoxelData)>(voxelDatas.Count);
-
-            foreach (var (idx, voxelData) in voxelDatas) {
-                TryRead(idx, out var current);
-
-                if (voxelData == current)
-                    continue;
-
+        public void Write(List<(int, VoxelData)> changes) {
+            foreach (var (idx, voxelData) in changes) {
                 _chunkData.WriteEdit(idx, voxelData);
-                changes.Add((idx, voxelData));
             }
 
             NotifyGeoEditsChanged(changes);
@@ -119,6 +111,8 @@ namespace Spellbound.GeoForge {
             foreach (var (idx, voxelData) in _chunkData.Edits)
                 yield return (idx, voxelData);
         }
+
+        public void Clear() => _chunkData.ClearEdits();
 
         #region Notify Helpers
 

@@ -45,7 +45,7 @@ namespace Spellbound.GeoForge {
 
         private bool IsLeaf => _children == null;
 
-        public OctreeNode(Vector3Int localPosition, int lod, IGeoChunk geoChunk, IGeoVolume parentGeoVolume) {
+        internal OctreeNode(Vector3Int localPosition, int lod, IGeoChunk geoChunk, IGeoVolume parentGeoVolume) {
             _parentGeoVolume = parentGeoVolume;
             _localPosition = localPosition;
             _lod = lod;
@@ -176,7 +176,7 @@ namespace Spellbound.GeoForge {
             _transitionDirtyFlag = false;
         }
 
-        public void ValidateMaterial() {
+        internal void ValidateMaterial() {
             if (_leafGo != null) {
                 SetMaterialOrigin();
 
@@ -207,7 +207,7 @@ namespace Spellbound.GeoForge {
             }
         }
 
-        public void ValidateOctreeLods(Vector3 playerPosition, NativeArray<VoxelData> voxelArray) {
+        internal void ValidateOctreeLods(Vector3 playerPosition, NativeArray<VoxelData> voxelArray) {
             var targetLod = GetLodRange(Center, playerPosition, _parentGeoVolume.ConfigBlob.Value.Resolution);
 
             if (_geoChunk.DensityRange.IsSkippable()) return;
@@ -235,7 +235,7 @@ namespace Spellbound.GeoForge {
                 child.ValidateOctreeLods(playerPosition, voxelArray);
         }
 
-        public void ValidateOctreeEdits(BoundsInt boundsVoxel, NativeArray<VoxelData> voxelArray) {
+        internal void ValidateOctreeEdits(BoundsInt boundsVoxel, NativeArray<VoxelData> voxelArray) {
             if (!BoundsIntersect(_boundsVoxel, boundsVoxel)) return;
 
             if (IsLeaf) {
@@ -256,7 +256,7 @@ namespace Spellbound.GeoForge {
             return true;
         }
 
-        public void ValidateTransition(
+        internal void ValidateTransition(
             OctreeNode neighbor, Vector3Int voxelPos, GfStaticHelper.TransitionFaceMask faceMask) {
             if (!_boundsVoxel.Contains(voxelPos))
                 return;
@@ -362,8 +362,9 @@ namespace Spellbound.GeoForge {
         }
 
         private void UpdateLeaf(NativeArray<VoxelData> voxelArray) {
-            if (!_leafInitialized) return;
-
+            if (!_leafInitialized) 
+                return;
+            
             MarchAndMesh(voxelArray);
         }
 
@@ -435,7 +436,7 @@ namespace Spellbound.GeoForge {
         }
 
         private void BuildLeaf() {
-            _leafGo = _gfManager.GetPooledObject(_geoChunk.GeoChunk.Transform);
+            _leafGo = _gfManager.GetPooledObject(_geoChunk.GeoChunkEngine.Transform);
             _leafGo.transform.localPosition = Vector3.zero;
             _leafGo.transform.localRotation = Quaternion.identity;
 
@@ -579,7 +580,7 @@ namespace Spellbound.GeoForge {
         /// non-empty - matching the original one-time MakeLeaf behavior, just re-anchored to
         /// "first time this leaf actually has geometry" instead of "first time MakeLeaf ran."
         /// </summary>
-        public void ApplyMarchResults(
+        internal void ApplyMarchResults(
             NativeList<MeshingVertexData> vertices, NativeList<int> triangles, Bounds computedBounds) {
             if (triangles.Length < 3 || vertices.Length < 3) {
                 ReleaseLeafObjects();
@@ -617,7 +618,7 @@ namespace Spellbound.GeoForge {
             // ApplyTransitionMarchResults needs _transitionMesh/_allTransitionTriangles to exist.
         }
 
-        public void ApplyTransitionMarchResults(
+        internal void ApplyTransitionMarchResults(
             NativeList<MeshingVertexData> vertices,
             NativeList<int> triangles,
             NativeArray<int2> triangleRanges) {

@@ -17,7 +17,7 @@ namespace Spellbound.GeoForge {
          SerializeField]
         private List<BoundaryOverride> BoundaryOverridesList = new();
 
-        public List<BoundaryOverrideRuntime> GetBoundaryOverrides() {
+        private List<BoundaryOverrideRuntime> GetBoundaryOverrides() {
             var runtimeList = new List<BoundaryOverrideRuntime>();
 
             foreach (var bo in BoundaryOverridesList) {
@@ -99,7 +99,7 @@ namespace Spellbound.GeoForge {
     /// Axis and Side identify a specific boundary of the Volume. There are 6 combinations in total, like the 6 faces
     /// of a cube.
     /// </summary>
-    public enum Axis {
+    internal enum Axis {
         X,
         Y,
         Z
@@ -109,7 +109,7 @@ namespace Spellbound.GeoForge {
     /// Axis and Side identify a specific boundary of the Volume. There are 6 combinations in total, like the 6 faces
     /// of a cube.
     /// </summary>
-    public enum Side {
+    internal enum Side {
         Min,
         Max
     }
@@ -119,7 +119,7 @@ namespace Spellbound.GeoForge {
     /// Closed means the voxels are full, Open means the Voxels are empty.
     /// Mature Closed/Open means the material index should be flagged as Mature. 
     /// </summary>
-    public enum BoundaryType {
+    internal enum BoundaryType {
         Closed,
         Open,
         MatureClosed,
@@ -130,28 +130,28 @@ namespace Spellbound.GeoForge {
     /// A single Boundary Override fully describes what to force one boundary of a GeoForgeVolume's voxels to.
     /// </summary>
     [System.Serializable]
-    public struct BoundaryOverride {
+    internal struct BoundaryOverride {
         [Tooltip("Boundary is in the direction of which axis")]
-        public Axis axis;
+        internal Axis axis;
 
         [Tooltip("Boundary is in the min or the max direction of the axis")]
-        public Side side;
+        internal Side side;
 
         [Tooltip("Open for empty/air this will be outside of the mesh. Closed for inside the mesh")]
-        public BoundaryType boundaryType;
+        internal BoundaryType boundaryType;
 
         [Tooltip("Material for the boundaries. " +
                  "Refer to MarchingCubeManager for what index corresponds to what material.")]
-        public byte materialType;
+        internal byte materialType;
     }
 
     /// <summary>
     /// Runtime representation of a BoundaryOverride.
     /// Has combined the rules into a specific VoxelData to be copied into all the Boundary Voxels.
     /// </summary>
-    public struct BoundaryOverrideRuntime {
-        public Axis Axis;
-        public Side Side;
-        public VoxelData VoxelData;
+    internal struct BoundaryOverrideRuntime {
+        internal Axis Axis;
+        internal Side Side;
+        internal VoxelData VoxelData;
     }
 }

@@ -76,7 +76,7 @@ namespace Spellbound.GeoForge {
                 Ranges = ranges
             };
 
-            if (!_nodeToChunkCoord.ContainsKey(node)) _nodeToChunkCoord[node] = chunkCoord;
+            _nodeToChunkCoord.TryAdd(node, chunkCoord);
         }
 
         internal void CompleteAndApplyMarchingCubesJobs() {

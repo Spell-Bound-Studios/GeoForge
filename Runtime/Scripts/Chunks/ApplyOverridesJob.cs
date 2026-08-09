@@ -11,19 +11,19 @@ namespace Spellbound.GeoForge {
     /// the Boundary Overrides.
     /// </summary>
     [BurstCompile]
-    public struct ApplyBoundaryOverridesJob : IJobParallelFor {
-        public NativeArray<VoxelData> voxelArray;
+    internal struct ApplyBoundaryOverridesJob : IJobParallelFor {
+        internal NativeArray<VoxelData> voxelArray;
 
-        [ReadOnly] public NativeHashMap<int, VoxelData> xOverrides;
-        [ReadOnly] public NativeHashMap<int, VoxelData> yOverrides;
-        [ReadOnly] public NativeHashMap<int, VoxelData> zOverrides;
-        [ReadOnly] public NativeHashMap<int3, VoxelData> pointOverrides;
+        [ReadOnly] internal NativeHashMap<int, VoxelData> xOverrides;
+        [ReadOnly] internal NativeHashMap<int, VoxelData> yOverrides;
+        [ReadOnly] internal NativeHashMap<int, VoxelData> zOverrides;
+        [ReadOnly] internal NativeHashMap<int3, VoxelData> pointOverrides;
 
-        [ReadOnly] public int chunkDataAreaSize;
-        [ReadOnly] public int chunkDataWidthSize;
+        [ReadOnly] internal int chunkDataAreaSize;
+        [ReadOnly] internal int chunkDataWidthSize;
 
         [NativeDisableParallelForRestriction, WriteOnly]
-        public NativeArray<bool> hasOverrides;
+        internal NativeArray<bool> hasOverrides;
 
         public void Execute(int i) {
             GfStaticHelper.IndexToInt3(i, chunkDataAreaSize, chunkDataWidthSize,

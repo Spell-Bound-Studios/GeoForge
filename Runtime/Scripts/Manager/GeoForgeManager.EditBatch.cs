@@ -12,7 +12,7 @@ namespace Spellbound.GeoForge {
         // chunk's march jobs can be scheduled before any of them block on a shared Complete().
         internal bool IsBatchingEdits { get; private set; }
 
-        private readonly List<GeoChunk> _pendingEditReleases = new();
+        private readonly List<GeoChunkEngine> _pendingEditReleases = new();
 
         // Call before scheduling a batch of chunk edits that should share one Complete() call.
         // Must be paired with EndEditBatch, wrapped in try/finally by the caller - an exception
@@ -28,7 +28,7 @@ namespace Spellbound.GeoForge {
         // batch is in progress. A chunk whose edit produced no real change never reaches this -
         // SimpleGeoEditStore.Delta doesn't fire OnGeoEditChanged for an empty changes list, so
         // HandleResolvedVoxelEdits is never even called for it.
-        internal void RegisterPendingEditRelease(GeoChunk chunk) => _pendingEditReleases.Add(chunk);
+        internal void RegisterPendingEditRelease(GeoChunkEngine chunkEngine) => _pendingEditReleases.Add(chunkEngine);
 
         // Completes every march/transition job scheduled by this batch's chunks in one shared
         // Complete() call, then releases each registered chunk's Edit-pool slot - only now that

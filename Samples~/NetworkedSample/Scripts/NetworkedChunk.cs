@@ -3,6 +3,7 @@
 using System.Collections.Generic;
 using PurrNet;
 using Spellbound.Core;
+using Spellbound.Core.Logging;
 using Spellbound.GeoForge;
 using Spellbound.GeoForge.Sample4;
 using Unity.Collections;
@@ -41,7 +42,7 @@ namespace GeoForge.Sample4 {
         
         private Vector3Int _chunkCoord;
 
-        public GeoChunk GeoChunk { get; private set; }
+        public GeoChunkEngine GeoChunkEngine { get; private set; }
 
         /// <summary>
         /// OnEarlySpawn (server-only) already constructs a placeholder GeoChunk using whatever
@@ -55,26 +56,33 @@ namespace GeoForge.Sample4 {
         /// still preventing the leaked subscription that would otherwise keep processing edits
         /// against stale/default data forever.
         /// </summary>
-        public void InitializeGeoChunk(Vector3Int coord) {
-            if (GeoChunk != null)
-                GeoChunk.IGeoEditStore.OnGeoEditChanged -= GeoChunk.HandleResolvedVoxelEdits;
+        public void InitializeGeoChunk(Vector3Int coord, IGeoEditStore store) {
+            if (GeoChunkEngine != null)
+                GeoChunkEngine.IGeoEditStore.OnGeoEditChanged -= GeoChunkEngine.HandleResolvedVoxelEdits;
 
             _chunkCoord = coord;
-            GeoChunk = new GeoChunk(this, transform, _syncModule, coord);
-            GeoChunk.IGeoEditStore.DefaultVoxelDataFunc = GeoChunk.GetVoxelData;
-            GeoChunk.ParentGeoVolume.GeoVolume.RegisterChunk(coord, this);
+            GeoChunkEngine = new GeoChunkEngine(this, transform, _syncModule, coord);
+            GeoChunkEngine.IGeoEditStore.DefaultVoxelDataFunc = GeoChunkEngine.GetVoxelData;
+            GeoChunkEngine.ParentGeoVolume.GeoVolumeEngine.RegisterChunk(coord, this);
+        }
+
+        public void HandleMeshReady() {
+        }
+
+        public void RegenerateFromProceduralData() {
+            Debug.LogWarning("RegenerateFromProceduralData not implemented");
         }
 
         #region PurrNet Lifecycles, Events and Callbacks
 
         protected override void OnEarlySpawn() {
             _syncModule.SetChunkData();
-            GeoChunk = new GeoChunk(this, transform, _syncModule, _chunkCoord);
+            GeoChunkEngine = new GeoChunkEngine(this, transform, _syncModule, _chunkCoord);
         } 
 
         protected override void OnDestroy() {
             base.OnDestroy();
-            GeoChunk?.Dispose();
+            GeoChunkEngine?.Dispose();
         }
 
         /// <summary>
@@ -88,7 +96,7 @@ namespace GeoForge.Sample4 {
             if (isServer)
                 Debug.Log($"[Server] {player.id} is running in observer added");
             
-            SendToNewObserver(player, GeoChunk.ChunkCoord);
+            SendToNewObserver(player, GeoChunkEngine.ChunkCoord);
 
             // If this chunks observer count is less than or equal to 1 OR doesn't have an owner get out.
             if (observers.Count <= 1 || !hasOwner)
@@ -98,7 +106,7 @@ namespace GeoForge.Sample4 {
             RemoveOwnership();
 
             Debug.Log(
-                $"[Server] Chunk {GeoChunk?.ChunkCoord} - Multiple observers ({observers.Count}), server taking authority");
+                $"[Server] Chunk {GeoChunkEngine?.ChunkCoord} - Multiple observers ({observers.Count}), server taking authority");
         }
 
         /// <summary>
@@ -126,7 +134,7 @@ namespace GeoForge.Sample4 {
             GiveOwnership(isolatedPlayer);
 
             Debug.Log(
-                $"[Server] Chunk {GeoChunk?.ChunkCoord} - Single observer remaining, giving ownership to {isolatedPlayer}");
+                $"[Server] Chunk {GeoChunkEngine?.ChunkCoord} - Single observer remaining, giving ownership to {isolatedPlayer}");
         }
 
         /// <summary>
@@ -135,14 +143,14 @@ namespace GeoForge.Sample4 {
         protected override void OnOwnerChanged(PlayerID? oldOwner, PlayerID? newOwner, bool asServer) {
             // Only print this if there is a new owner, I'm the owner, and I'm a client (avoid double prints).
             if (newOwner.HasValue && isOwner && isClient)
-                Debug.Log($"[Client] I now own chunk {GeoChunk?.ChunkCoord} - lag-free editing enabled!");
+                Debug.Log($"[Client] I now own chunk {GeoChunkEngine?.ChunkCoord} - lag-free editing enabled!");
         }
 
         [TargetRpc(bufferLast: true)]
         private void SendToNewObserver(PlayerID target, Vector3Int chunkCoord) {
             // Lets error handle properly. If you're following this example then it should fit into the PurrNet
             // lifecycle properly. However, if you're not and doing your own thing it's important to make sure it exists!
-            if (GeoChunk == null) {
+            if (GeoChunkEngine == null) {
                 Debug.LogError("[Client] GeoChunk is null. Please ensure GeoChunk is created.", this);
 
                 return;
@@ -150,9 +158,9 @@ namespace GeoForge.Sample4 {
             
             _chunkCoord = chunkCoord;
             gameObject.name = chunkCoord.ToString();
-            InitializeGeoChunk(_chunkCoord); // THIS LINE
+            InitializeGeoChunk(_chunkCoord, _syncModule); // THIS LINE
             
-            Debug.Log($"[Client] Initializing chunk at {GeoChunk?.ChunkCoord}");
+            Debug.Log($"[Client] Initializing chunk at {GeoChunkEngine?.ChunkCoord}");
             
             InitializeChunk();
         }
@@ -163,20 +171,20 @@ namespace GeoForge.Sample4 {
         #region IChunk Implementation
         
         public void InitializeChunk(NativeArray<VoxelData> voxels = default) {
-            GeoChunk.ParentGeoVolume.GeoVolume.RegisterChunk(GeoChunk.ChunkCoord, this);
+            GeoChunkEngine.ParentGeoVolume.GeoVolumeEngine.RegisterChunk(GeoChunkEngine.ChunkCoord, this);
             
             if (boundaryOverrides != null) {
                 var overrides = boundaryOverrides.BuildChunkOverrides(
-                    GeoChunk.ChunkCoord, GeoChunk.ParentGeoVolume.ConfigBlob);
-                GeoChunk.SetOverrides(overrides);
+                    GeoChunkEngine.ChunkCoord, GeoChunkEngine.ParentGeoVolume.ConfigBlob);
+                GeoChunkEngine.SetOverrides(overrides);
             }
 
             if (voxels == default)
                 voxels = new NativeArray<VoxelData>(
-                    GeoChunk.ParentGeoVolume.ConfigBlob.Value.ChunkDataVolumeSize, Allocator.Persistent);
+                    GeoChunkEngine.ParentGeoVolume.ConfigBlob.Value.ChunkDataVolumeSize, Allocator.Persistent);
             
-            dataFactory.FillDataArray(GeoChunk.ChunkCoord, GeoChunk.ParentGeoVolume.ConfigBlob, voxels);
-            GeoChunk.SetVoxels(voxels);
+            dataFactory.FillDataArray(GeoChunkEngine.ChunkCoord, GeoChunkEngine.ParentGeoVolume.ConfigBlob, voxels);
+            GeoChunkEngine.SetVoxels(voxels);
 
             if (voxels.IsCreated) 
                 voxels.Dispose();

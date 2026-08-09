@@ -24,7 +24,7 @@ namespace Spellbound.GeoForge {
             _hasOverrides = false;
         }
 
-        public void AddPlaneOverride(Axis axis, int sliceIndex, VoxelData voxelData) {
+        internal void AddPlaneOverride(Axis axis, int sliceIndex, VoxelData voxelData) {
             _hasOverrides = true;
 
             switch (axis) {
@@ -93,7 +93,7 @@ namespace Spellbound.GeoForge {
             _hasOverrides = false;
         }
 
-        public void CopyToNativeHashMaps(
+        internal void CopyToNativeHashMaps(
             out NativeHashMap<int, VoxelData> xOverrides,
             out NativeHashMap<int, VoxelData> yOverrides,
             out NativeHashMap<int, VoxelData> zOverrides,
