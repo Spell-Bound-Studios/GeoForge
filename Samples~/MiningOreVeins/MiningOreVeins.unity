@@ -475,7 +475,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a267c7dee4fba2b4cb57ec15aace9111, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  <DataFactory>k__BackingField: {fileID: 11400000, guid: 298dcfd19c0ce8648b2e97c9820d6edd, type: 2}
+  <DataGenerator>k__BackingField: {fileID: 11400000, guid: 298dcfd19c0ce8648b2e97c9820d6edd, type: 2}
   <BoundaryOverrides>k__BackingField: {fileID: 11400000, guid: 418912af9029cc44ab70960ba4cd7239, type: 2}
   <Config>k__BackingField: {fileID: 11400000, guid: 1b8d2486ae2657844acc69c46a9d325b, type: 2}
   <IsMoving>k__BackingField: 0

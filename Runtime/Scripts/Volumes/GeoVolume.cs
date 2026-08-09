@@ -14,7 +14,7 @@ namespace Spellbound.GeoForge {
     /// </summary>
     public class GeoVolume : MonoBehaviour, IGeoVolume {
         [field: Tooltip("Preset for what voxel data is generated in the geoVolume"), SerializeField]
-        protected DataFactory DataFactory { get; set; }
+        protected GeoForgeDataGenerator DataGenerator { get; set; }
 
         [field: Tooltip("Rules for immutable voxels on the external faces of the geoVolume"), SerializeField]
         protected BoundaryOverrides BoundaryOverrides { get; set; }
@@ -86,7 +86,7 @@ namespace Spellbound.GeoForge {
             if (GeoVolumeEngine == null)
                 return;
 
-            GeoVolumeEngine.ResetEditedChunksToProcedural(DataFactory);
+            GeoVolumeEngine.ResetEditedChunksToProcedural(DataGenerator);
         }
 
         void IGeoVolume.HandleAllChunksMeshed() => OnAllChunksMeshed();
@@ -118,7 +118,7 @@ namespace Spellbound.GeoForge {
                         }
 
                         chunk.SetBoundaryOverrides(chunkCoord, GeoVolumeEngine.ConfigBlob, BoundaryOverrides);
-                        chunk.SetVoxels(chunkCoord, GeoVolumeEngine.ConfigBlob, DataFactory);
+                        chunk.SetVoxels(chunkCoord, GeoVolumeEngine.ConfigBlob, DataGenerator);
 
                         yield return null;
                     }

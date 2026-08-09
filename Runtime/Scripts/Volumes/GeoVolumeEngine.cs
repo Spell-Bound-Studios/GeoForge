@@ -116,7 +116,7 @@ namespace Spellbound.GeoForge {
         // reset-then-immediately-loaded chunk's restored edits get correctly written into voxel
         // data but never actually meshed until the background ValidateAllVolumesLodsAsync loop
         // happens to reach that chunk on its own.
-        public void ResetEditedChunksToProcedural(IGeoForgeDataGenerator  dataGenerator) {
+        public void ResetEditedChunksToProcedural(GeoForgeDataGenerator  dataGenerator) {
             if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager))
                 return;
             

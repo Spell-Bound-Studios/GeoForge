@@ -584,6 +584,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 11400000, guid: 075d3add0af663f40bf88c01defcf9c5, type: 2}
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <DataGenerator>k__BackingField
+      value: 
+      objectReference: {fileID: 11400000, guid: 075d3add0af663f40bf88c01defcf9c5, type: 2}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: viewDistanceLodRanges.Array.size
       value: 4
       objectReference: {fileID: 0}
@@ -989,6 +993,10 @@ PrefabInstance:
       objectReference: {fileID: 4065535263056542906, guid: 4af8e799ce530654588b63eb3c2a9d0d, type: 3}
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: <DataFactory>k__BackingField
+      value: 
+      objectReference: {fileID: 11400000, guid: ad296472e01616144b347827a6f0cc6d, type: 2}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <DataGenerator>k__BackingField
       value: 
       objectReference: {fileID: 11400000, guid: ad296472e01616144b347827a6f0cc6d, type: 2}
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
@@ -1513,6 +1521,10 @@ PrefabInstance:
       objectReference: {fileID: 4065535263056542906, guid: 4af8e799ce530654588b63eb3c2a9d0d, type: 3}
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: <DataFactory>k__BackingField
+      value: 
+      objectReference: {fileID: 11400000, guid: 8192ed758c4cb034fb770899dd402a49, type: 2}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <DataGenerator>k__BackingField
       value: 
       objectReference: {fileID: 11400000, guid: 8192ed758c4cb034fb770899dd402a49, type: 2}
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}

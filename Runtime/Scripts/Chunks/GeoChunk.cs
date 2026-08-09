@@ -18,7 +18,7 @@ namespace Spellbound.GeoForge {
         void IGeoChunk.SetVoxels(
             Vector3Int chunkCoord,
             BlobAssetReference<VolumeConfigBlobAsset> configBlobAsset,
-            IGeoForgeDataGenerator geoDataGenerator) {
+            GeoForgeDataGenerator geoDataGenerator) {
             GeoChunkEngine.SetVoxels(geoDataGenerator.GenerateProceduralVoxels(chunkCoord, configBlobAsset));
 
             OnVoxelsSet();

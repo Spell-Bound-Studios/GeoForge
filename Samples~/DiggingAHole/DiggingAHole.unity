@@ -208,6 +208,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 11400000, guid: b53a84b52b4ee3b428a44d2dd83668b0, type: 2}
     - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
+      propertyPath: <DataGenerator>k__BackingField
+      value: 
+      objectReference: {fileID: 11400000, guid: b53a84b52b4ee3b428a44d2dd83668b0, type: 2}
+    - target: {fileID: 9083058433317415293, guid: 80a472fdc0d173e4085c2c257658e455, type: 3}
       propertyPath: viewDistanceLodRanges.Array.size
       value: 4
       objectReference: {fileID: 0}

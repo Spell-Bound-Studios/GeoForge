@@ -69,7 +69,7 @@ namespace Spellbound.GeoForge {
 
         void SetVoxels(Vector3Int chunkCoord, 
             BlobAssetReference<VolumeConfigBlobAsset> configBlobAsset, 
-            IGeoForgeDataGenerator geoDataGenerator) 
+            GeoForgeDataGenerator geoDataGenerator) 
             => GeoChunkEngine.SetVoxels(geoDataGenerator.GenerateProceduralVoxels(chunkCoord, configBlobAsset));
 
         void SetBoundaryOverrides(Vector3Int chunkCoord,

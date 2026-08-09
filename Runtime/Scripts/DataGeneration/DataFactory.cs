@@ -8,7 +8,7 @@ namespace Spellbound.GeoForge {
     /// <summary>
     /// Abstract for crude data generation. This is managed C# on the main thread which means it's very slow.
     /// </summary>
-    public abstract class DataFactory : ScriptableObject, IGeoForgeDataGenerator {
+    public abstract class DataFactory : GeoForgeDataGenerator {
         protected Vector3Int GetChunkOrigin(
             Vector3Int chunkCoord, in VolumeConfigBlobAsset config) =>
                 new(
@@ -44,8 +44,8 @@ namespace Spellbound.GeoForge {
             BlobAssetReference<VolumeConfigBlobAsset> configBlob,
             NativeArray<VoxelData> data);
 
-        public NativeArray<VoxelData> GenerateProceduralVoxels(Vector3Int chunkCoord,
-            BlobAssetReference<VolumeConfigBlobAsset> configBlob) {
+        public override NativeArray<VoxelData> GenerateProceduralVoxels(Vector3Int chunkCoord,
+            BlobAssetReference<VolumeConfigBlobAsset> configBlob, uint seed = uint.MinValue) {
             var voxels = new NativeArray<VoxelData>(
                 configBlob.Value.ChunkDataVolumeSize,
                 Allocator.Persistent);
