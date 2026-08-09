@@ -5,11 +5,6 @@ using Unity.Entities;
 using UnityEngine;
 
 namespace Spellbound.GeoForge {
-    /// <summary>
-    /// Defines the boundaries of a GeoForge Volume.
-    /// This is useful/neccesary because if for example the volume is meant to be a closed shape or shapes,
-    /// then the voxels on the outer boundaries of the volume must be kept "empty".
-    /// </summary>
     [CreateAssetMenu(menuName = "Spellbound/GeoForge/BoundaryOverrides")]
     public class BoundaryOverrides : ScriptableObject {
         [Tooltip(
@@ -17,7 +12,7 @@ namespace Spellbound.GeoForge {
          SerializeField]
         private List<BoundaryOverride> BoundaryOverridesList = new();
 
-        private List<BoundaryOverrideRuntime> GetBoundaryOverrides() {
+        public List<BoundaryOverrideRuntime> GetBoundaryOverrides() {
             var runtimeList = new List<BoundaryOverrideRuntime>();
 
             foreach (var bo in BoundaryOverridesList) {
@@ -95,63 +90,43 @@ namespace Spellbound.GeoForge {
         }
     }
 
-    /// <summary>
-    /// Axis and Side identify a specific boundary of the Volume. There are 6 combinations in total, like the 6 faces
-    /// of a cube.
-    /// </summary>
-    internal enum Axis {
+    public enum Axis {
         X,
         Y,
         Z
     }
 
-    /// <summary>
-    /// Axis and Side identify a specific boundary of the Volume. There are 6 combinations in total, like the 6 faces
-    /// of a cube.
-    /// </summary>
-    internal enum Side {
+    public enum Side {
         Min,
         Max
     }
 
-    /// <summary>
-    /// BoundaryType indicates what density and material index to set the boundary voxels to.
-    /// Closed means the voxels are full, Open means the Voxels are empty.
-    /// Mature Closed/Open means the material index should be flagged as Mature. 
-    /// </summary>
-    internal enum BoundaryType {
+    public enum BoundaryType {
         Closed,
         Open,
         MatureClosed,
         MatureOpen
     }
 
-    /// <summary>
-    /// A single Boundary Override fully describes what to force one boundary of a GeoForgeVolume's voxels to.
-    /// </summary>
     [System.Serializable]
-    internal struct BoundaryOverride {
+    public struct BoundaryOverride {
         [Tooltip("Boundary is in the direction of which axis")]
-        internal Axis axis;
+        public Axis axis;
 
         [Tooltip("Boundary is in the min or the max direction of the axis")]
-        internal Side side;
+        public Side side;
 
         [Tooltip("Open for empty/air this will be outside of the mesh. Closed for inside the mesh")]
-        internal BoundaryType boundaryType;
+        public BoundaryType boundaryType;
 
         [Tooltip("Material for the boundaries. " +
                  "Refer to MarchingCubeManager for what index corresponds to what material.")]
-        internal byte materialType;
+        public byte materialType;
     }
 
-    /// <summary>
-    /// Runtime representation of a BoundaryOverride.
-    /// Has combined the rules into a specific VoxelData to be copied into all the Boundary Voxels.
-    /// </summary>
-    internal struct BoundaryOverrideRuntime {
-        internal Axis Axis;
-        internal Side Side;
-        internal VoxelData VoxelData;
+    public struct BoundaryOverrideRuntime {
+        public Axis Axis;
+        public Side Side;
+        public VoxelData VoxelData;
     }
 }
