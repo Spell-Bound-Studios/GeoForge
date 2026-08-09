@@ -196,7 +196,6 @@ namespace Spellbound.GeoForge {
                 if (chunk.DensityRange.IsSkippable()) {
                     continue;
                 }
-                    
 
                 var lodDistanceTargetVoxelSpace = WorldToVoxelSpace(lodTarget.position);
                 chunk.ScheduleOctreeLodValidation(lodDistanceTargetVoxelSpace);
@@ -218,6 +217,13 @@ namespace Spellbound.GeoForge {
                 // (the old loop re-checked the manager singleton on every single chunk). Bails out
                 // and abandons any remaining chunks in this call if the manager is gone.
                 if (!SingletonManager.TryGetSingletonInstance(out mcManager))
+                    return;
+
+                // lodTarget can be destroyed during the yield above (e.g. its owning player/entity
+                // despawns mid-validation) - re-check it the same way mcManager is re-checked, or
+                // the next iteration's lodTarget.position throws MissingReferenceException on a
+                // Transform whose native object no longer exists.
+                if (lodTarget == null)
                     return;
             }
 
