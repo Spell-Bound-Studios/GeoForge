@@ -36,6 +36,8 @@ namespace Spellbound.GeoForge {
 
         #region Default Implmentations
 
+        void OnTerraform(Vector3 worldPosition, int voxelCount) { }
+
         Transform VolumeTransform => GeoVolumeEngine.Transform;
 
         (Vector3, Quaternion) SnapToGrid(Vector3 pos) => GeoVolumeEngine.SnapToGrid(pos);

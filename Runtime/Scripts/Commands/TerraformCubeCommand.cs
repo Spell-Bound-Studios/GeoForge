@@ -78,6 +78,8 @@ namespace Spellbound.GeoForge {
 
             var side = halfExtent * 2 + 1;
             var voxelCount = side * side * side;
+            
+            geoVolume.OnTerraform(worldPosition, voxelCount);
 
             var resultMap = new NativeParallelMultiHashMap<ChunkCoordKey, VoxelDensityDelta>(
                 voxelCount * 8, Allocator.TempJob);
