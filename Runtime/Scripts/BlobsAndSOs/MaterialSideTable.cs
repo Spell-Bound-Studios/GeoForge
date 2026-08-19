@@ -51,6 +51,11 @@ namespace Spellbound.GeoForge {
         [SerializeField] private VoxelMaterialDatabase materialDatabase;
         [SerializeField] private List<Entry> entries = new();
 
+        [Tooltip("Returned by GetData when a material has no entry (missing row, or a name Sync " +
+                 "hasn't caught up to yet). See GetFallback if you need this to depend on which " +
+                 "material was requested rather than a single fixed value.")]
+        [SerializeField] private TData fallbackData;
+
         public override VoxelMaterialDatabase Database => materialDatabase;
         public override Type DataType => typeof(TData);
 
@@ -66,21 +71,30 @@ namespace Spellbound.GeoForge {
 
             if (!_warnedThisSession) {
                 Debug.LogWarning(
-                    $"{name}: no entry for material '{materialName}'. Did you forget to run Sync " +
-                    $"after adding it to {(materialDatabase != null ? materialDatabase.name : "<no database assigned>")}?",
+                    $"{name}: no entry for material '{materialName}' - using fallback. Did you " +
+                    $"forget to run Sync after adding it to " +
+                    $"{(materialDatabase != null ? materialDatabase.name : "<no database assigned>")}?",
                     this);
                 _warnedThisSession = true;
             }
 
-            return default;
+            return GetFallback(materialName);
         }
 
         /// <summary>Look up this material's data by index, resolving the name via the linked VoxelMaterialDatabase.</summary>
         public TData GetData(byte materialIndex) {
-            if (materialDatabase == null) return default;
+            if (materialDatabase == null) return GetFallback(null);
             var materialName = materialDatabase.GetMaterialName(materialIndex);
-            return materialName == null ? default : GetData(materialName);
+            return materialName == null ? GetFallback(null) : GetData(materialName);
         }
+
+        /// <summary>
+        /// Called by GetData whenever materialName has no entry. Default implementation returns
+        /// fallbackData, set once in the Inspector. Override this instead if the fallback needs to
+        /// depend on which material was requested, or be computed/looked up dynamically rather
+        /// than being a single fixed value.
+        /// </summary>
+        protected virtual TData GetFallback(string materialName) => fallbackData;
 
         private Dictionary<string, TData> BuildLookup() {
             var dict = new Dictionary<string, TData>();
