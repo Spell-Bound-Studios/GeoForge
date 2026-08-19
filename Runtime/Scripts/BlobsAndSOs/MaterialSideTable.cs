@@ -101,8 +101,13 @@ namespace Spellbound.GeoForge {
         /// count hasn't changed, this is treated as a rename pass and entries are realigned
         /// by position so existing data survives; otherwise entries are diffed by name,
         /// adding rows for new materials and dropping rows for removed ones.
+        ///
+        /// Deliberately NOT [ContextMenu] here: Unity's menu-command reflection can't resolve
+        /// a method declared on a generic type (even closed, e.g. MaterialSideTable&lt;FxData&gt;)
+        /// - every concrete subclass would log "Method X.Sync is generic and cannot be used for
+        /// menu commands." at domain reload. MaterialSideTableEditor below exposes this as an
+        /// Inspector button instead, which calls it as a normal method and isn't affected.
         /// </summary>
-        [ContextMenu("Sync With Material Database")]
         public override void Sync() {
             if (materialDatabase == null) {
                 Debug.LogError($"{name}: no VoxelMaterialDatabase assigned - can't sync.", this);
@@ -159,6 +164,36 @@ namespace Spellbound.GeoForge {
     }
 
 #if UNITY_EDITOR
+    /// <summary>
+    /// Applies to every MaterialSideTable subclass (editorForChildClasses: true) - one editor
+    /// for FootstepMaterialTable, FxMaterialTable, whatever else gets added later. Exposes
+    /// Sync/Validate as Inspector buttons rather than [ContextMenu], since ContextMenu can't
+    /// resolve methods declared on a generic base type (see the comment on Sync() above).
+    /// </summary>
+    [CustomEditor(typeof(MaterialSideTableBase), true)]
+    public class MaterialSideTableEditor : Editor {
+        public override void OnInspectorGUI() {
+            DrawDefaultInspector();
+
+            var table = (MaterialSideTableBase)target;
+
+            EditorGUILayout.Space();
+
+            if (GUILayout.Button("Sync With Material Database")) {
+                table.Sync();
+                EditorUtility.SetDirty(table);
+            }
+
+            if (GUILayout.Button("Validate")) {
+                var problems = table.Validate();
+                if (problems.Count == 0)
+                    Debug.Log($"{table.name}: in sync.");
+                else
+                    Debug.LogError($"{table.name}:\n  " + string.Join("\n  ", problems), table);
+            }
+        }
+    }
+
     /// <summary>
     /// Project-wide maintenance for every MaterialSideTable, regardless of TData. Run
     /// "Validate All" before committing after editing a material list; run "Sync All" to
