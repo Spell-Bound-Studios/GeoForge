@@ -35,6 +35,10 @@ namespace Spellbound.GeoForge {
         #endregion
 
         #region Default Implmentations
+        
+        bool TryQueryVoxel(Vector3 worldPosition, out VoxelData voxel) => GeoVolumeEngine.TryQueryVoxel(worldPosition, out voxel);
+        
+        bool TryQuerySurfaceMaterial(Vector3 worldPosition, out byte materialIndex) => GeoVolumeEngine.TryQuerySurfaceMaterial(worldPosition, out materialIndex);
 
         void OnTerraform(Vector3 worldPosition, int voxelCount) { }
 

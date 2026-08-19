@@ -52,7 +52,7 @@ namespace Spellbound.GeoForge {
                 Mathf.RoundToInt(localPos.z / config.Resolution) - config.Offset.z
             );
         }
-        
+
         public Vector3 WorldToVoxelSpaceContinuous(Vector3 worldPosition) {
             ref var config = ref ConfigBlob.Value;
             var localPos = Transform.InverseTransformPoint(worldPosition);
@@ -62,6 +62,115 @@ namespace Spellbound.GeoForge {
                 localPos.y / config.Resolution - config.Offset.y,
                 localPos.z / config.Resolution - config.Offset.z
             );
+        }
+
+        /// <summary>
+        /// Tries to resolve the voxel at a world position within this volume specifically - no
+        /// looping over other volumes, no IsPrimaryTerrain filtering, both of which are the caller's
+        /// concern (see GeoForgeManager.TryQueryVoxel). Returns false if this volume has no loaded
+        /// chunk with voxel data at this position.
+        /// </summary>
+        public bool TryQueryVoxel(Vector3 worldPosition, out VoxelData voxel) {
+            voxel = default;
+
+            var chunk = GetChunkByWorldPosition(worldPosition);
+
+            if (chunk == null || !chunk.HasVoxelData())
+                return false;
+
+            var voxelPosition = WorldToVoxelSpace(worldPosition);
+            voxel = chunk.GetVoxelDataFromVoxelPosition(voxelPosition);
+
+            return true;
+        }
+
+        /// <summary>
+        /// Resolves the surface material at a world position by inspecting the 2x2x2 voxel cell
+        /// enclosing it - the same 8-corner cube marching cubes uses to generate a triangle there, so
+        /// this is meant to be called with a position that's actually near a generated surface (e.g. a
+        /// raycast hit against the mesh), not an arbitrary point in space.
+        ///
+        /// Resolves all 8 corners from a SINGLE chunk - whichever chunk owns the voxel nearest to
+        /// worldPosition - rather than looking up a chunk per corner the way TryQueryVoxelCluster does.
+        /// This relies on each chunk's dense voxel array already including its halo of neighbor-owned
+        /// voxels (the same halo marching cubes itself needs to generate correct boundary triangles),
+        /// so the owning chunk's own array already has valid data for corners just outside its bounds.
+        /// Returns false if that chunk has no voxel data, or none of the 8 corners are solid.
+        ///
+        /// Only solid ("full") corners are considered for material - an empty/air corner's
+        /// MaterialIndex isn't meaningful. If every solid corner shares one material, that's the
+        /// result; if they disagree, this returns the solid corner nearest worldPosition - a
+        /// placeholder tie-break for now, not a considered blend rule.
+        /// </summary>
+        public bool TryQuerySurfaceMaterial(Vector3 worldPosition, out byte materialIndex) {
+            materialIndex = VoxelData.NullSentinelValue;
+
+            var continuousVoxelPos = WorldToVoxelSpaceContinuous(worldPosition);
+
+            var nearestVoxelPos = new Vector3Int(
+                Mathf.RoundToInt(continuousVoxelPos.x),
+                Mathf.RoundToInt(continuousVoxelPos.y),
+                Mathf.RoundToInt(continuousVoxelPos.z));
+
+            var chunk = GetChunkByVoxelPosition(nearestVoxelPos);
+
+            if (chunk == null || !chunk.HasVoxelData())
+                return false;
+
+            // Enclosing cell, not "nearest voxel plus neighbors" - same convention TryQueryVoxelCluster
+            // uses: floor to the corner below worldPosition on every axis, then the cell is that corner
+            // plus the seven corners at +1 on each axis.
+            var cellOrigin = new Vector3Int(
+                Mathf.FloorToInt(continuousVoxelPos.x),
+                Mathf.FloorToInt(continuousVoxelPos.y),
+                Mathf.FloorToInt(continuousVoxelPos.z));
+
+            var foundSolidCorner = false;
+            var allSolidMaterialsMatch = true;
+            byte firstSolidMaterial = 0;
+            byte nearestSolidMaterial = 0;
+            var nearestDistanceSqr = float.MaxValue;
+
+            for (var dx = 0; dx <= 1; dx++) {
+                for (var dy = 0; dy <= 1; dy++) {
+                    for (var dz = 0; dz <= 1; dz++) {
+                        var cornerVoxelPos = cellOrigin + new Vector3Int(dx, dy, dz);
+                        var cornerVoxel = chunk.GetVoxelDataFromVoxelPosition(cornerVoxelPos);
+
+                        // ASSUMPTION - see note below: solid == Density >= 0, per the "zero-threshold
+                        // convention" TryQueryVoxel's own doc comment refers to.
+                        if (cornerVoxel.Density < 0)
+                            continue;
+
+                        // Plain index, not the raw maturity-inclusive MaterialIndex byte
+                        // TryQueryVoxelCluster tallies - this result feeds VoxelMaterialDatabase /
+                        // MaterialSideTable lookups, which index 0..MaterialCount-1 and would silently
+                        // miss (or throw) on a maturity-flagged value.
+                        var cornerMaterial = cornerVoxel.GetPlainMatIndex();
+
+                        if (!foundSolidCorner) {
+                            firstSolidMaterial = cornerMaterial;
+                            foundSolidCorner = true;
+                        } else if (cornerMaterial != firstSolidMaterial) {
+                            allSolidMaterialsMatch = false;
+                        }
+
+                        var distanceSqr = (continuousVoxelPos - (Vector3)cornerVoxelPos).sqrMagnitude;
+
+                        if (distanceSqr < nearestDistanceSqr) {
+                            nearestDistanceSqr = distanceSqr;
+                            nearestSolidMaterial = cornerMaterial;
+                        }
+                    }
+                }
+            }
+
+            if (!foundSolidCorner)
+                return false;
+
+            materialIndex = allSolidMaterialsMatch ? firstSolidMaterial : nearestSolidMaterial;
+
+            return true;
         }
 
         public void RegisterVolume() {
@@ -119,7 +228,7 @@ namespace Spellbound.GeoForge {
         public void ResetEditedChunksToProcedural(GeoForgeDataGenerator  dataGenerator) {
             if (!SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var gfManager))
                 return;
-            
+
             _meshedChunks.Clear();
 
             var resetChunks = new List<IGeoChunk>();
@@ -147,7 +256,7 @@ namespace Spellbound.GeoForge {
 
             var lodDistanceTargetVoxelSpace = WorldToVoxelSpace(lodTarget.position);
             var validatesPerFrame = ConfigBlob.Value.ValidatesPerFrame;
-            
+
             for (var i = 0; i < resetChunks.Count; i += validatesPerFrame) {
                 var batchSize = Mathf.Min(validatesPerFrame, resetChunks.Count - i);
                 var batch = resetChunks.GetRange(i, batchSize);
@@ -292,7 +401,7 @@ namespace Spellbound.GeoForge {
 
                 return false;
             }
-            
+
             _meshedChunks.Clear();
 
             ReadOnlySpan<byte> span = data;
@@ -372,12 +481,12 @@ namespace Spellbound.GeoForge {
             if (_chunkDict.TryAdd(chunkCoord, geoChunk)) {
                 return true;
             }
-                
+
 
             return false;
         }
 
-        public T CreateChunk<T, TStore>(Vector3Int chunkCoord, GameObject chunkPrefab, TStore store) 
+        public T CreateChunk<T, TStore>(Vector3Int chunkCoord, GameObject chunkPrefab, TStore store)
             where T : class, IGeoChunk
             where TStore : IGeoEditStore{
             ref var config = ref ConfigBlob.Value;
@@ -470,11 +579,11 @@ namespace Spellbound.GeoForge {
                 // so whichever order the deferred OnDestroy fires in, it's safe either way.
                 Object.Destroy(chunk.GeoChunkEngine.Transform.gameObject);
             }
-            
+
             if (SingletonManager.TryGetSingletonInstance<GeoForgeManager>(out var mcManager)) {
                 mcManager.UnRegisterVoxelVolume(_ownerAsIGeoVolume);
             }
-            
+
             if (ConfigBlob.IsCreated)
                 ConfigBlob.Dispose();
         }
