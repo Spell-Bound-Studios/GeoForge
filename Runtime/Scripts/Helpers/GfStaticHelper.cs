@@ -132,5 +132,14 @@ namespace Spellbound.GeoForge {
                     1 => value >= chunkSize,
                     _ => false
                 };
+
+        public static bool GeoRaycast(Vector3 origin, Vector3 direction, out IGeoVolume geoVolume, float maxDistance,
+            LayerMask layerMask) {
+            geoVolume = null;
+            if (!Physics.Raycast(origin, direction, out var hit, maxDistance, layerMask))
+                return false;
+            geoVolume = hit.collider.GetComponentInParent<IGeoVolume>();
+            return geoVolume != null;
+        }
     }
 }

@@ -37,6 +37,12 @@ namespace Spellbound.GeoForge {
             // generic - see MaterialSideTable.cs.
             return ((MaterialSideTable<TData>)table).GetData(materialIndex);
         }
+        
+        public TData GetMaterialDataAtPosition<TData>(Vector3 position) where TData : new() {
+            if (!TryQuerySurfaceMaterial(position, out var material, out _))
+                return GetMaterialData<TData>(VoxelData.NullSentinelValue);
+            return GetMaterialData<TData>(material);
+        }
 
         private Dictionary<Type, MaterialSideTableBase> BuildSideTableCache() {
             var dict = new Dictionary<Type, MaterialSideTableBase>();
