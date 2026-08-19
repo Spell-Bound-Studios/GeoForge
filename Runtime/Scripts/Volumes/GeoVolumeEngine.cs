@@ -169,6 +169,7 @@ namespace Spellbound.GeoForge {
                 return false;
 
             materialIndex = allSolidMaterialsMatch ? firstSolidMaterial : nearestSolidMaterial;
+            materialIndex %= VoxelData.MatureBitValue;
 
             return true;
         }
