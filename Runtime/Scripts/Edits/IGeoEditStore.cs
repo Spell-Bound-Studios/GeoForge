@@ -10,7 +10,7 @@ namespace Spellbound.GeoForge {
     /// </summary>
     public interface IGeoEditStore {
         event Action<List<(int, VoxelData)>> OnGeoEditChanged;
-        Func<int, VoxelData> DefaultVoxelDataFunc { get; set; }
+        GeoChunkEngine geoChunkEngine { get; set; }
 
         bool TryRead(int idx, out VoxelData voxelData);
 

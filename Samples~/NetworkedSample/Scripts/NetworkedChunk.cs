@@ -62,7 +62,7 @@ namespace GeoForge.Sample4 {
 
             _chunkCoord = coord;
             GeoChunkEngine = new GeoChunkEngine(this, transform, _syncModule, coord);
-            GeoChunkEngine.IGeoEditStore.DefaultVoxelDataFunc = GeoChunkEngine.GetVoxelData;
+            GeoChunkEngine.IGeoEditStore.geoChunkEngine = GeoChunkEngine;
             GeoChunkEngine.ParentGeoVolume.GeoVolumeEngine.RegisterChunk(coord, this);
         }
 

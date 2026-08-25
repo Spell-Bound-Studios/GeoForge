@@ -17,13 +17,13 @@ namespace Spellbound.GeoForge {
         }
 
         public event Action<List<(int, VoxelData)>> OnGeoEditChanged;
-        public Func<int, VoxelData> DefaultVoxelDataFunc { get; set; }
+        public GeoChunkEngine geoChunkEngine { get; set; }
 
         public bool TryRead(int idx, out VoxelData voxelData) {
             if (_chunkData.TryReadEdit(idx, out voxelData))
                 return true;
 
-            voxelData = DefaultVoxelDataFunc?.Invoke(idx) ?? new VoxelData();
+            voxelData = geoChunkEngine?.GetVoxelData(idx) ?? new VoxelData();
 
             return false;
         }
@@ -41,7 +41,7 @@ namespace Spellbound.GeoForge {
 
             foreach (var voxelDelta in operation.Deltas) {
                 if (!_chunkData.TryReadEdit(voxelDelta.Index, out var voxelData))
-                    voxelData = DefaultVoxelDataFunc(voxelDelta.Index);
+                    voxelData = geoChunkEngine.GetVoxelData(voxelDelta.Index);
 
                 var wasFull = voxelData.Density >= 0;
                 var wasMature = voxelData.IsMature();

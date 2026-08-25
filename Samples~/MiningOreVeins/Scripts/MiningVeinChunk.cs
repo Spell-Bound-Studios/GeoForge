@@ -17,7 +17,7 @@ namespace Spellbound.GeoForge.Sample2 {
         
         public void InitializeGeoChunk(Vector3Int coord, IGeoEditStore geoEditStore) {
             GeoChunkEngine = new GeoChunkEngine(this, transform, geoEditStore, coord);
-            GeoChunkEngine.IGeoEditStore.DefaultVoxelDataFunc = GeoChunkEngine.GetVoxelData;
+            GeoChunkEngine.IGeoEditStore.geoChunkEngine = GeoChunkEngine;
         }
 
         public void HandleMeshReady() {
