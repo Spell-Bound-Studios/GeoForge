@@ -170,6 +170,7 @@ namespace Spellbound.GeoForge {
         internal static void DispatchEdits(
             GeoForgeManager gfManager,
             IGeoVolume geoVolume,
+            Vector3 worldPosition,
             NativeParallelMultiHashMap<ChunkCoordKey, VoxelDensityDelta> resultMap,
             byte materialIndex,
             uint4 allowedMaterialsMask,
@@ -219,7 +220,7 @@ namespace Spellbound.GeoForge {
                         }
 
                         chunk.PassVoxelEditOperation(
-                            new VoxelEditOperation(materialIndex, deltas, allowedMaterialsMask));
+                            new VoxelEditOperation(materialIndex, deltas, allowedMaterialsMask, worldPosition));
                     }
                 }
                 finally {

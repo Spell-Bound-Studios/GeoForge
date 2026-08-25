@@ -190,6 +190,7 @@ namespace Spellbound.GeoForge {
         /// through the public GeoForgeStatic class") - GeoForgeStatic is the one sanctioned public
         /// entry point for terraform operations, this is the plumbing underneath it.
         /// </summary>
+        [Obsolete]
         internal void ExecuteTerraformAll(
             Func<IGeoVolume, (List<RawVoxelEdit> edits, Bounds bounds)> terraformAction,
             byte materialIndex,
@@ -213,6 +214,7 @@ namespace Spellbound.GeoForge {
         /// Internal: same reasoning as ExecuteTerraformAll above - reachable only through
         /// GeoForgeStatic.
         /// </summary>
+        [Obsolete]
         internal void DistributeVoxelEdits(
             IGeoVolume geoVolume,
             List<RawVoxelEdit> rawVoxelEdits,
@@ -282,7 +284,7 @@ namespace Spellbound.GeoForge {
                     if (chunk == null)
                         continue;
 
-                    chunk.PassVoxelEditOperation(new VoxelEditOperation(materialIndex, kvp.Value, allowedMaterialsMask));
+                    chunk.PassVoxelEditOperation(new VoxelEditOperation(materialIndex, kvp.Value, allowedMaterialsMask, Vector3.zero));
                 }
             }
             finally {

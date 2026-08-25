@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using Spellbound.Core.Packing;
 using Unity.Mathematics;
+using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
@@ -39,17 +40,20 @@ namespace Spellbound.GeoForge {
         public byte MaterialIndex;
         public VoxelDensityDelta[] Deltas;
         public uint4 AllowedMaterialsMask;
+        public Vector3 WorldPosition;
 
-        public VoxelEditOperation(byte materialIndex, List<VoxelDensityDelta> deltas, uint4 allowedMaterialsMask) {
+        public VoxelEditOperation(byte materialIndex, List<VoxelDensityDelta> deltas, uint4 allowedMaterialsMask, Vector3 worldPosition) {
             MaterialIndex = materialIndex;
             Deltas = deltas.ToArray();
             AllowedMaterialsMask = allowedMaterialsMask;
+            WorldPosition = worldPosition;
         }
 
-        public VoxelEditOperation(byte materialIndex, List<VoxelDensityDelta> deltas) {
+        public VoxelEditOperation(byte materialIndex, List<VoxelDensityDelta> deltas, Vector3 worldPosition) {
             MaterialIndex = materialIndex;
             Deltas = deltas.ToArray();
             AllowedMaterialsMask = new uint4(uint.MaxValue);
+            WorldPosition = worldPosition;
         }
 
         public bool IsAllowed(byte materialIndex) {
@@ -73,6 +77,7 @@ namespace Spellbound.GeoForge {
             Packer.WriteUInt(ref buffer, AllowedMaterialsMask.w);
 
             Packer.PackArray(ref buffer, Deltas);
+            Packer.WriteVector3(ref buffer, WorldPosition);
         }
 
         public void Unpack(ref ReadOnlySpan<byte> buffer) {
@@ -85,10 +90,12 @@ namespace Spellbound.GeoForge {
             AllowedMaterialsMask = new uint4(x, y, z, w);
 
             Deltas = Packer.UnpackArray<VoxelDensityDelta>(ref buffer);
+            WorldPosition = Packer.ReadVector3(ref buffer);
         }
 
         public override string ToString() =>
                 $"VoxelEditOperation(MaterialIndex={MaterialIndex}, Deltas={Deltas?.Length ?? 0}, " +
-                $"Mask=({AllowedMaterialsMask.x},{AllowedMaterialsMask.y},{AllowedMaterialsMask.z},{AllowedMaterialsMask.w}))";
+                $"Mask=({AllowedMaterialsMask.x},{AllowedMaterialsMask.y},{AllowedMaterialsMask.z},{AllowedMaterialsMask.w})) +" +
+                $"WorldPosition=({WorldPosition.x}, {WorldPosition.y},{WorldPosition.z})";
     }
 }

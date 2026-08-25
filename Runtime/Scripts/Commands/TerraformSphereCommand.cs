@@ -110,7 +110,7 @@ namespace Spellbound.GeoForge {
             job.Schedule(voxelCount, 32).Complete();
 
             TerraformCommandUtility.DispatchEdits(
-                gfManager, geoVolume, resultMap, materialIndex, allowedMaterialsMask, isFiniteVolume,
+                gfManager, geoVolume, worldPosition, resultMap, materialIndex, allowedMaterialsMask, isFiniteVolume,
                 nameof(TerraformSphereCommand));
 
             return true;
