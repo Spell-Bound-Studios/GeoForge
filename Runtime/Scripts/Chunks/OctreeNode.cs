@@ -405,6 +405,10 @@ namespace Spellbound.GeoForge {
             // handled upstream by releasing the leaf entirely instead of calling this at all.
             if (_leafGo.TryGetComponent<MeshCollider>(out var meshCollider))
                 meshCollider.sharedMesh = _mesh;
+
+            if (_leafGo.TryGetComponent<LeafBehaviour>(out var leafBehaviour)) {
+                leafBehaviour.OnMeshUpdated(_lod);
+            }
         }
 
         private void BuildTransitions() {
