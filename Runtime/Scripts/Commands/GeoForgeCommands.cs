@@ -65,12 +65,12 @@ namespace Spellbound.GeoForge {
         /// action was rejected - see the class doc comment.
         /// </summary>
         public static bool RemoveSphere(IGeoVolume geoVolume, Vector3 worldPosition, float radius, int delta) =>
-                RemoveSphere(geoVolume, worldPosition, radius, delta, 0, AllMaterialsMask);
+                RemoveSphere(geoVolume, worldPosition, radius, delta, VoxelData.NullSentinelValue, AllMaterialsMask);
         
         public static bool RemoveSphere(
             IGeoVolume geoVolume, Vector3 worldPosition, float radius, int delta, uint4 allowedMaterialsMask) =>
             TerraformSphereCommand.Execute(
-                geoVolume, worldPosition, radius, (short)-delta, 0, allowedMaterialsMask);
+                geoVolume, worldPosition, radius, (short)-delta, VoxelData.NullSentinelValue, allowedMaterialsMask);
 
         public static bool RemoveSphere(
             IGeoVolume geoVolume, Vector3 worldPosition, float radius, int delta, byte materialIndex, uint4 allowedMaterialsMask) =>
