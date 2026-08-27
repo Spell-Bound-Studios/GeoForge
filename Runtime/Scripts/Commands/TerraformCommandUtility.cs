@@ -130,14 +130,14 @@ namespace Spellbound.GeoForge {
 
             var editPoolCapacity = gfManager.GetEditPoolCapacity(chunkSize);
 
-            if (candidateChunkCount > editPoolCapacity) {
+            /*if (candidateChunkCount > editPoolCapacity) {
                 Debug.LogWarning(
                     $"{commandName}: rejected - action at {worldPosition} would touch up to " +
                     $"{candidateChunkCount} chunks, exceeding the Edit pool's capacity of " +
                     $"{editPoolCapacity} for chunk size {chunkSize}.");
 
                 return false;
-            }
+            }*/
 
             if (!isFiniteVolume) {
                 for (var cz = minChunkCoord.z; cz <= maxChunkCoord.z; cz++) {
