@@ -15,7 +15,7 @@ namespace Spellbound.GeoForge {
     /// data.
     /// </summary>
     [BurstCompile]
-    internal struct SparseToDenseVoxelDataJob : IJobParallelFor {
+    public struct SparseToDenseVoxelDataJob : IJobParallelFor {
         [ReadOnly] public BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob;
         [NativeDisableParallelForRestriction] public NativeArray<VoxelData> Voxels;
 
