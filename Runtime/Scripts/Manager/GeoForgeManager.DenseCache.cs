@@ -173,7 +173,7 @@ namespace Spellbound.GeoForge {
                     ref var config = ref chunkEngine.ParentGeoVolume.ConfigBlob.Value;
 
                     var unpackJob = new SparseToDenseVoxelDataJob {
-                        ConfigBlob = chunkEngine.ParentGeoVolume.ConfigBlob,
+                        ChunkDataWidthSize = chunkEngine.ParentGeoVolume.ConfigBlob.Value.ChunkDataWidthSize,
                         Voxels = slot.DenseVoxelArray,
                         SparseVoxels = sparseData
                     };
