@@ -272,6 +272,11 @@ namespace Spellbound.GeoForge {
                 _mcManager.GetOrUnpackVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this,
                     _sparseVoxels, isEdit);
 
+        public NativeList<SparseVoxelData> GetsSparseVoxelData() {
+            return _sparseVoxels.IsCreated ? _sparseVoxels : new NativeList<SparseVoxelData>();
+        }
+            
+
         internal void UpdateVoxelData(NativeList<SparseVoxelData> voxels, DensityRange densityRange) {
             if (!_sparseVoxels.IsCreated)
                 return;
