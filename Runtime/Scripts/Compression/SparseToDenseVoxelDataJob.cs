@@ -23,7 +23,7 @@ namespace Spellbound.GeoForge {
     /// at hand.
     /// </summary>
     [BurstCompile]
-    internal struct SparseToDenseVoxelDataJob : IJobParallelFor {
+    public struct SparseToDenseVoxelDataJob : IJobParallelFor {
         public int ChunkDataWidthSize;
         [NativeDisableParallelForRestriction] public NativeArray<VoxelData> Voxels;
 
