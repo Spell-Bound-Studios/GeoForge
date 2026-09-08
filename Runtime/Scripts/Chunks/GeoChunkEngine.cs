@@ -144,12 +144,6 @@ namespace Spellbound.GeoForge {
 
             ScheduleOctreeEditValidation(editBounds);
 
-            if (_mcManager.IsBatchingEdits) {
-                _mcManager.RegisterPendingEditRelease(this);
-
-                return;
-            }
-
             _mcManager.CompleteAndApplyMarchingCubesJobs();
             _mcManager.ReleaseVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this, isEdit: true);
         }
