@@ -10,10 +10,10 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Per-voxel core of TerraformSphereCommand: for every voxel in a cube bounding the sphere
-    /// (side = 2*Radius+1), computes distance from VoxelCenter, applies the same falloff formula
-    /// TerraformCommands.TerraformSphere used, and scatters a VoxelDensityDelta for each non-zero
-    /// result. See TerraformSphereCommand for the pre-validation this depends on.
+    ///     Per-voxel core of TerraformSphereCommand: for every voxel in a cube bounding the sphere
+    ///     (side = 2*Radius+1), computes distance from VoxelCenter, applies the same falloff formula
+    ///     TerraformCommands.TerraformSphere used, and scatters a VoxelDensityDelta for each non-zero
+    ///     result. See TerraformSphereCommand for the pre-validation this depends on.
     /// </summary>
     [BurstCompile]
     internal struct TerraformSphereJob : IJobParallelFor {
@@ -53,9 +53,9 @@ namespace Spellbound.GeoForge {
     }
 
     /// <summary>
-    /// Standalone, job-based terraform command: the sphere-with-falloff shape from
-    /// TerraformCommands.TerraformSphere, reimplemented as a fused shape-generation-plus-chunk-fanout
-    /// job. Internal - reached only through GeoForgeCommands.
+    ///     Standalone, job-based terraform command: the sphere-with-falloff shape from
+    ///     TerraformCommands.TerraformSphere, reimplemented as a fused shape-generation-plus-chunk-fanout
+    ///     job. Internal - reached only through GeoForgeCommands.
     /// </summary>
     internal static class TerraformSphereCommand {
         internal static bool Execute(
@@ -87,9 +87,8 @@ namespace Spellbound.GeoForge {
 
             if (!TerraformCommandUtility.TryValidateChunkRange(
                     geoVolume, gfManager, minVoxel, maxVoxel, nameof(TerraformSphereCommand), worldPosition,
-                    out _, out _)) {
+                    out _, out _))
                 return false;
-            }
 
             var side = radius * 2 + 1;
             var voxelCount = side * side * side;

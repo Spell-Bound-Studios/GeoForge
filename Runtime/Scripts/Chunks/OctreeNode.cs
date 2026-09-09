@@ -10,17 +10,22 @@ using Object = UnityEngine.Object;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Recursively Subdividing OctreeNode to subdivide a GeoChunk at varying LODs.
-    /// Either it has 8 children, or it has an Octree leaf (representing actual terrain).
+    ///     Recursively Subdividing OctreeNode to subdivide a GeoChunk at varying LODs.
+    ///     Either it has 8 children, or it has an Octree leaf (representing actual terrain).
     /// </summary>
     public sealed class OctreeNode : IDisposable {
+        private readonly IGeoChunk _geoChunk;
+        private readonly GeoForgeManager _gfManager;
+        private readonly Vector3Int _localPosition;
+        private readonly int _lod;
+        private readonly IGeoVolume _parentGeoVolume;
+
+        private NativeList<int> _allTransitionTriangles;
+        private BoundsInt _boundsVoxel;
+        private Vector3Int[] _cachedNeighborPositions;
         private OctreeNode[] _children;
+        private NativeList<int> _filteredTransitionTriangles;
         private GameObject _leafGo;
-        private GameObject _transitionGo;
-        private Mesh _mesh;
-        private Mesh _transitionMesh;
-        private int _transitionMask;
-        private bool _transitionDirtyFlag;
 
         // True once this node has been evaluated as a leaf (MakeLeaf has run at least once since
         // the last Subdivide) - independent of whether _leafGo actually exists. A leaf whose
@@ -28,22 +33,13 @@ namespace Spellbound.GeoForge {
         // but still needs to be recognized as "already handled" so ValidateOctreeLods doesn't
         // re-schedule a march job for it every single validation pass.
         private bool _leafInitialized;
-
-        private NativeList<int> _allTransitionTriangles;
-        private NativeList<int> _filteredTransitionTriangles;
-        private NativeArray<int2> _transitionRanges;
-        private Vector3Int _localPosition;
-        private readonly int _lod;
-        private BoundsInt _boundsVoxel;
-        private readonly IGeoChunk _geoChunk;
-        private readonly GeoForgeManager _gfManager;
-        private readonly IGeoVolume _parentGeoVolume;
-        private Vector3Int[] _cachedNeighborPositions;
         private MaterialPropertyBlock _materialPropertyBlock;
-
-        private Vector3 Center => (_boundsVoxel.min + _boundsVoxel.max - Vector3.one) * 0.5f;
-
-        private bool IsLeaf => _children == null;
+        private Mesh _mesh;
+        private bool _transitionDirtyFlag;
+        private GameObject _transitionGo;
+        private int _transitionMask;
+        private Mesh _transitionMesh;
+        private NativeArray<int2> _transitionRanges;
 
         internal OctreeNode(Vector3Int localPosition, int lod, IGeoChunk geoChunk, IGeoVolume parentGeoVolume) {
             _parentGeoVolume = parentGeoVolume;
@@ -55,6 +51,10 @@ namespace Spellbound.GeoForge {
             var octreeSizeVoxels = 3 + (_parentGeoVolume.ConfigBlob.Value.CubesMarchedPerOctreeLeaf << _lod);
             _boundsVoxel = new BoundsInt(_localPosition, Vector3Int.one * octreeSizeVoxels);
         }
+
+        private Vector3 Center => (_boundsVoxel.min + _boundsVoxel.max - Vector3.one) * 0.5f;
+
+        private bool IsLeaf => _children == null;
 
         public void Dispose() {
             if (_children != null) {
@@ -138,16 +138,16 @@ namespace Spellbound.GeoForge {
         }
 
         /// <summary>
-        /// Releases the pooled leaf/transition GameObjects (if any exist) and destroys their
-        /// Meshes, mirroring what used to be duplicated inline in both Dispose() and Subdivide().
-        /// Safe to call when _leafGo is already null (no-op). Also unsubscribes from
-        /// OctreeBatchTransitionUpdate and clears the dirty flag: a transition update might still
-        /// be queued for this node from just before it lost its leaf objects (either via Subdivide
-        /// or via ApplyMarchResults finding zero triangles) - otherwise the next batched invocation
-        /// would run HandleTransitionUpdate() against a now-null _transitionMesh. _transitionRanges
-        /// stays created deliberately (see class-level NativeCollections) - HandleTransitionUpdate's
-        /// own IsCreated guard doesn't catch this case, which is exactly why this needs its own
-        /// explicit unsubscribe rather than relying on that guard.
+        ///     Releases the pooled leaf/transition GameObjects (if any exist) and destroys their
+        ///     Meshes, mirroring what used to be duplicated inline in both Dispose() and Subdivide().
+        ///     Safe to call when _leafGo is already null (no-op). Also unsubscribes from
+        ///     OctreeBatchTransitionUpdate and clears the dirty flag: a transition update might still
+        ///     be queued for this node from just before it lost its leaf objects (either via Subdivide
+        ///     or via ApplyMarchResults finding zero triangles) - otherwise the next batched invocation
+        ///     would run HandleTransitionUpdate() against a now-null _transitionMesh. _transitionRanges
+        ///     stays created deliberately (see class-level NativeCollections) - HandleTransitionUpdate's
+        ///     own IsCreated guard doesn't catch this case, which is exactly why this needs its own
+        ///     explicit unsubscribe rather than relying on that guard.
         /// </summary>
         private void ReleaseLeafObjects() {
             if (_leafGo == null)
@@ -213,7 +213,7 @@ namespace Spellbound.GeoForge {
             if (_geoChunk.DensityRange.IsSkippable()) return;
 
             if (_lod <= targetLod) {
-                if (_geoChunk.IsKnownEmpty(_lod, _localPosition)) 
+                if (_geoChunk.IsKnownEmpty(_lod, _localPosition))
                     return;
 
                 if (AreAllChildAddressesKnownEmpty()) {
@@ -228,7 +228,7 @@ namespace Spellbound.GeoForge {
 
                 return;
             }
- 
+
             Subdivide();
 
             foreach (var child in _children)
@@ -289,10 +289,9 @@ namespace Spellbound.GeoForge {
         private int GetLodRange(Vector3 octreePos, Vector3 playerPos, float resolution) {
             var distance = Vector3.Distance(octreePos, playerPos) * resolution;
 
-            for (var i = 0; i < _parentGeoVolume.ViewDistanceLodRanges.Length; i++) {
+            for (var i = 0; i < _parentGeoVolume.ViewDistanceLodRanges.Length; i++)
                 if (distance <= _parentGeoVolume.ViewDistanceLodRanges[i].y)
                     return i;
-            }
 
             // If distance is beyond all ranges, return -1
             // return - 1;
@@ -362,9 +361,9 @@ namespace Spellbound.GeoForge {
         }
 
         private void UpdateLeaf(NativeArray<VoxelData> voxelArray) {
-            if (!_leafInitialized) 
+            if (!_leafInitialized)
                 return;
-            
+
             MarchAndMesh(voxelArray);
         }
 
@@ -406,9 +405,7 @@ namespace Spellbound.GeoForge {
             if (_leafGo.TryGetComponent<MeshCollider>(out var meshCollider))
                 meshCollider.sharedMesh = _mesh;
 
-            if (_leafGo.TryGetComponent<LeafBehaviour>(out var leafBehaviour)) {
-                leafBehaviour.OnMeshUpdated(_lod);
-            }
+            if (_leafGo.TryGetComponent<LeafBehaviour>(out var leafBehaviour)) leafBehaviour.OnMeshUpdated(_lod);
         }
 
         private void BuildTransitions() {
@@ -423,7 +420,7 @@ namespace Spellbound.GeoForge {
             _transitionMesh.MarkDynamic();
             _transitionGo.GetComponent<MeshFilter>().mesh = _transitionMesh;
 
-            _transitionGo.name = $"Transition " +
+            _transitionGo.name = "Transition " +
                                  $"at {_localPosition.x}, {_localPosition.y}, {_localPosition.z}";
             _transitionGo.transform.parent = _leafGo.transform;
 
@@ -497,7 +494,7 @@ namespace Spellbound.GeoForge {
                 return;
 
             var triangles =
-                    GetFilteredTransitionTriangles(_allTransitionTriangles, _transitionRanges, _transitionMask);
+                GetFilteredTransitionTriangles(_allTransitionTriangles, _transitionRanges, _transitionMask);
 
             _transitionMesh.SetIndexBufferParams(triangles.Length, IndexFormat.UInt32);
 
@@ -558,31 +555,32 @@ namespace Spellbound.GeoForge {
                 new Vector3Int(center.x, center.y, boundsVoxel.min.z - 1), // ZMin face (outside back)
                 new Vector3Int(boundsVoxel.max.x + 1, center.y, center.z), // XMax face (at boundary right)
                 new Vector3Int(center.x, boundsVoxel.max.y + 1, center.z), // YMax face (at boundary top)
-                new Vector3Int(center.x, center.y, boundsVoxel.max.z + 1)  // ZMax face (at boundary front)
+                new Vector3Int(center.x, center.y, boundsVoxel.max.z + 1) // ZMax face (at boundary front)
             };
         }
 
         private GfStaticHelper.TransitionFaceMask GetOppositeTransition(
-            GfStaticHelper.TransitionFaceMask transitionMask) =>
-                transitionMask switch {
-                    GfStaticHelper.TransitionFaceMask.XMin => GfStaticHelper.TransitionFaceMask.XMax,
-                    GfStaticHelper.TransitionFaceMask.YMin => GfStaticHelper.TransitionFaceMask.YMax,
-                    GfStaticHelper.TransitionFaceMask.ZMin => GfStaticHelper.TransitionFaceMask.ZMax,
-                    GfStaticHelper.TransitionFaceMask.XMax => GfStaticHelper.TransitionFaceMask.XMin,
-                    GfStaticHelper.TransitionFaceMask.YMax => GfStaticHelper.TransitionFaceMask.YMin,
-                    GfStaticHelper.TransitionFaceMask.ZMax => GfStaticHelper.TransitionFaceMask.ZMin,
-                    _ => GfStaticHelper.TransitionFaceMask.XMin
-                };
+            GfStaticHelper.TransitionFaceMask transitionMask) {
+            return transitionMask switch {
+                GfStaticHelper.TransitionFaceMask.XMin => GfStaticHelper.TransitionFaceMask.XMax,
+                GfStaticHelper.TransitionFaceMask.YMin => GfStaticHelper.TransitionFaceMask.YMax,
+                GfStaticHelper.TransitionFaceMask.ZMin => GfStaticHelper.TransitionFaceMask.ZMax,
+                GfStaticHelper.TransitionFaceMask.XMax => GfStaticHelper.TransitionFaceMask.XMin,
+                GfStaticHelper.TransitionFaceMask.YMax => GfStaticHelper.TransitionFaceMask.YMin,
+                GfStaticHelper.TransitionFaceMask.ZMax => GfStaticHelper.TransitionFaceMask.ZMin,
+                _ => GfStaticHelper.TransitionFaceMask.XMin
+            };
+        }
 
         /// <summary>
-        /// Called once the march job(s) for this node have completed. If there's nothing to show,
-        /// releases any existing leaf objects (an edit may have just emptied out a previously
-        /// visible leaf) and stops - no GameObject/Mesh gets created for a leaf with no geometry,
-        /// and no BroadcastNewLeaf, since neighbors don't need a transition seam against a leaf
-        /// with nothing to show. Otherwise, builds the leaf objects on first use only (isFirstBuild),
-        /// updates the mesh, and broadcasts only on that same first transition from empty to
-        /// non-empty - matching the original one-time MakeLeaf behavior, just re-anchored to
-        /// "first time this leaf actually has geometry" instead of "first time MakeLeaf ran."
+        ///     Called once the march job(s) for this node have completed. If there's nothing to show,
+        ///     releases any existing leaf objects (an edit may have just emptied out a previously
+        ///     visible leaf) and stops - no GameObject/Mesh gets created for a leaf with no geometry,
+        ///     and no BroadcastNewLeaf, since neighbors don't need a transition seam against a leaf
+        ///     with nothing to show. Otherwise, builds the leaf objects on first use only (isFirstBuild),
+        ///     updates the mesh, and broadcasts only on that same first transition from empty to
+        ///     non-empty - matching the original one-time MakeLeaf behavior, just re-anchored to
+        ///     "first time this leaf actually has geometry" instead of "first time MakeLeaf ran."
         /// </summary>
         internal void ApplyMarchResults(
             NativeList<MeshingVertexData> vertices, NativeList<int> triangles, Bounds computedBounds) {

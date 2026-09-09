@@ -2,15 +2,14 @@
 
 using System;
 using System.Collections.Generic;
-using UnityEditor.PackageManager.Requests;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Interface Contract for GeoForge Edits
+    ///     Interface Contract for GeoForge Edits
     /// </summary>
     public interface IGeoEditStore {
-        event Action<List<(int, VoxelData)>> OnGeoEditChanged;
         GeoChunkEngine geoChunkEngine { get; set; }
+        event Action<List<(int, VoxelData)>> OnGeoEditChanged;
 
         bool TryRead(int idx, out VoxelData voxelData);
 

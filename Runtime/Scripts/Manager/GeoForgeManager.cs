@@ -3,25 +3,16 @@
 using System;
 using System.Collections.Generic;
 using Spellbound.Core.Tooling;
-using Unity.Collections;
 using Unity.Entities;
-using Unity.Jobs;
 using Unity.Mathematics;
 using UnityEngine;
-using UnityEngine.Rendering;
-using Object = UnityEngine.Object;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Manager for handling the LODs and cached Dense/Unpacked Voxel Arrays for Marching Cubes.
+    ///     Manager for handling the LODs and cached Dense/Unpacked Voxel Arrays for Marching Cubes.
     /// </summary>
     [DefaultExecutionOrder(-1000)]
     public partial class GeoForgeManager : MonoBehaviour {
-        // Internal: raw MC lookup tables, only ever consumed by the march jobs via
-        // profile.ScheduleMarchingCubes(_gfManager.McTablesBlob, ...) - no external caller needs
-        // direct access to the table blob itself.
-        internal BlobAssetReference<McTablesBlobAsset> McTablesBlob { get; private set; }
-
         // Judgment call, leaning internal: no established "pluggable strategy" story for this one
         // the way jobAndRenderProfile has (see GeoForgeManager.JobManager.cs) - it's just which
         // GameObject GetPooledObject instantiates. Worth a deliberate look before narrowing though,
@@ -33,23 +24,19 @@ namespace Spellbound.GeoForge {
         [SerializeField] public VoxelMaterialDatabase materialDatabase;
 
         private readonly Stack<GameObject> _objectPool = new();
-        private bool _isActive;
-        private HashSet<IGeoVolume> _voxelVolumes = new();
-
-        // Judgment call, leaning public: reads as a legitimate external status-check API ("is
-        // GeoForge ready") rather than internal plumbing, though nothing in what I've seen this
-        // session actually calls it - worth confirming it's still wanted at all before deciding
-        // its visibility.
-        public bool IsActive() => _isActive;
-
-        private bool _isShuttingDown;
-        private Transform _objectPoolParent;
+        private readonly HashSet<IGeoVolume> _voxelVolumes = new();
 
         private HashSet<byte> _allMaterials;
+        private bool _isActive;
 
-        // Internal: purely an internal coordination mechanism between this manager and OctreeNode
-        // (HandleTransitionUpdate subscribes/unsubscribes to this) - not a public event story.
-        internal event Action OctreeBatchTransitionUpdate;
+        private bool _isShuttingDown;
+
+        private Transform _objectPoolParent;
+
+        // Internal: raw MC lookup tables, only ever consumed by the march jobs via
+        // profile.ScheduleMarchingCubes(_gfManager.McTablesBlob, ...) - no external caller needs
+        // direct access to the table blob itself.
+        internal BlobAssetReference<McTablesBlobAsset> McTablesBlob { get; private set; }
 
         private void Awake() {
             SingletonManager.RegisterSingleton(this);
@@ -59,6 +46,36 @@ namespace Spellbound.GeoForge {
             ValidateAllVolumesLodsAsync();
             _isActive = true;
         }
+
+        private void LateUpdate() {
+            OctreeBatchTransitionUpdate?.Invoke();
+        }
+
+        private void OnDestroy() {
+            _isActive = false;
+            _isShuttingDown = true;
+
+            if (McTablesBlob.IsCreated)
+                McTablesBlob.Dispose();
+
+            ClearPool();
+
+            DisposeMarchBufferPools();
+            foreach (var kvp in _denseVoxelDataDict)
+                kvp.Value.Dispose();
+        }
+
+        // Judgment call, leaning public: reads as a legitimate external status-check API ("is
+        // GeoForge ready") rather than internal plumbing, though nothing in what I've seen this
+        // session actually calls it - worth confirming it's still wanted at all before deciding
+        // its visibility.
+        public bool IsActive() {
+            return _isActive;
+        }
+
+        // Internal: purely an internal coordination mechanism between this manager and OctreeNode
+        // (HandleTransitionUpdate subscribes/unsubscribes to this) - not a public event story.
+        internal event Action OctreeBatchTransitionUpdate;
 
         // Internal: called once from Awake() and drives its own infinite validation loop - no
         // legitimate reason for external code to invoke this a second time.
@@ -79,22 +96,6 @@ namespace Spellbound.GeoForge {
             finally {
                 Debug.Log("ValidateAllVolumesLodsAsync stopped");
             }
-        }
-
-        private void LateUpdate() => OctreeBatchTransitionUpdate?.Invoke();
-
-        private void OnDestroy() {
-            _isActive = false;
-            _isShuttingDown = true;
-
-            if (McTablesBlob.IsCreated)
-                McTablesBlob.Dispose();
-
-            ClearPool();
-
-            DisposeMarchBufferPools();
-            foreach (var kvp in _denseVoxelDataDict)
-                kvp.Value.Dispose();
         }
 
         // Left public: IGeoVolume is a public extension point (a custom volume implementation
@@ -183,12 +184,12 @@ namespace Spellbound.GeoForge {
         }
 
         /// <summary>
-        /// For Terraforming Commands that might affect multiple volumes. materialIndex and
-        /// allowedMaterialsMask are shared across every volume the action touches; only the
-        /// per-volume edits/bounds come from the terraformAction delegate.
-        /// Internal: matches TerraformCommands's own established convention ("should be accessed
-        /// through the public GeoForgeStatic class") - GeoForgeStatic is the one sanctioned public
-        /// entry point for terraform operations, this is the plumbing underneath it.
+        ///     For Terraforming Commands that might affect multiple volumes. materialIndex and
+        ///     allowedMaterialsMask are shared across every volume the action touches; only the
+        ///     per-volume edits/bounds come from the terraformAction delegate.
+        ///     Internal: matches TerraformCommands's own established convention ("should be accessed
+        ///     through the public GeoForgeStatic class") - GeoForgeStatic is the one sanctioned public
+        ///     entry point for terraform operations, this is the plumbing underneath it.
         /// </summary>
         [Obsolete]
         internal void ExecuteTerraformAll(
@@ -206,13 +207,13 @@ namespace Spellbound.GeoForge {
         }
 
         /// <summary>
-        /// Expected to run on server only.
-        /// Maps "raw" (world space) voxel edits to Chunks and builds one VoxelEditOperation per
-        /// affected chunk. materialIndex and allowedMaterialsMask are properties of the whole
-        /// terraform action and are copied onto every chunk's operation unchanged; only the
-        /// per-chunk Deltas differ.
-        /// Internal: same reasoning as ExecuteTerraformAll above - reachable only through
-        /// GeoForgeStatic.
+        ///     Expected to run on server only.
+        ///     Maps "raw" (world space) voxel edits to Chunks and builds one VoxelEditOperation per
+        ///     affected chunk. materialIndex and allowedMaterialsMask are properties of the whole
+        ///     terraform action and are copied onto every chunk's operation unchanged; only the
+        ///     per-chunk Deltas differ.
+        ///     Internal: same reasoning as ExecuteTerraformAll above - reachable only through
+        ///     GeoForgeStatic.
         /// </summary>
         [Obsolete]
         internal void DistributeVoxelEdits(
@@ -284,7 +285,8 @@ namespace Spellbound.GeoForge {
                     if (chunk == null)
                         continue;
 
-                    chunk.PassVoxelEditOperation(new VoxelEditOperation(materialIndex, kvp.Value, allowedMaterialsMask, Vector3.zero));
+                    chunk.PassVoxelEditOperation(new VoxelEditOperation(materialIndex, kvp.Value, allowedMaterialsMask,
+                        Vector3.zero));
                 }
             }
             finally {
@@ -293,17 +295,17 @@ namespace Spellbound.GeoForge {
         }
 
         /// <summary>
-        /// Tries to query the voxel at a world position from whichever primary-terrain volume
-        /// actually has data there. Returns false (with voxel/queryVolume left at their defaults)
-        /// if no primary volume exists, or none of them have a loaded chunk with voxel data at
-        /// this position - a default VoxelData (Density == 0) is indistinguishable from real solid
-        /// terrain under the zero-threshold convention, so callers must not treat a false return
-        /// as "voxel is default/empty"; it means "nothing was actually queryable here."
-        /// queryVolume is only ever set on a true return, never left pointing at a volume whose
-        /// data wasn't actually used.
-        /// Judgment call, leaning public: a safe, read-only gameplay query (checking terrain at a
-        /// position) rather than lifecycle/pooling machinery - doesn't have the same clear
-        /// "route through GeoForgeStatic" signal ExecuteTerraformAll/DistributeVoxelEdits have.
+        ///     Tries to query the voxel at a world position from whichever primary-terrain volume
+        ///     actually has data there. Returns false (with voxel/queryVolume left at their defaults)
+        ///     if no primary volume exists, or none of them have a loaded chunk with voxel data at
+        ///     this position - a default VoxelData (Density == 0) is indistinguishable from real solid
+        ///     terrain under the zero-threshold convention, so callers must not treat a false return
+        ///     as "voxel is default/empty"; it means "nothing was actually queryable here."
+        ///     queryVolume is only ever set on a true return, never left pointing at a volume whose
+        ///     data wasn't actually used.
+        ///     Judgment call, leaning public: a safe, read-only gameplay query (checking terrain at a
+        ///     position) rather than lifecycle/pooling machinery - doesn't have the same clear
+        ///     "route through GeoForgeStatic" signal ExecuteTerraformAll/DistributeVoxelEdits have.
         /// </summary>
         public bool TryQueryVoxel(Vector3 position, out VoxelData voxel, out IGeoVolume queryVolume) {
             voxel = default;
@@ -324,17 +326,17 @@ namespace Spellbound.GeoForge {
         }
 
         /// <summary>
-        /// Tries to resolve the surface material at a world position from whichever
-        /// primary-terrain volume actually has voxel data there - same
-        /// try-each-primary-volume-in-turn shape as TryQueryVoxel above, just delegating to
-        /// IGeoVolume.TryQuerySurfaceMaterial (-> GeoVolumeEngine.TryQuerySurfaceMaterial) instead
-        /// of a plain single-voxel lookup. See that method for the 8-corner resolution and the
-        /// nearest-solid-corner tie-break rule.
-        /// Returns false (with materialIndex left at VoxelData.NullSentinelValue and queryVolume
-        /// left null) if no primary volume exists, none of them have a loaded chunk with voxel
-        /// data at this position, or the resolved cell has no solid corners at all. queryVolume is
-        /// only ever set on a true return, never left pointing at a volume whose data wasn't
-        /// actually used.
+        ///     Tries to resolve the surface material at a world position from whichever
+        ///     primary-terrain volume actually has voxel data there - same
+        ///     try-each-primary-volume-in-turn shape as TryQueryVoxel above, just delegating to
+        ///     IGeoVolume.TryQuerySurfaceMaterial (-> GeoVolumeEngine.TryQuerySurfaceMaterial) instead
+        ///     of a plain single-voxel lookup. See that method for the 8-corner resolution and the
+        ///     nearest-solid-corner tie-break rule.
+        ///     Returns false (with materialIndex left at VoxelData.NullSentinelValue and queryVolume
+        ///     left null) if no primary volume exists, none of them have a loaded chunk with voxel
+        ///     data at this position, or the resolved cell has no solid corners at all. queryVolume is
+        ///     only ever set on a true return, never left pointing at a volume whose data wasn't
+        ///     actually used.
         /// </summary>
         public bool TryQuerySurfaceMaterial(Vector3 position, out byte materialIndex, out IGeoVolume queryVolume) {
             materialIndex = VoxelData.NullSentinelValue;

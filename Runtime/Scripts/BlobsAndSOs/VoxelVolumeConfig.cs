@@ -5,49 +5,51 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Serialized Config for a GeoForge Volume.
-    /// On Validate prohibits impossible/illegal configurations
+    ///     Serialized Config for a GeoForge Volume.
+    ///     On Validate prohibits impossible/illegal configurations
     /// </summary>
     [CreateAssetMenu(menuName = "Spellbound/GeoForge/VoxelVolumeConfig")]
     public class VoxelVolumeConfig : ScriptableObject {
-        [Tooltip("Determines how many voxels are marched at a time, per side. Higher number may affect performance"),
-         Range(8, 32), SerializeField]
+        [Tooltip("Determines how many voxels are marched at a time, per side. Higher number may affect performance")]
+        [Range(8, 32)]
+        [SerializeField]
         internal int cubesPerMarch = 16;
 
-        [Tooltip("Max number of Levels of Details"),
-         Range(1, 5), SerializeField]
+        [Tooltip("Max number of Levels of Details")] [Range(1, 5)] [SerializeField]
         internal int levelsOfDetail = 3;
 
-        [Tooltip("Size in voxels of one geoChunk of data. Higher number may affect performance."),
-         Range(8, 128), SerializeField]
+        [Tooltip("Size in voxels of one geoChunk of data. Higher number may affect performance.")]
+        [Range(8, 128)]
+        [SerializeField]
         internal int maxChunkSize = 128;
 
-        [Tooltip("Actual geoChunk size, generated from maxChunkSize and Levels of Detail"),
-         SerializeField, Immutable]
+        [Tooltip("Actual geoChunk size, generated from maxChunkSize and Levels of Detail")] [SerializeField] [Immutable]
         internal int chunkSize;
 
-        internal int ChunkSize => chunkSize;
-
-        [Tooltip("Number of Voxels per one unit/meter. Lower number may affect performance."),
-         Range(0.1f, 10f), SerializeField]
+        [Tooltip("Number of Voxels per one unit/meter. Lower number may affect performance.")]
+        [Range(0.1f, 10f)]
+        [SerializeField]
         internal float resolution = 1;
 
-        [Tooltip("Indicates if the geoVolume is finite, rather than like an endless terrain"), SerializeField]
+        [Tooltip("Indicates if the geoVolume is finite, rather than like an endless terrain")] [SerializeField]
         internal bool isFiniteSize = true;
 
-        [Tooltip("For a finite geoVolume, how many chunks it is in each axis"), SerializeField]
+        [Tooltip("For a finite geoVolume, how many chunks it is in each axis")] [SerializeField]
         internal Vector3Int sizeInChunks;
 
-        [Tooltip("How many chunks are procedurally generated per frame"), Range(1, 10), SerializeField]
+        [Tooltip("How many chunks are procedurally generated per frame")] [Range(1, 10)] [SerializeField]
         internal int generatesPerFrame = 1;
 
-        [Tooltip("How many chunks have their LODs validated per frame"), Range(1, 10), SerializeField]
+        [Tooltip("How many chunks have their LODs validated per frame")] [Range(1, 10)] [SerializeField]
         internal int validatesPerFrame = 1;
 
         [Tooltip(
-             "This dimension is derived from your other settings. Indicates actual size of geoVolume, if its finite."),
-         SerializeField, Immutable]
+            "This dimension is derived from your other settings. Indicates actual size of geoVolume, if its finite.")]
+        [SerializeField]
+        [Immutable]
         internal Vector3 volumeSize;
+
+        internal int ChunkSize => chunkSize;
 
         private void OnValidate() {
             ValidateChunkSize();
@@ -79,7 +81,9 @@ namespace Spellbound.GeoForge {
             }
         }
 
-        private void ValidateVolumeSize() => volumeSize = (Vector3)sizeInChunks * chunkSize * resolution;
+        private void ValidateVolumeSize() {
+            volumeSize = (Vector3)sizeInChunks * chunkSize * resolution;
+        }
 
         private void ValidateSizeInChunks() {
             sizeInChunks.x = Mathf.Max(1, sizeInChunks.x);

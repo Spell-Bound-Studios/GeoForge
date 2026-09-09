@@ -7,8 +7,8 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// BlobAsset and BlobAssetCreation for how a GeoForge Volume is configured.
-    /// Packs the config from the VoxelVolumeConfig ScriptableObject into Blob memory. 
+    ///     BlobAsset and BlobAssetCreation for how a GeoForge Volume is configured.
+    ///     Packs the config from the VoxelVolumeConfig ScriptableObject into Blob memory.
     /// </summary>
     public struct VolumeConfigBlobAsset {
         public int CubesMarchedPerOctreeLeaf;
@@ -30,7 +30,7 @@ namespace Spellbound.GeoForge {
 
     internal static class VolumeConfigBlobCreator {
         internal static BlobAssetReference<VolumeConfigBlobAsset>
-                CreateVolumeConfigBlobAsset(VoxelVolumeConfig voxelVolumeConfig) {
+            CreateVolumeConfigBlobAsset(VoxelVolumeConfig voxelVolumeConfig) {
             var builder = new BlobBuilder(Allocator.Temp);
             ref var config = ref builder.ConstructRoot<VolumeConfigBlobAsset>();
             config.CubesMarchedPerOctreeLeaf = voxelVolumeConfig.cubesPerMarch;
@@ -45,8 +45,8 @@ namespace Spellbound.GeoForge {
             config.GeneratesPerFrame = voxelVolumeConfig.generatesPerFrame;
             config.ValidatesPerFrame = voxelVolumeConfig.validatesPerFrame;
             config.IsFiniteSize = voxelVolumeConfig.isFiniteSize;
-            config.TotalChunks = voxelVolumeConfig.sizeInChunks.x 
-                                 * voxelVolumeConfig.sizeInChunks.y 
+            config.TotalChunks = voxelVolumeConfig.sizeInChunks.x
+                                 * voxelVolumeConfig.sizeInChunks.y
                                  * voxelVolumeConfig.sizeInChunks.z;
 
             config.Offset = new Vector3Int(

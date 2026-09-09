@@ -5,10 +5,11 @@ using Spellbound.Core.Console;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Help command that lists all terraform-related utility commands.
-    /// My intention was to register all commands that are registered under the GeoForgeStatic class... I chose to implement
-    /// it into its own class (TerraformHelpCommand) just in case GeoForgeStatic changes later, or I want to change the way
-    /// the API is accessed at a later date.
+    ///     Help command that lists all terraform-related utility commands.
+    ///     My intention was to register all commands that are registered under the GeoForgeStatic class... I chose to
+    ///     implement
+    ///     it into its own class (TerraformHelpCommand) just in case GeoForgeStatic changes later, or I want to change the way
+    ///     the API is accessed at a later date.
     /// </summary>
     [ConsoleCommandClass("terraform", "tf")]
     public class TerraformHelpCommand : ICommand {
@@ -17,12 +18,12 @@ namespace Spellbound.GeoForge {
         public string Usage => "terraform";
 
         /// <summary>
-        /// This is implemented by the ICommand interface and allows us to implement our own logic for this class.
+        ///     This is implemented by the ICommand interface and allows us to implement our own logic for this class.
         /// </summary>
         public CommandResult Execute(string[] args) {
             // Get all commands from GeoForgeStatic class
             var commands =
-                    AttributeCommandRegistry.GetUtilityCommandsByClass(typeof(GeoForgeStatic));
+                AttributeCommandRegistry.GetUtilityCommandsByClass(typeof(GeoForgeStatic));
 
             var sb = new StringBuilder();
 

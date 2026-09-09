@@ -6,8 +6,8 @@ using UnityEngine.Rendering;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// A struct to hold the per-vertex data to be sent to the shader.
-    /// TODO Shrink Memory without breaking stuff
+    ///     A struct to hold the per-vertex data to be sent to the shader.
+    ///     TODO Shrink Memory without breaking stuff
     /// </summary>
     public struct MeshingVertexData {
         public float3 Position;
@@ -23,7 +23,7 @@ namespace Spellbound.GeoForge {
         }
 
         /// <summary>
-        /// The memory layout of a single vertex in memory
+        ///     The memory layout of a single vertex in memory
         /// </summary>
         public static readonly VertexAttributeDescriptor[] VertexBufferMemoryLayout = {
             new(VertexAttribute.Position),

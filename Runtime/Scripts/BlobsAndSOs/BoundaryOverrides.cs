@@ -1,5 +1,6 @@
 // Copyright 2026 Spellbound Studio Inc.
 
+using System;
 using System.Collections.Generic;
 using Unity.Entities;
 using UnityEngine;
@@ -8,8 +9,8 @@ namespace Spellbound.GeoForge {
     [CreateAssetMenu(menuName = "Spellbound/GeoForge/BoundaryOverrides")]
     public class BoundaryOverrides : ScriptableObject {
         [Tooltip(
-             "Full list of boundaries. Note 6 of them one on each face will fully constrain the geoVolume boundaries"),
-         SerializeField]
+            "Full list of boundaries. Note 6 of them one on each face will fully constrain the geoVolume boundaries")]
+        [SerializeField]
         private List<BoundaryOverride> BoundaryOverridesList = new();
 
         public List<BoundaryOverrideRuntime> GetBoundaryOverrides() {
@@ -18,7 +19,7 @@ namespace Spellbound.GeoForge {
             foreach (var bo in BoundaryOverridesList) {
                 var closed = bo.boundaryType is BoundaryType.Closed or BoundaryType.MatureClosed;
                 var mature = bo.boundaryType is BoundaryType.MatureClosed or BoundaryType.MatureOpen;
-                
+
                 var voxelData = mature
                     ? VoxelData.CreateMature(closed ? sbyte.MaxValue : sbyte.MinValue, bo.materialType)
                     : VoxelData.CreateImmature(closed ? sbyte.MaxValue : sbyte.MinValue, bo.materialType);
@@ -108,7 +109,7 @@ namespace Spellbound.GeoForge {
         MatureOpen
     }
 
-    [System.Serializable]
+    [Serializable]
     public struct BoundaryOverride {
         [Tooltip("Boundary is in the direction of which axis")]
         public Axis axis;

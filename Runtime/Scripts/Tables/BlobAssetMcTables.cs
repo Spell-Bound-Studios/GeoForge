@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Blob Asset to hold Marching Cubes Tables.
+    ///     Blob Asset to hold Marching Cubes Tables.
     /// </summary>
     public struct McTablesBlobAsset {
         // Mapping of Voxel.matIndex to Colors for vertexColors
@@ -43,7 +43,7 @@ namespace Spellbound.GeoForge {
             };
 
             var colorsByIndexArrayBuilder =
-                    builder.Allocate(ref tables.ColorsByIndex, colors.Length);
+                builder.Allocate(ref tables.ColorsByIndex, colors.Length);
 
             for (var i = 0; i < colors.Length; i++) colorsByIndexArrayBuilder[i] = colors[i];
 
@@ -56,11 +56,11 @@ namespace Spellbound.GeoForge {
                 new(0, 1, 0), // 4	     |  2----|--3
                 new(1, 1, 0), // 5	     | /     | /   y z
                 new(0, 1, 1), // 6	     |/      |/    |/
-                new(1, 1, 1)  // 7	     0-------1     o--x
+                new(1, 1, 1) // 7	     0-------1     o--x
             };
 
             var cornerOffsetArrayBuilder =
-                    builder.Allocate(ref tables.RegularCornerOffset, regularCornerOffset.Length);
+                builder.Allocate(ref tables.RegularCornerOffset, regularCornerOffset.Length);
 
             for (var i = 0; i < regularCornerOffset.Length; i++) cornerOffsetArrayBuilder[i] = regularCornerOffset[i];
 
@@ -85,7 +85,7 @@ namespace Spellbound.GeoForge {
             };
 
             var cellClassArrayBuilder =
-                    builder.Allocate(ref tables.RegularCellClass, regularCellClass.Length);
+                builder.Allocate(ref tables.RegularCellClass, regularCellClass.Length);
 
             for (var i = 0; i < regularCellClass.Length; i++) cellClassArrayBuilder[i] = regularCellClass[i];
 
@@ -95,12 +95,12 @@ namespace Spellbound.GeoForge {
             };
 
             var vertexCountArrayBuilder =
-                    builder.Allocate(ref tables.VertexCount, geometryCount.Length);
+                builder.Allocate(ref tables.VertexCount, geometryCount.Length);
 
             for (var i = 0; i < geometryCount.Length; i++) vertexCountArrayBuilder[i] = geometryCount[i] >> 4;
 
             var triangleCountArrayBuilder =
-                    builder.Allocate(ref tables.TriangleCount, geometryCount.Length);
+                builder.Allocate(ref tables.TriangleCount, geometryCount.Length);
 
             for (var i = 0; i < geometryCount.Length; i++) triangleCountArrayBuilder[i] = (geometryCount[i] & 0x0F) * 3;
 
@@ -125,11 +125,11 @@ namespace Spellbound.GeoForge {
             };
 
             var indicesArrayBuilder =
-                    builder.Allocate(ref tables.Indices, indices.Length);
+                builder.Allocate(ref tables.Indices, indices.Length);
 
             for (var i = 0; i < indices.Length; i++) {
                 var indicesInnerArrayBuilder =
-                        builder.Allocate(ref indicesArrayBuilder[i], indices[i].Length);
+                    builder.Allocate(ref indicesArrayBuilder[i], indices[i].Length);
                 for (var j = 0; j < indices[i].Length; j++) indicesInnerArrayBuilder[j] = indices[i][j];
             }
 
@@ -398,11 +398,11 @@ namespace Spellbound.GeoForge {
             };
 
             var vertexDataArrayBuilder =
-                    builder.Allocate(ref tables.RegularVertexData, vertexData.Length);
+                builder.Allocate(ref tables.RegularVertexData, vertexData.Length);
 
             for (var i = 0; i < vertexData.Length; i++) {
                 var vertexDataInnerArrayBuilder =
-                        builder.Allocate(ref vertexDataArrayBuilder[i], vertexData[i].Length);
+                    builder.Allocate(ref vertexDataArrayBuilder[i], vertexData[i].Length);
                 for (var j = 0; j < vertexData[i].Length; j++) vertexDataInnerArrayBuilder[j] = vertexData[i][j];
             }
 
@@ -420,11 +420,11 @@ namespace Spellbound.GeoForge {
                 new(0, 0, 2), // 9      |/    |  	 |/	           
                 new(2, 0, 2), // A	 0-----1-----2               
                 new(0, 2, 2), // B	   
-                new(2, 2, 2)  // C
+                new(2, 2, 2) // C
             };
 
             var transitionCornerOffsetArrayBuilder =
-                    builder.Allocate(ref tables.TransitionCornerOffset, transitionCornerOffset.Length);
+                builder.Allocate(ref tables.TransitionCornerOffset, transitionCornerOffset.Length);
 
             for (var i = 0; i < transitionCornerOffset.Length; i++)
                 transitionCornerOffsetArrayBuilder[i] = transitionCornerOffset[i];
@@ -466,7 +466,7 @@ namespace Spellbound.GeoForge {
             };
 
             var transitionCellClassArrayBuilder =
-                    builder.Allocate(ref tables.TransitionCellClass, transitionCellClass.Length);
+                builder.Allocate(ref tables.TransitionCellClass, transitionCellClass.Length);
 
             for (var i = 0; i < transitionCellClass.Length; i++)
                 transitionCellClassArrayBuilder[i] = transitionCellClass[i];
@@ -480,13 +480,13 @@ namespace Spellbound.GeoForge {
             };
 
             var transitionVertexCountArrayBuilder =
-                    builder.Allocate(ref tables.TransitionVertexCount, transitionGeometryCount.Length);
+                builder.Allocate(ref tables.TransitionVertexCount, transitionGeometryCount.Length);
 
             for (var i = 0; i < transitionGeometryCount.Length; i++)
                 transitionVertexCountArrayBuilder[i] = transitionGeometryCount[i] >> 4;
 
             var transitionTriangleCountArrayBuilder =
-                    builder.Allocate(ref tables.TransitionTriangleCount, transitionGeometryCount.Length);
+                builder.Allocate(ref tables.TransitionTriangleCount, transitionGeometryCount.Length);
 
             for (var i = 0; i < transitionGeometryCount.Length; i++)
                 transitionTriangleCountArrayBuilder[i] = (transitionGeometryCount[i] & 0x0F) * 3;
@@ -555,11 +555,11 @@ namespace Spellbound.GeoForge {
             };
 
             var transitionIndicesArrayBuilder =
-                    builder.Allocate(ref tables.TransitionIndices, transitionIndices.Length);
+                builder.Allocate(ref tables.TransitionIndices, transitionIndices.Length);
 
             for (var i = 0; i < transitionIndices.Length; i++) {
                 var transitionInnerIndicesInnerArrayBuilder =
-                        builder.Allocate(ref transitionIndicesArrayBuilder[i], transitionIndices[i].Length);
+                    builder.Allocate(ref transitionIndicesArrayBuilder[i], transitionIndices[i].Length);
 
                 for (var j = 0; j < transitionIndices[i].Length; j++)
                     transitionInnerIndicesInnerArrayBuilder[j] = transitionIndices[i][j];
@@ -571,7 +571,7 @@ namespace Spellbound.GeoForge {
             };
 
             var transitionCornerDataArrayBuilder =
-                    builder.Allocate(ref tables.TransitionCornerData, transitionCornerData.Length);
+                builder.Allocate(ref tables.TransitionCornerData, transitionCornerData.Length);
 
             for (var i = 0; i < transitionCornerData.Length; i++)
                 transitionCornerDataArrayBuilder[i] = transitionCornerData[i];
@@ -1121,11 +1121,11 @@ namespace Spellbound.GeoForge {
             };
 
             var transitionVertexDataArrayBuilder =
-                    builder.Allocate(ref tables.TransitionVertexData, transitionVertexData.Length);
+                builder.Allocate(ref tables.TransitionVertexData, transitionVertexData.Length);
 
             for (var i = 0; i < transitionVertexData.Length; i++) {
                 var transitionVertexDataInnerArrayBuilder =
-                        builder.Allocate(ref transitionVertexDataArrayBuilder[i], transitionVertexData[i].Length);
+                    builder.Allocate(ref transitionVertexDataArrayBuilder[i], transitionVertexData[i].Length);
 
                 for (var j = 0; j < transitionVertexData[i].Length; j++)
                     transitionVertexDataInnerArrayBuilder[j] = transitionVertexData[i][j];

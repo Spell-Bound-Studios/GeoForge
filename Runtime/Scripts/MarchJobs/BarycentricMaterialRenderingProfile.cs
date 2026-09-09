@@ -8,10 +8,10 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// MaterialRenderingProfile for the FlatShaded/Barycentric hard-edge material scheme.
-    /// Schedules FlatBaryMarchJob and TransFlatBaryMarchJob, which always flat-shade and never
-    /// blend materials - each vertex's material is simply the "full" voxel on the edge it sits on,
-    /// packed per-triangle for the shader to select per-fragment with a hard boundary.
+    ///     MaterialRenderingProfile for the FlatShaded/Barycentric hard-edge material scheme.
+    ///     Schedules FlatBaryMarchJob and TransFlatBaryMarchJob, which always flat-shade and never
+    ///     blend materials - each vertex's material is simply the "full" voxel on the edge it sits on,
+    ///     packed per-triangle for the shader to select per-fragment with a hard boundary.
     /// </summary>
     [CreateAssetMenu(menuName = "Spellbound/GeoForge/Material Rendering Profile (Flat Bary)",
         fileName = "FlatBaryMaterialRenderingProfile")]

@@ -7,8 +7,8 @@ using Unity.Mathematics;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// This is like a final proc gen "pass" to force whatever voxel array has been generated  will obey
-    /// the Boundary Overrides.
+    ///     This is like a final proc gen "pass" to force whatever voxel array has been generated  will obey
+    ///     the Boundary Overrides.
     /// </summary>
     [BurstCompile]
     internal struct ApplyBoundaryOverridesJob : IJobParallelFor {
@@ -22,7 +22,7 @@ namespace Spellbound.GeoForge {
         [ReadOnly] internal int chunkDataAreaSize;
         [ReadOnly] internal int chunkDataWidthSize;
 
-        [NativeDisableParallelForRestriction, WriteOnly]
+        [NativeDisableParallelForRestriction] [WriteOnly]
         internal NativeArray<bool> hasOverrides;
 
         public void Execute(int i) {

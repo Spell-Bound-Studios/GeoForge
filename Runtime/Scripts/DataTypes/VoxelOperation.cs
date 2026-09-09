@@ -8,8 +8,8 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// The density change part of a VoxelEditOperation.
-    /// It is specific to a chunk, because the index is the index of the chunk, not some kind of world position.
+    ///     The density change part of a VoxelEditOperation.
+    ///     It is specific to a chunk, because the index is the index of the chunk, not some kind of world position.
     /// </summary>
     public struct VoxelDensityDelta : IPacker {
         public int Index;
@@ -30,11 +30,13 @@ namespace Spellbound.GeoForge {
             DensityDelta = Packer.ReadShort(ref buffer);
         }
 
-        public override string ToString() => $"VoxelDensityDelta(Index={Index}, DensityDelta={DensityDelta})";
+        public override string ToString() {
+            return $"VoxelDensityDelta(Index={Index}, DensityDelta={DensityDelta})";
+        }
     }
 
     /// <summary>
-    /// Describes a terraform operation targeting a specific chunk. 
+    ///     Describes a terraform operation targeting a specific chunk.
     /// </summary>
     public struct VoxelEditOperation : IPacker {
         public byte MaterialIndex;
@@ -42,7 +44,8 @@ namespace Spellbound.GeoForge {
         public uint4 AllowedMaterialsMask;
         public Vector3 WorldPosition;
 
-        public VoxelEditOperation(byte materialIndex, List<VoxelDensityDelta> deltas, uint4 allowedMaterialsMask, Vector3 worldPosition) {
+        public VoxelEditOperation(byte materialIndex, List<VoxelDensityDelta> deltas, uint4 allowedMaterialsMask,
+            Vector3 worldPosition) {
             MaterialIndex = materialIndex;
             Deltas = deltas.ToArray();
             AllowedMaterialsMask = allowedMaterialsMask;
@@ -93,9 +96,10 @@ namespace Spellbound.GeoForge {
             WorldPosition = Packer.ReadVector3(ref buffer);
         }
 
-        public override string ToString() =>
-                $"VoxelEditOperation(MaterialIndex={MaterialIndex}, Deltas={Deltas?.Length ?? 0}, " +
-                $"Mask=({AllowedMaterialsMask.x},{AllowedMaterialsMask.y},{AllowedMaterialsMask.z},{AllowedMaterialsMask.w})) +" +
-                $"WorldPosition=({WorldPosition.x}, {WorldPosition.y},{WorldPosition.z})";
+        public override string ToString() {
+            return $"VoxelEditOperation(MaterialIndex={MaterialIndex}, Deltas={Deltas?.Length ?? 0}, " +
+                   $"Mask=({AllowedMaterialsMask.x},{AllowedMaterialsMask.y},{AllowedMaterialsMask.z},{AllowedMaterialsMask.w})) +" +
+                   $"WorldPosition=({WorldPosition.x}, {WorldPosition.y},{WorldPosition.z})";
+        }
     }
 }

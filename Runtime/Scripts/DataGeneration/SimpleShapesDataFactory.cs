@@ -6,8 +6,8 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Crude data generation for various shapes.
-    /// This is managed C# on the main thread which means it's very slow.
+    ///     Crude data generation for various shapes.
+    ///     This is managed C# on the main thread which means it's very slow.
     /// </summary>
     [CreateAssetMenu(menuName = "Spellbound/GeoForge/DataFactory/SimpleShapes")]
     public class SimpleShapesDataFactory : DataFactory {
@@ -19,33 +19,33 @@ namespace Spellbound.GeoForge {
             NoisySphere
         }
 
-        [Header("Data Factory Settings"), Tooltip("Offset of Shape Origin from Volume Origin"), SerializeField]
+        [Header("Data Factory Settings")] [Tooltip("Offset of Shape Origin from Volume Origin")] [SerializeField]
         private Vector3 offset = Vector3.zero;
 
-        [Tooltip("Not recommended to change from default value of 32"), SerializeField]
+        [Tooltip("Not recommended to change from default value of 32")] [SerializeField]
         private float sdfGradientSteepness = 32f;
 
         [Tooltip("Material for the shape to be generated as. " +
-                 "Refer to MarchingCubeManager for what index corresponds to what material"),
-         SerializeField]
-        private byte materialIndex = 0;
-        
-        [Tooltip("Whether the terrain is mature or not, rendering alternate textures on it's upwards-facing surfaces"),
-         SerializeField]
+                 "Refer to MarchingCubeManager for what index corresponds to what material")]
+        [SerializeField]
+        private byte materialIndex;
+
+        [Tooltip("Whether the terrain is mature or not, rendering alternate textures on it's upwards-facing surfaces")]
+        [SerializeField]
         private bool isMature = true;
 
-        [Header("Shape Settings"), Tooltip("Type of Simple Shape"), SerializeField]
+        [Header("Shape Settings")] [Tooltip("Type of Simple Shape")] [SerializeField]
         private ShapeType shape = ShapeType.Sphere;
 
-        [Tooltip("Size of Simple Shape"), SerializeField]
+        [Tooltip("Size of Simple Shape")] [SerializeField]
         private float size = 16f;
 
-        [Tooltip("False means the size is in Worldspace, true means the size is in Voxelspace"), SerializeField]
-        private bool normalizedSize = false;
+        [Tooltip("False means the size is in Worldspace, true means the size is in Voxelspace")] [SerializeField]
+        private bool normalizedSize;
 
-        [Tooltip("Flip what part of the shape is full of material, and what part of the shape is air/empty"),
-         SerializeField]
-        private bool invertShape = false;
+        [Tooltip("Flip what part of the shape is full of material, and what part of the shape is air/empty")]
+        [SerializeField]
+        private bool invertShape;
 
         public override void FillDataArray(
             Vector3Int chunkCoord,
@@ -62,25 +62,29 @@ namespace Spellbound.GeoForge {
                 var densityByte = SignedDistanceToDensity(signedDistance, sdfGradientSteepness);
 
                 data[i] = isMature
-                        ? VoxelData.CreateMature(densityByte, materialIndex)
-                        : VoxelData.CreateImmature(densityByte, materialIndex);
+                    ? VoxelData.CreateMature(densityByte, materialIndex)
+                    : VoxelData.CreateImmature(densityByte, materialIndex);
             }
         }
 
-        private float GetSignedDistance(Vector3 voxelPos, float voxelSize) =>
-                shape switch {
-                    ShapeType.AllFilled => float.MinValue,
-                    ShapeType.AllEmpty => float.MaxValue,
-                    ShapeType.Plane => PlaneSDF(voxelPos, offset),
-                    ShapeType.Sphere => SphereSDF(voxelPos, offset, voxelSize),
-                    ShapeType.NoisySphere => NoisySphereSDF(voxelPos, offset, voxelSize),
-                    _ => 0f
-                };
+        private float GetSignedDistance(Vector3 voxelPos, float voxelSize) {
+            return shape switch {
+                ShapeType.AllFilled => float.MinValue,
+                ShapeType.AllEmpty => float.MaxValue,
+                ShapeType.Plane => PlaneSDF(voxelPos, offset),
+                ShapeType.Sphere => SphereSDF(voxelPos, offset, voxelSize),
+                ShapeType.NoisySphere => NoisySphereSDF(voxelPos, offset, voxelSize),
+                _ => 0f
+            };
+        }
 
-        private float PlaneSDF(Vector3 point, Vector3 planeOrigin) => point.y - planeOrigin.y;
+        private float PlaneSDF(Vector3 point, Vector3 planeOrigin) {
+            return point.y - planeOrigin.y;
+        }
 
-        private float SphereSDF(Vector3 point, Vector3 center, float radius) =>
-                Vector3.Distance(point, center) - radius;
+        private float SphereSDF(Vector3 point, Vector3 center, float radius) {
+            return Vector3.Distance(point, center) - radius;
+        }
 
         private float NoisySphereSDF(Vector3 point, Vector3 center, float radius) {
             var noiseScale = 3f;

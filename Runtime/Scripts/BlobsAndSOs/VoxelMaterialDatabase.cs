@@ -1,59 +1,54 @@
 // Copyright 2026 Spellbound Studio Inc.
 
+using System;
 using System.Collections.Generic;
+using UnityEngine;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
-using UnityEngine;
 
 namespace Spellbound.GeoForge {
     [CreateAssetMenu(menuName = "Spellbound/GeoForge/VoxelMaterialDatabase")]
     public class VoxelMaterialDatabase : ScriptableObject {
         private const byte NotPresent = 255;
 
-        [System.Serializable]
-        public class MaterialEntry {
-            public string materialName;
+        [Header("Material Definitions")] [SerializeField]
+        private List<MaterialEntry> materials = new();
 
-            [Tooltip("Albedo/Color texture")]
-            public Texture2D albedoTexture;
-
-            [Tooltip("Alt albedo texture (normal-aware/stratified variant, e.g. moss/snow/sand layers)")]
-            public Texture2D altAlbedoTexture;
-
-            public MaterialEntry(string name = "New Material") {
-                materialName = name;
-            }
-        }
-
-        [Header("Material Definitions"), SerializeField] private List<MaterialEntry> materials = new();
-
-        [Header("Generated Content Arrays"), SerializeField]
+        [Header("Generated Content Arrays")]
+        [SerializeField]
         [Tooltip("One slice per material index - materialIndex indexes directly into this array.")]
         private Texture2DArray albedoTextureArray;
 
-        [Tooltip("Same indexing as albedoTextureArray, built from altAlbedoTexture instead."), SerializeField]
+        [Tooltip("Same indexing as albedoTextureArray, built from altAlbedoTexture instead.")] [SerializeField]
         private Texture2DArray altAlbedoTextureArray;
 
-        [Header("Texture Array Settings"), SerializeField] private bool generateMipmaps = true;
+        [Header("Texture Array Settings")] [SerializeField]
+        private bool generateMipmaps = true;
+
         [SerializeField] private FilterMode filterMode = FilterMode.Trilinear;
         [SerializeField] private int anisoLevel = 8;
 
-        [Header("Texture Type Settings")] private bool albedoIsLinear = false;
+        [Header("Texture Type Settings")] private readonly bool albedoIsLinear = false;
 
         // Runtime lookup cache
         private Dictionary<string, byte> _nameToIndex;
 
+        public int MaterialCount => materials.Count;
+
+        private void OnValidate() {
+            _nameToIndex = null;
+        }
+
         /// <summary>
-        /// Get the material index by name. Returns 255 if not found.
+        ///     Get the material index by name. Returns 255 if not found.
         /// </summary>
         public byte GetMaterialIndex(string materialName) {
             if (_nameToIndex == null) {
                 _nameToIndex = new Dictionary<string, byte>();
-                for (var i = 0; i < materials.Count; i++) {
+                for (var i = 0; i < materials.Count; i++)
                     if (!string.IsNullOrEmpty(materials[i].materialName))
                         _nameToIndex[materials[i].materialName] = (byte)i;
-                }
             }
 
             if (_nameToIndex.TryGetValue(materialName, out var index)) return index;
@@ -69,18 +64,29 @@ namespace Spellbound.GeoForge {
             return null;
         }
 
-        public bool HasMaterial(string materialName) => GetMaterialIndex(materialName) != NotPresent;
-
-        public IEnumerable<string> GetAllMaterialNames() {
-            foreach (var mat in materials) {
-                if (!string.IsNullOrEmpty(mat.materialName))
-                    yield return mat.materialName;
-            }
+        public bool HasMaterial(string materialName) {
+            return GetMaterialIndex(materialName) != NotPresent;
         }
 
-        public int MaterialCount => materials.Count;
+        public IEnumerable<string> GetAllMaterialNames() {
+            foreach (var mat in materials)
+                if (!string.IsNullOrEmpty(mat.materialName))
+                    yield return mat.materialName;
+        }
 
-        private void OnValidate() => _nameToIndex = null;
+        [Serializable]
+        public class MaterialEntry {
+            public string materialName;
+
+            [Tooltip("Albedo/Color texture")] public Texture2D albedoTexture;
+
+            [Tooltip("Alt albedo texture (normal-aware/stratified variant, e.g. moss/snow/sand layers)")]
+            public Texture2D altAlbedoTexture;
+
+            public MaterialEntry(string name = "New Material") {
+                materialName = name;
+            }
+        }
 
 #if UNITY_EDITOR
         [ContextMenu("Build Texture Arrays")]
@@ -101,15 +107,15 @@ namespace Spellbound.GeoForge {
         }
 
         /// <summary>
-        /// Builds one Texture2DArray with exactly materials.Count slices, one per material index
-        /// directly (no compaction, no mapping table) - the shader just samples
-        /// arrayName[materialIndex]. Every material is expected to have a real texture assigned;
-        /// a missing texture logs an error and that slice is left blank rather than silently
-        /// substituted, since there's no fallback color to generate one from anymore.
+        ///     Builds one Texture2DArray with exactly materials.Count slices, one per material index
+        ///     directly (no compaction, no mapping table) - the shader just samples
+        ///     arrayName[materialIndex]. Every material is expected to have a real texture assigned;
+        ///     a missing texture logs an error and that slice is left blank rather than silently
+        ///     substituted, since there's no fallback color to generate one from anymore.
         /// </summary>
         private void BuildDirectArray(
             ref Texture2DArray textureArray,
-            System.Func<MaterialEntry, Texture2D> textureSelector,
+            Func<MaterialEntry, Texture2D> textureSelector,
             string arrayName) {
             if (textureArray != null) {
                 AssetDatabase.RemoveObjectFromAsset(textureArray);

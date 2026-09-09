@@ -9,17 +9,11 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Sealed GeoForge Chunk Logic.
-    /// This class should only be touched externally by an IGeoChunk implementer.
+    ///     Sealed GeoForge Chunk Logic.
+    ///     This class should only be touched externally by an IGeoChunk implementer.
     /// </summary>
     public sealed class GeoChunkEngine : IDisposable {
-        private Vector3Int _chunkCoord;
-        public IGeoEditStore IGeoEditStore { get; private set; }
-
-        private BoundsInt _bounds;
-        private NativeList<SparseVoxelData> _sparseVoxels;
-        private OctreeNode _rootNode;
-        private DensityRange _densityRange;
+        private readonly IGeoChunk _implementer;
 
         // Addresses (lod, localPosition) of octree nodes that produced zero triangles the last
         // time they were marched, and haven't been invalidated since. Presence in the set means
@@ -40,52 +34,81 @@ namespace Spellbound.GeoForge {
         // invalidating addresses that overlap the edited bounds - simplest correct thing to do,
         // and a chunk that was just edited will have most of its cache invalidated by the edit's
         // meshing pass anyway, so partial invalidation would save little for real complexity.
-        private HashSet<(int Lod, Vector3Int LocalPosition)> _knownEmptyOctreeAddresses = new();
+        private readonly HashSet<(int Lod, Vector3Int LocalPosition)> _knownEmptyOctreeAddresses = new();
 
         private readonly GeoForgeManager _mcManager;
-        private IGeoVolume _parentGeoVolume;
-        private Transform _transform;
-        private readonly IGeoChunk _implementer;
-        private VoxelOverrides _voxelOverrides;
+
+        private BoundsInt _bounds;
+        private DensityRange _densityRange;
         private bool _isDisposed;
-
-        public Vector3Int ChunkCoord => _chunkCoord;
-        public DensityRange DensityRange => _densityRange;
-        public BoundsInt Bounds => _bounds;
-
-        public Transform Transform => _transform;
-        public OctreeNode RootNode => _rootNode;
-
-        public IGeoVolume ParentGeoVolume => _parentGeoVolume;
-
-        /// <summary>
-        /// Whether this chunk's voxel data has been set at least once (via SetVoxels).
-        /// </summary>
-        public bool VoxelsReady { get; private set; }
-
-        /// <summary>
-        /// Whether this chunk's mesh is ready - see SetMeshReady for exactly when this flips.
-        /// </summary>
-        public bool MeshReady { get; private set; }
+        private NativeList<SparseVoxelData> _sparseVoxels;
+        private VoxelOverrides _voxelOverrides;
 
         public GeoChunkEngine(
             IGeoChunk implementer, Transform transform, IGeoEditStore iGeoEditStore, Vector3Int chunkCoord) {
             _implementer = implementer;
-            _transform = transform;
+            Transform = transform;
             IGeoEditStore = iGeoEditStore;
             IGeoEditStore.OnGeoEditChanged += HandleResolvedVoxelEdits;
-            _chunkCoord = chunkCoord;
-            _parentGeoVolume = _transform.GetComponentInParent<IGeoVolume>();
+            ChunkCoord = chunkCoord;
+            ParentGeoVolume = Transform.GetComponentInParent<IGeoVolume>();
             ref var config = ref ParentGeoVolume.ConfigBlob.Value;
-            _chunkCoord = chunkCoord;
+            ChunkCoord = chunkCoord;
             var voxelMin = chunkCoord * config.ChunkSize;
             _bounds = new BoundsInt(voxelMin, config.ChunkSize * Vector3Int.one);
-            _transform.gameObject.name = chunkCoord.ToString();
+            Transform.gameObject.name = chunkCoord.ToString();
             _mcManager = SingletonManager.GetSingletonInstance<GeoForgeManager>();
             _voxelOverrides = new VoxelOverrides();
         }
 
-        public void SetOverrides(VoxelOverrides overrides) => _voxelOverrides = overrides;
+        public IGeoEditStore IGeoEditStore { get; }
+
+        public Vector3Int ChunkCoord { get; }
+
+        public DensityRange DensityRange => _densityRange;
+        public BoundsInt Bounds => _bounds;
+
+        public Transform Transform { get; }
+
+        public OctreeNode RootNode { get; private set; }
+
+        public IGeoVolume ParentGeoVolume { get; }
+
+        /// <summary>
+        ///     Whether this chunk's voxel data has been set at least once (via SetVoxels).
+        /// </summary>
+        public bool VoxelsReady { get; private set; }
+
+        /// <summary>
+        ///     Whether this chunk's mesh is ready - see SetMeshReady for exactly when this flips.
+        /// </summary>
+        public bool MeshReady { get; private set; }
+
+
+        public void Dispose() {
+            // Idempotent by design, not by accident: everything this touches downstream (event
+            // -=, Dictionary.Remove, OctreeNode.Dispose's own IsCreated guards) happens to also
+            // be safe to call twice today, but that's a chain of coincidences a future change
+            // could break. GeoVolume.Dispose() calls this explicitly and then destroys the chunk
+            // GameObject, which can re-enter here via SimpleGeoChunk.OnDestroy() - this guard is
+            // what actually makes that safe, rather than relying on every downstream piece to
+            // keep guarding itself correctly forever.
+            if (_isDisposed)
+                return;
+
+            _isDisposed = true;
+
+            IGeoEditStore.OnGeoEditChanged -= HandleResolvedVoxelEdits;
+            ParentGeoVolume.GeoVolumeEngine.ChunkDict.Remove(ChunkCoord);
+            RootNode?.Dispose();
+
+            if (_sparseVoxels.IsCreated)
+                _sparseVoxels.Dispose();
+        }
+
+        public void SetOverrides(VoxelOverrides overrides) {
+            _voxelOverrides = overrides;
+        }
 
         public bool HasOverrides() {
             if (_voxelOverrides == null || !_voxelOverrides.HasAnyOverrides)
@@ -145,17 +168,17 @@ namespace Spellbound.GeoForge {
             ScheduleOctreeEditValidation(editBounds);
 
             _mcManager.CompleteAndApplyMarchingCubesJobs();
-            _mcManager.ReleaseVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this, isEdit: true);
+            _mcManager.ReleaseVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this, true);
         }
 
         public void SetVoxels(NativeArray<VoxelData> voxels) {
             if (!voxels.IsCreated) {
                 Debug.LogError(
-                    $"_sparseVoxels being initialized with native array that has not been created for chunkCoord {_chunkCoord}.");
+                    $"_sparseVoxels being initialized with native array that has not been created for chunkCoord {ChunkCoord}.");
 
                 return;
             }
-            
+
             VoxelsReady = false;
             MeshReady = false;
 
@@ -188,12 +211,10 @@ namespace Spellbound.GeoForge {
             // instead of silently handing back the old data via the "already resident" fast path.
             _mcManager.InvalidateChunkResidency(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this);
 
-            if (_rootNode != null) {
-                _rootNode.Dispose();
-            }
+            if (RootNode != null) RootNode.Dispose();
 
-            _rootNode = new OctreeNode(Vector3Int.zero, _parentGeoVolume.ConfigBlob.Value.LevelsOfDetail, _implementer,
-                _parentGeoVolume);
+            RootNode = new OctreeNode(Vector3Int.zero, ParentGeoVolume.ConfigBlob.Value.LevelsOfDetail, _implementer,
+                ParentGeoVolume);
 
             VoxelsReady = true;
 
@@ -209,7 +230,7 @@ namespace Spellbound.GeoForge {
         public bool ApplyVoxelEdits(
             List<(int, VoxelData)> voxelChanges, out BoundsInt editBounds, BoundsInt existingEditBounds = default) {
             ref var config = ref ParentGeoVolume.ConfigBlob.Value;
-            var voxelArray = GetVoxelDataArray(isEdit: true);
+            var voxelArray = GetVoxelDataArray(true);
 
             var hasEdits = false;
             editBounds = existingEditBounds;
@@ -224,7 +245,8 @@ namespace Spellbound.GeoForge {
                 if (_voxelOverrides.HasOverride(voxelPos))
                     continue;
 
-                voxelArray[index] = VoxelData.CreateImmature(voxelChange.Item2.Density, voxelChange.Item2.MaterialIndex);
+                voxelArray[index] =
+                    VoxelData.CreateImmature(voxelChange.Item2.Density, voxelChange.Item2.MaterialIndex);
 
                 if (!hasEdits) {
                     editBounds = new BoundsInt(voxelPos, Vector3Int.one);
@@ -243,7 +265,7 @@ namespace Spellbound.GeoForge {
             }
 
             if (hasEdits) {
-                _mcManager.PackVoxelArray(config.ChunkSize, this, isEdit: true, editBounds);
+                _mcManager.PackVoxelArray(config.ChunkSize, this, true, editBounds);
 
                 // Any cached "empty" result may no longer hold once the underlying voxel data has
                 // changed - wipe the whole cache rather than figuring out which addresses actually
@@ -252,24 +274,27 @@ namespace Spellbound.GeoForge {
                 _knownEmptyOctreeAddresses.Clear();
             }
 
-            _mcManager.ReleaseVoxelArray(config.ChunkSize, this, isEdit: true);
+            _mcManager.ReleaseVoxelArray(config.ChunkSize, this, true);
 
             return hasEdits;
         }
 
-        public void OnVolumeMovement() => RootNode?.ValidateMaterial();
+        public void OnVolumeMovement() {
+            RootNode?.ValidateMaterial();
+        }
 
         // NOTE (David): public signature change - now requires isEdit. I've only verified the call
         // sites inside GeoChunk.cs/GeoForgeManager.*.cs; if anything outside this file calls
         // GetVoxelDataArray(), it'll need a grep-and-fix pass.
-        public NativeArray<VoxelData> GetVoxelDataArray(bool isEdit) =>
-                _mcManager.GetOrUnpackVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this,
-                    _sparseVoxels, isEdit);
+        public NativeArray<VoxelData> GetVoxelDataArray(bool isEdit) {
+            return _mcManager.GetOrUnpackVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this,
+                _sparseVoxels, isEdit);
+        }
 
         public NativeList<SparseVoxelData> GetsSparseVoxelData() {
             return _sparseVoxels.IsCreated ? _sparseVoxels : new NativeList<SparseVoxelData>();
         }
-            
+
 
         internal void UpdateVoxelData(NativeList<SparseVoxelData> voxels, DensityRange densityRange) {
             if (!_sparseVoxels.IsCreated)
@@ -283,16 +308,16 @@ namespace Spellbound.GeoForge {
         public void BroadcastNewLeafAcrossChunks(OctreeNode newLeaf, Vector3Int pos, int index) {
             ref var config = ref ParentGeoVolume.ConfigBlob.Value;
 
-            var worldVoxelPos = pos + _chunkCoord * config.ChunkSize;
+            var worldVoxelPos = pos + ChunkCoord * config.ChunkSize;
 
             if (_bounds.Contains(worldVoxelPos)) {
-                _rootNode?.ValidateTransition(newLeaf, pos, GfStaticHelper.GetTransitionFaceMask(index));
+                RootNode?.ValidateTransition(newLeaf, pos, GfStaticHelper.GetTransitionFaceMask(index));
 
                 return;
             }
 
-            var neighborCoord = GfStaticHelper.GetNeighborCoord(index, _chunkCoord);
-            var neighborChunk = _parentGeoVolume.GetChunkByCoord(neighborCoord);
+            var neighborCoord = GfStaticHelper.GetNeighborCoord(index, ChunkCoord);
+            var neighborChunk = ParentGeoVolume.GetChunkByCoord(neighborCoord);
 
             if (neighborChunk == null)
                 return;
@@ -314,7 +339,7 @@ namespace Spellbound.GeoForge {
 
         public VoxelData GetVoxelDataFromVoxelPosition(Vector3Int position) {
             ref var config = ref ParentGeoVolume.ConfigBlob.Value;
-            var chunkSpacePosition = position - _chunkCoord * config.ChunkSize;
+            var chunkSpacePosition = position - ChunkCoord * config.ChunkSize;
 
             var index = GfStaticHelper.Coord3DToIndex(
                 chunkSpacePosition.x,
@@ -327,26 +352,32 @@ namespace Spellbound.GeoForge {
             return GetVoxelData(index);
         }
 
-        public bool HasVoxelData() => _sparseVoxels.IsCreated;
+        public bool HasVoxelData() {
+            return _sparseVoxels.IsCreated;
+        }
 
         // Whether the octree node at this exact address was found empty (zero triangles) the last
         // time it was marched, and hasn't been invalidated by an edit since. A miss (false) means
         // "unknown" - never marched at this address since the last edit, or it had real geometry -
         // never "known non-empty", so callers must treat a miss as "go ahead and march it", not as
         // proof of anything.
-        public bool IsKnownEmpty(int lod, Vector3Int localPosition) =>
-                _knownEmptyOctreeAddresses.Contains((lod, localPosition));
+        public bool IsKnownEmpty(int lod, Vector3Int localPosition) {
+            return _knownEmptyOctreeAddresses.Contains((lod, localPosition));
+        }
 
         // Records that the octree node at this address marched to zero triangles. Overwriting an
         // existing entry is a no-op (HashSet.Add just returns false) - fine, since re-marching the
         // same address always reproduces the same result off unchanged data.
-        public void MarkKnownEmpty(int lod, Vector3Int localPosition) =>
-                _knownEmptyOctreeAddresses.Add((lod, localPosition));
+        public void MarkKnownEmpty(int lod, Vector3Int localPosition) {
+            _knownEmptyOctreeAddresses.Add((lod, localPosition));
+        }
 
         // Explicit clear for callers that need to invalidate outside of an edit (none exist yet -
         // ApplyVoxelEdits above handles the normal case directly). Kept public in case that
         // changes; safe to call even when the cache is already empty.
-        public void ClearKnownEmptyOctreeAddresses() => _knownEmptyOctreeAddresses.Clear();
+        public void ClearKnownEmptyOctreeAddresses() {
+            _knownEmptyOctreeAddresses.Clear();
+        }
 
         // Schedule-only half of octree edit validation: cascades the edit through the octree,
         // scheduling any resulting march/transition jobs via GeoForgeManager.RegisterMarchJob/
@@ -356,7 +387,7 @@ namespace Spellbound.GeoForge {
             if (!_sparseVoxels.IsCreated)
                 return;
 
-            _rootNode?.ValidateOctreeEdits(bounds, GetVoxelDataArray(isEdit: true));
+            RootNode?.ValidateOctreeEdits(bounds, GetVoxelDataArray(true));
         }
 
         // Schedule-only half: checks out the Validation-pool slot and cascades the LOD check
@@ -375,14 +406,14 @@ namespace Spellbound.GeoForge {
                 return;
 
             var playerPositionChunkSpace = playerPosition - _bounds.min;
-            _rootNode.ValidateOctreeLods(playerPositionChunkSpace, GetVoxelDataArray(isEdit: false));
+            RootNode.ValidateOctreeLods(playerPositionChunkSpace, GetVoxelDataArray(false));
         }
 
         // Releases this chunk's Validation-pool checkout. Only valid to call after
         // CompleteAndApplyMarchingCubesJobs() has run for whatever batch this chunk's
         // ScheduleOctreeLodValidation call was part of.
         public void ReleaseLodValidation() {
-            _mcManager.ReleaseVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this, isEdit: false);
+            _mcManager.ReleaseVoxelArray(ParentGeoVolume.ConfigBlob.Value.ChunkSize, this, false);
             SetMeshReady();
         }
 
@@ -395,29 +426,7 @@ namespace Spellbound.GeoForge {
 
             MeshReady = true;
             _implementer.HandleMeshReady();
-            _parentGeoVolume.GeoVolumeEngine.HandleChunkMeshReady(_implementer);
-        }
-        
-
-        public void Dispose() {
-            // Idempotent by design, not by accident: everything this touches downstream (event
-            // -=, Dictionary.Remove, OctreeNode.Dispose's own IsCreated guards) happens to also
-            // be safe to call twice today, but that's a chain of coincidences a future change
-            // could break. GeoVolume.Dispose() calls this explicitly and then destroys the chunk
-            // GameObject, which can re-enter here via SimpleGeoChunk.OnDestroy() - this guard is
-            // what actually makes that safe, rather than relying on every downstream piece to
-            // keep guarding itself correctly forever.
-            if (_isDisposed)
-                return;
-
-            _isDisposed = true;
-
-            IGeoEditStore.OnGeoEditChanged -= HandleResolvedVoxelEdits;
-            _parentGeoVolume.GeoVolumeEngine.ChunkDict.Remove(_chunkCoord);
-            _rootNode?.Dispose();
-
-            if (_sparseVoxels.IsCreated)
-                _sparseVoxels.Dispose();
+            ParentGeoVolume.GeoVolumeEngine.HandleChunkMeshReady(_implementer);
         }
     }
 }

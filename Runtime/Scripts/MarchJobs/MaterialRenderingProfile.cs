@@ -8,12 +8,12 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Defines how GeoForgeManager should render and mesh a set of materials: which render
-    /// Material to use, and how to schedule the main-region and transition-region marching cubes
-    /// jobs. Subclass this and implement both Schedule methods to plug in a specific meshing
-    /// strategy (e.g. the existing blended matA/matB scheme, or a future hard-edge barycentric
-    /// scheme) - GeoForgeManager calls through whichever profile is assigned without needing to
-    /// know which concrete job struct is actually running.
+    ///     Defines how GeoForgeManager should render and mesh a set of materials: which render
+    ///     Material to use, and how to schedule the main-region and transition-region marching cubes
+    ///     jobs. Subclass this and implement both Schedule methods to plug in a specific meshing
+    ///     strategy (e.g. the existing blended matA/matB scheme, or a future hard-edge barycentric
+    ///     scheme) - GeoForgeManager calls through whichever profile is assigned without needing to
+    ///     know which concrete job struct is actually running.
     /// </summary>
     public abstract class MaterialRenderingProfile : ScriptableObject {
         [SerializeField] private Material material;

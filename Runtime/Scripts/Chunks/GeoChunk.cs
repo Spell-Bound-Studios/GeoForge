@@ -5,11 +5,18 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Simple implementation of IGeoChunk for samples, and small projects.
+    ///     Simple implementation of IGeoChunk for samples, and small projects.
     /// </summary>
     public class GeoChunk : MonoBehaviour, IGeoChunk {
+        private void OnDestroy() {
+            if (GeoChunkEngine == null)
+                return;
+
+            GeoChunkEngine.Dispose();
+        }
+
         public GeoChunkEngine GeoChunkEngine { get; private set; }
-        
+
         public void InitializeGeoChunk(Vector3Int coord, IGeoEditStore geoEditStore) {
             GeoChunkEngine = new GeoChunkEngine(this, transform, geoEditStore, coord);
             GeoChunkEngine.IGeoEditStore.geoChunkEngine = GeoChunkEngine;
@@ -24,17 +31,12 @@ namespace Spellbound.GeoForge {
             OnVoxelsSet();
         }
 
-        void IGeoChunk.HandleMeshReady() => OnMeshReady();
+        void IGeoChunk.HandleMeshReady() {
+            OnMeshReady();
+        }
 
         protected virtual void OnMeshReady() { }
 
         protected virtual void OnVoxelsSet() { }
-
-        private void OnDestroy() {
-            if (GeoChunkEngine == null)
-                return;
-
-            GeoChunkEngine.Dispose();
-        }
     }
 }

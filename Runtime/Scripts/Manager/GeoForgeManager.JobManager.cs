@@ -17,11 +17,11 @@ namespace Spellbound.GeoForge {
         // rather than only through the Inspector, before narrowing this one.
         [SerializeField] public MaterialRenderingProfile jobAndRenderProfile;
 
-        private JobHandle _combinedJobHandle;
-        private Dictionary<OctreeNode, MarchJobData> _pendingMarchJobData = new();
-        private Dictionary<OctreeNode, TransitionMarchJobData> _pendingTransitionMarchJobData = new();
+        private readonly Dictionary<OctreeNode, Vector3Int> _nodeToChunkCoord = new();
+        private readonly Dictionary<OctreeNode, MarchJobData> _pendingMarchJobData = new();
+        private readonly Dictionary<OctreeNode, TransitionMarchJobData> _pendingTransitionMarchJobData = new();
 
-        private Dictionary<OctreeNode, Vector3Int> _nodeToChunkCoord = new();
+        private JobHandle _combinedJobHandle;
 
         internal void RegisterMarchJob(
             OctreeNode node,
@@ -30,7 +30,7 @@ namespace Spellbound.GeoForge {
             NativeList<int> triangles,
             NativeReference<Bounds> computedBounds,
             Vector3Int chunkCoord) {
-            if (_pendingMarchJobData.ContainsKey(node)) {
+            if (_pendingMarchJobData.ContainsKey(node))
                 // Overwriting a pending entry would orphan the superseded job's NativeLists - that
                 // job is still scheduled and actively writing into them via _combinedJobHandle, so
                 // nothing can safely dispose them here without first isolating and completing that
@@ -41,7 +41,6 @@ namespace Spellbound.GeoForge {
                 throw new InvalidOperationException(
                     $"RegisterMarchJob: a march job is already pending for node {node} - " +
                     "the previous job must be completed and applied before registering another.");
-            }
 
             _combinedJobHandle = JobHandle.CombineDependencies(_combinedJobHandle, jobHandle);
 
@@ -61,12 +60,11 @@ namespace Spellbound.GeoForge {
             NativeList<int> triangles,
             NativeArray<int2> ranges,
             Vector3Int chunkCoord) {
-            if (_pendingTransitionMarchJobData.ContainsKey(node)) {
+            if (_pendingTransitionMarchJobData.ContainsKey(node))
                 // Same leak/race shape as RegisterMarchJob above.
                 throw new InvalidOperationException(
                     $"RegisterTransitionJob: a transition job is already pending for node {node} - " +
                     "the previous job must be completed and applied before registering another.");
-            }
 
             _combinedJobHandle = JobHandle.CombineDependencies(_combinedJobHandle, jobHandle);
 

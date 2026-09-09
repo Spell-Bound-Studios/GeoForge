@@ -7,9 +7,9 @@ using Unity.Burst;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Represents a single cubic dimension in the game world. It is a discrete cube that characterizes
-    /// a small discrete volume in the game world with a material and Density.
-    /// This doesn't get sent on the network or saved.
+    ///     Represents a single cubic dimension in the game world. It is a discrete cube that characterizes
+    ///     a small discrete volume in the game world with a material and Density.
+    ///     This doesn't get sent on the network or saved.
     /// </summary>
     [Serializable]
     public struct VoxelData : IEquatable<VoxelData>, IPacker {
@@ -25,18 +25,24 @@ namespace Spellbound.GeoForge {
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static VoxelData CreateImmature(sbyte density, byte matIndex) =>
-                new(density, (byte)(matIndex % MatureBitValue));
+        public static VoxelData CreateImmature(sbyte density, byte matIndex) {
+            return new VoxelData(density, (byte)(matIndex % MatureBitValue));
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static VoxelData CreateMature(sbyte density, byte matIndex) =>
-                new(density, (byte)((matIndex % MatureBitValue) + MatureBitValue));
+        public static VoxelData CreateMature(sbyte density, byte matIndex) {
+            return new VoxelData(density, (byte)((matIndex % MatureBitValue) + MatureBitValue));
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public bool IsMature() => MaterialIndex >= MatureBitValue;
-        
+        public bool IsMature() {
+            return MaterialIndex >= MatureBitValue;
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public byte GetPlainMatIndex() => (byte)(MaterialIndex % MatureBitValue);
+        public byte GetPlainMatIndex() {
+            return (byte)(MaterialIndex % MatureBitValue);
+        }
 
         public void Pack(ref Span<byte> buffer) {
             Packer.WriteSByte(ref buffer, Density);
@@ -49,17 +55,26 @@ namespace Spellbound.GeoForge {
         }
 
         // Implement IEquatable<VoxelData>. This enables checking if structA == structB, etc.
-        public bool Equals(VoxelData other) => Density == other.Density && MaterialIndex == other.MaterialIndex;
+        public bool Equals(VoxelData other) {
+            return Density == other.Density && MaterialIndex == other.MaterialIndex;
+        }
 
         [BurstDiscard]
-        public override bool Equals(object obj) => obj is VoxelData other && Equals(other);
+        public override bool Equals(object obj) {
+            return obj is VoxelData other && Equals(other);
+        }
 
-        public override int GetHashCode() =>
-                // Combine hashes of fields; since these are bytes, simple mixing is enough
-                (Density.GetHashCode() * 397) ^ MaterialIndex.GetHashCode();
+        public override int GetHashCode() {
+            // Combine hashes of fields; since these are bytes, simple mixing is enough
+            return (Density.GetHashCode() * 397) ^ MaterialIndex.GetHashCode();
+        }
 
-        public static bool operator ==(VoxelData left, VoxelData right) => left.Equals(right);
+        public static bool operator ==(VoxelData left, VoxelData right) {
+            return left.Equals(right);
+        }
 
-        public static bool operator !=(VoxelData left, VoxelData right) => !(left == right);
+        public static bool operator !=(VoxelData left, VoxelData right) {
+            return !(left == right);
+        }
     }
 }

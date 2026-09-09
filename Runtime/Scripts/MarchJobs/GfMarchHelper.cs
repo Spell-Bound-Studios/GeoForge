@@ -3,26 +3,24 @@
 using System.Runtime.CompilerServices;
 using Unity.Burst;
 using Unity.Collections;
-using Unity.Entities;
 using Unity.Mathematics;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Shared Burst-compatible helpers extracted from the four marching cubes jobs
-    /// (MarchingCubeJob, TransitionMarchingCubeJob, FlatBaryMarchJob, TransFlatBaryMarchJob) to
-    /// eliminate copy-pasted logic between them. Static methods on a Burst-compiled struct carry
-    /// no call overhead beyond what the duplicated inline code already cost - this exists purely
-    /// so a fix (like the caseCode sign-extension bug) only ever needs to land once.
-    ///
-    /// Not every method here is used by every job - see each method's doc comment for which jobs
-    /// actually call it. Sharing a method doesn't mean all four jobs use it; the FlatBary jobs in
-    /// particular use a different material/maturity scheme entirely and have no use for
-    /// AddMaterialWeight, ResolveMaturity, or SampleNeighborGradient.
+    ///     Shared Burst-compatible helpers extracted from the four marching cubes jobs
+    ///     (MarchingCubeJob, TransitionMarchingCubeJob, FlatBaryMarchJob, TransFlatBaryMarchJob) to
+    ///     eliminate copy-pasted logic between them. Static methods on a Burst-compiled struct carry
+    ///     no call overhead beyond what the duplicated inline code already cost - this exists purely
+    ///     so a fix (like the caseCode sign-extension bug) only ever needs to land once.
+    ///     Not every method here is used by every job - see each method's doc comment for which jobs
+    ///     actually call it. Sharing a method doesn't mean all four jobs use it; the FlatBary jobs in
+    ///     particular use a different material/maturity scheme entirely and have no use for
+    ///     AddMaterialWeight, ResolveMaturity, or SampleNeighborGradient.
     /// </summary>
     [BurstCompile]
     internal static class GfMarchHelper {
         /// <summary>
-        /// Used by all four jobs, identically, in their triangle loops.
+        ///     Used by all four jobs, identically, in their triangle loops.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static bool IsDegenerateTriangle(float3 a, float3 b, float3 c) {
@@ -32,9 +30,9 @@ namespace Spellbound.GeoForge {
         }
 
         /// <summary>
-        /// Used by TransitionMarchingCubeJob and TransFlatBaryMarchJob, identically, to map a
-        /// (leafSize-relative) 2D face coordinate into the leaf's own 3D local space depending on
-        /// which of the 6 transition faces is currently being generated.
+        ///     Used by TransitionMarchingCubeJob and TransFlatBaryMarchJob, identically, to map a
+        ///     (leafSize-relative) 2D face coordinate into the leaf's own 3D local space depending on
+        ///     which of the 6 transition faces is currently being generated.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static int3 FaceToLocalSpace(
@@ -42,26 +40,27 @@ namespace Spellbound.GeoForge {
             int leafSize,
             int x,
             int y,
-            int z) =>
-                direction switch {
-                    GfStaticHelper.TransitionFaceMask.XMin => new int3(z, x, y),
-                    GfStaticHelper.TransitionFaceMask.XMax => new int3(leafSize - z, y, x),
-                    GfStaticHelper.TransitionFaceMask.YMin => new int3(y, z, x),
-                    GfStaticHelper.TransitionFaceMask.YMax => new int3(x, leafSize - z, y),
-                    GfStaticHelper.TransitionFaceMask.ZMin => new int3(x, y, z),
-                    GfStaticHelper.TransitionFaceMask.ZMax => new int3(y, x, leafSize - z),
-                    _ => new int3(x, y, z)
-                };
+            int z) {
+            return direction switch {
+                GfStaticHelper.TransitionFaceMask.XMin => new int3(z, x, y),
+                GfStaticHelper.TransitionFaceMask.XMax => new int3(leafSize - z, y, x),
+                GfStaticHelper.TransitionFaceMask.YMin => new int3(y, z, x),
+                GfStaticHelper.TransitionFaceMask.YMax => new int3(x, leafSize - z, y),
+                GfStaticHelper.TransitionFaceMask.ZMin => new int3(x, y, z),
+                GfStaticHelper.TransitionFaceMask.ZMax => new int3(y, x, leafSize - z),
+                _ => new int3(x, y, z)
+            };
+        }
 
         /// <summary>
-        /// Used by MarchingCubeJob and FlatBaryMarchJob, identically: samples the 8 corners of a
-        /// regular (non-transition) cube into cellValues and returns the resulting caseCode. This
-        /// is the exact site of bug 10 (the sign-extension early-out bug from the byte->sbyte
-        /// migration) - having it in exactly one place is the whole point of this file existing.
-        /// Callers still do their own "if (caseCode == 0x00 || caseCode == 0xFF) continue;" - a
-        /// continue can't cross a method boundary, so that one line necessarily stays inline at
-        /// each call site, but it's simple enough now that duplicating it carries none of the risk
-        /// the old bit-twiddle version did.
+        ///     Used by MarchingCubeJob and FlatBaryMarchJob, identically: samples the 8 corners of a
+        ///     regular (non-transition) cube into cellValues and returns the resulting caseCode. This
+        ///     is the exact site of bug 10 (the sign-extension early-out bug from the byte->sbyte
+        ///     migration) - having it in exactly one place is the whole point of this file existing.
+        ///     Callers still do their own "if (caseCode == 0x00 || caseCode == 0xFF) continue;" - a
+        ///     continue can't cross a method boundary, so that one line necessarily stays inline at
+        ///     each call site, but it's simple enough now that duplicating it carries none of the risk
+        ///     the old bit-twiddle version did.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static byte GatherRegularCornersAndComputeCaseCode(
@@ -94,15 +93,15 @@ namespace Spellbound.GeoForge {
         }
 
         /// <summary>
-        /// Used by all four jobs, identically in shape (some pass Lod as the iteration count, the
-        /// transition jobs pass subEdges instead - that distinction stays the caller's decision).
-        /// Repeatedly bisects the edge between pos0 and pos1 to find where Density crosses zero,
-        /// narrowing toward whichever endpoint the midpoint agrees with. Takes pos0/pos1 by ref and
-        /// mutates them directly, rather than maintaining a separate float3 accumulator alongside
-        /// the int3 the caller actually indexes with - MarchingCubeJob and FlatBaryMarchJob
-        /// previously tracked both (p0/p1 as float3, vertLocalPos0/1 as int3, always kept in sync);
-        /// (float3)(intA + intB) * 0.5f is bit-identical to ((float3)intA + (float3)intB) * 0.5f for
-        /// any voxel-scale coordinate, so this drops the redundant tracking without changing output.
+        ///     Used by all four jobs, identically in shape (some pass Lod as the iteration count, the
+        ///     transition jobs pass subEdges instead - that distinction stays the caller's decision).
+        ///     Repeatedly bisects the edge between pos0 and pos1 to find where Density crosses zero,
+        ///     narrowing toward whichever endpoint the midpoint agrees with. Takes pos0/pos1 by ref and
+        ///     mutates them directly, rather than maintaining a separate float3 accumulator alongside
+        ///     the int3 the caller actually indexes with - MarchingCubeJob and FlatBaryMarchJob
+        ///     previously tracked both (p0/p1 as float3, vertLocalPos0/1 as int3, always kept in sync);
+        ///     (float3)(intA + intB) * 0.5f is bit-identical to ((float3)intA + (float3)intB) * 0.5f for
+        ///     any voxel-scale coordinate, so this drops the redundant tracking without changing output.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static void SubdivideToSurfaceCrossing(
@@ -125,29 +124,14 @@ namespace Spellbound.GeoForge {
                 var isMidPointFull = midPointDensity >= 0;
 
                 var isVertexNearerToVert1 =
-                        (isMidPointFull && isVert0Full)
-                        || (!isMidPointFull && !isVert0Full);
+                    (isMidPointFull && isVert0Full)
+                    || (!isMidPointFull && !isVert0Full);
 
                 if (isVertexNearerToVert1)
                     pos0 = samplePos;
                 else
                     pos1 = samplePos;
             }
-        }
-
-        /// <summary>
-        /// The 14-voxel neighborhood sampled once per new vertex by the blended-material march
-        /// jobs (MarchingCubeJob, TransitionMarchingCubeJob) - NOT used by the FlatBary jobs, which
-        /// have their own unrelated material scheme. Bundles the 12 axis-neighbor voxels (needed
-        /// individually for AddMaterialWeight's dominance vote) together with the two endpoint
-        /// gradient normals computed from those same density differences, so both jobs share one
-        /// gather instead of duplicating 12 near-identical VoxelArray lookups each.
-        /// </summary>
-        internal struct NeighborGradientSample {
-            public VoxelData V0011, V0211, V0101, V0121, V0110, V0112;
-            public VoxelData V1011, V1211, V1101, V1121, V1110, V1112;
-            public float3 Normal0;
-            public float3 Normal1;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -208,11 +192,11 @@ namespace Spellbound.GeoForge {
         }
 
         /// <summary>
-        /// Used by MarchingCubeJob and TransitionMarchingCubeJob, identically. Returns true only
-        /// if every endpoint (of voxel0/voxel1) whose demodulated material matches targetMat is
-        /// mature. If neither endpoint's material matches targetMat (i.e. targetMat only came from
-        /// the wider 14-voxel dominance neighborhood, not the endpoints themselves), this defaults
-        /// to false rather than guessing at maturity from data outside the endpoints.
+        ///     Used by MarchingCubeJob and TransitionMarchingCubeJob, identically. Returns true only
+        ///     if every endpoint (of voxel0/voxel1) whose demodulated material matches targetMat is
+        ///     mature. If neither endpoint's material matches targetMat (i.e. targetMat only came from
+        ///     the wider 14-voxel dominance neighborhood, not the endpoints themselves), this defaults
+        ///     to false rather than guessing at maturity from data outside the endpoints.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static bool ResolveMaturity(
@@ -234,12 +218,12 @@ namespace Spellbound.GeoForge {
         }
 
         /// <summary>
-        /// Used by MarchingCubeJob and TransitionMarchingCubeJob, identically. Skips any voxel
-        /// that isn't actually "full" (density >= 0) - the same zero split the mesher uses for the
-        /// case code, so a voxel can never simultaneously count as "empty" for geometry and "a real
-        /// material" for this vote. Also guarantees the null/sentinel material (always negative
-        /// density) can never contribute weight here, and therefore can never be selected as a
-        /// dominant material by the caller.
+        ///     Used by MarchingCubeJob and TransitionMarchingCubeJob, identically. Skips any voxel
+        ///     that isn't actually "full" (density >= 0) - the same zero split the mesher uses for the
+        ///     case code, so a voxel can never simultaneously count as "empty" for geometry and "a real
+        ///     material" for this vote. Also guarantees the null/sentinel material (always negative
+        ///     density) can never contribute weight here, and therefore can never be selected as a
+        ///     dominant material by the caller.
         /// </summary>
         internal static void AddMaterialWeight(
             in VoxelData voxel,
@@ -256,20 +240,35 @@ namespace Spellbound.GeoForge {
 
             var existingIndex = -1;
 
-            for (var k = 0; k < uniqueMaterials.Length; k++) {
+            for (var k = 0; k < uniqueMaterials.Length; k++)
                 if (uniqueMaterials[k] == matIndex) {
                     existingIndex = k;
 
                     break;
                 }
-            }
 
-            if (existingIndex >= 0)
+            if (existingIndex >= 0) {
                 materialWeights[existingIndex] += weight;
+            }
             else {
                 uniqueMaterials.Add(matIndex);
                 materialWeights.Add(weight);
             }
+        }
+
+        /// <summary>
+        ///     The 14-voxel neighborhood sampled once per new vertex by the blended-material march
+        ///     jobs (MarchingCubeJob, TransitionMarchingCubeJob) - NOT used by the FlatBary jobs, which
+        ///     have their own unrelated material scheme. Bundles the 12 axis-neighbor voxels (needed
+        ///     individually for AddMaterialWeight's dominance vote) together with the two endpoint
+        ///     gradient normals computed from those same density differences, so both jobs share one
+        ///     gather instead of duplicating 12 near-identical VoxelArray lookups each.
+        /// </summary>
+        internal struct NeighborGradientSample {
+            public VoxelData V0011, V0211, V0101, V0121, V0110, V0112;
+            public VoxelData V1011, V1211, V1101, V1121, V1110, V1112;
+            public float3 Normal0;
+            public float3 Normal1;
         }
     }
 }

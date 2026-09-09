@@ -6,16 +6,17 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Abstract for crude data generation. This is managed C# on the main thread which means it's very slow.
+    ///     Abstract for crude data generation. This is managed C# on the main thread which means it's very slow.
     /// </summary>
     public abstract class DataFactory : GeoForgeDataGenerator {
         protected Vector3Int GetChunkOrigin(
-            Vector3Int chunkCoord, in VolumeConfigBlobAsset config) =>
-                new(
-                    chunkCoord.x * config.ChunkSize + config.Offset.x,
-                    chunkCoord.y * config.ChunkSize + config.Offset.y,
-                    chunkCoord.z * config.ChunkSize + config.Offset.z
-                );
+            Vector3Int chunkCoord, in VolumeConfigBlobAsset config) {
+            return new Vector3Int(
+                chunkCoord.x * config.ChunkSize + config.Offset.x,
+                chunkCoord.y * config.ChunkSize + config.Offset.y,
+                chunkCoord.z * config.ChunkSize + config.Offset.z
+            );
+        }
 
         protected Vector3Int GetVoxelPosition(
             int index, Vector3Int chunkOrigin, in VolumeConfigBlobAsset config) {

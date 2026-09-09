@@ -9,26 +9,26 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Marching cubes job for the FlatShaded/Barycentric material scheme. Every triangle still gets
-    /// exclusive vertices - needed so each vertex can carry its triangle's specific 3-corner
-    /// material triple - but normals are NO LONGER flat face normals. Each vertex instead gets its
-    /// own smooth, density-gradient-based normal (the same SampleNeighborGradient technique
-    /// MarchingCubeJob uses for its smooth-shaded vertices), computed once per edge and reused on
-    /// cache hits. Material is still NOT blended: each vertex's material is simply the "full" voxel
-    /// on the edge it sits on (using the ORIGINAL pre-subdivision cube corner, not the
-    /// post-subdivision voxel0/voxel1 - see the comment at originalFullVoxel below). All three of
-    /// a triangle's corner materials are packed identically onto all three of its vertices
-    /// (FixedColor.rgb = ia/ib/ic's raw VoxelData.MaterialIndex byte, including the maturity bit),
-    /// together with a per-vertex barycentric role marker in ColorInterp, so the fragment shader
-    /// can pick the nearest corner's material per-pixel with a hard boundary instead of
-    /// interpolating indices.
+    ///     Marching cubes job for the FlatShaded/Barycentric material scheme. Every triangle still gets
+    ///     exclusive vertices - needed so each vertex can carry its triangle's specific 3-corner
+    ///     material triple - but normals are NO LONGER flat face normals. Each vertex instead gets its
+    ///     own smooth, density-gradient-based normal (the same SampleNeighborGradient technique
+    ///     MarchingCubeJob uses for its smooth-shaded vertices), computed once per edge and reused on
+    ///     cache hits. Material is still NOT blended: each vertex's material is simply the "full" voxel
+    ///     on the edge it sits on (using the ORIGINAL pre-subdivision cube corner, not the
+    ///     post-subdivision voxel0/voxel1 - see the comment at originalFullVoxel below). All three of
+    ///     a triangle's corner materials are packed identically onto all three of its vertices
+    ///     (FixedColor.rgb = ia/ib/ic's raw VoxelData.MaterialIndex byte, including the maturity bit),
+    ///     together with a per-vertex barycentric role marker in ColorInterp, so the fragment shader
+    ///     can pick the nearest corner's material per-pixel with a hard boundary instead of
+    ///     interpolating indices.
     /// </summary>
     [BurstCompile]
     internal struct MarchingCubeJob : IJob {
         [ReadOnly] public BlobAssetReference<McTablesBlobAsset> TablesBlob;
         [ReadOnly] public BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob;
 
-        [NativeDisableParallelForRestriction, ReadOnly]
+        [NativeDisableParallelForRestriction] [ReadOnly]
         public NativeArray<VoxelData> VoxelArray;
 
         public NativeList<MeshingVertexData> Vertices;
@@ -42,11 +42,11 @@ namespace Spellbound.GeoForge {
         public int3 Start;
 
         /// <summary>
-        /// Lightweight per-edge-vertex data cached across cube marches (spatial reuse of shared
-        /// edges only - NEVER reused in the final mesh, since every triangle always gets its own
-        /// exclusive vertices here). Storing just this instead of a full MeshingVertexData avoids
-        /// re-running the subdivision search AND the gradient sample when an adjacent cube
-        /// references the same edge.
+        ///     Lightweight per-edge-vertex data cached across cube marches (spatial reuse of shared
+        ///     edges only - NEVER reused in the final mesh, since every triangle always gets its own
+        ///     exclusive vertices here). Storing just this instead of a full MeshingVertexData avoids
+        ///     re-running the subdivision search AND the gradient sample when an adjacent cube
+        ///     references the same edge.
         /// </summary>
         private struct EdgeVertex {
             public float3 Position;
@@ -56,7 +56,9 @@ namespace Spellbound.GeoForge {
             // when mature, giving the full 0-255 range the shader expects. Must stay byte, not sbyte -
             // a mature high-index material (e.g. 127 + 128 = 255) doesn't fit in sbyte's -128..127 range.
             public byte RawMaterial;
-            public sbyte Density; // density of that same original full corner (always >= 0, it's a full voxel) - used as a confidence weight
+
+            public sbyte
+                Density; // density of that same original full corner (always >= 0, it's a full voxel) - used as a confidence weight
         }
 
         public void Execute() {
@@ -85,7 +87,7 @@ namespace Spellbound.GeoForge {
             );
 
             var vertexIndices =
-                    new NativeArray<EdgeVertex>(16, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
+                new NativeArray<EdgeVertex>(16, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
 
             var cellValues = new NativeArray<VoxelData>(8, Allocator.Temp, NativeArrayOptions.UninitializedMemory);
 
@@ -96,177 +98,175 @@ namespace Spellbound.GeoForge {
             var boundsMax = new float3(float.MinValue);
 
             for (var y = 0; y < cubesMarchedPerLeaf; y++) {
-                for (var z = 0; z < cubesMarchedPerLeaf; z++) {
-                    for (var x = 0; x < cubesMarchedPerLeaf; x++) {
-                        var cellPos = Start + new int3(x, y, z) * lodScale;
+                for (var z = 0; z < cubesMarchedPerLeaf; z++)
+                for (var x = 0; x < cubesMarchedPerLeaf; x++) {
+                    var cellPos = Start + new int3(x, y, z) * lodScale;
 
-                        // Gathers the 8 corner voxels into cellValues and returns the caseCode -
-                        // shared with MarchingCubeJob (identical logic).
-                        var caseCode = GfMarchHelper.GatherRegularCornersAndComputeCaseCode(
-                            VoxelArray, ref tables, cellPos, padding, lodScale,
-                            chunkDataAreaSize, chunkDataWidthSize, ref cellValues);
+                    // Gathers the 8 corner voxels into cellValues and returns the caseCode -
+                    // shared with MarchingCubeJob (identical logic).
+                    var caseCode = GfMarchHelper.GatherRegularCornersAndComputeCaseCode(
+                        VoxelArray, ref tables, cellPos, padding, lodScale,
+                        chunkDataAreaSize, chunkDataWidthSize, ref cellValues);
 
-                        // Uniform-cube early-out: skip cubes that are fully solid (caseCode == 0xFF) or
-                        // fully empty (caseCode == 0x00) — the MC tables produce zero triangles for both,
-                        // so there's nothing to mesh.
-                        if (caseCode == 0x00 || caseCode == 0xFF) continue;
+                    // Uniform-cube early-out: skip cubes that are fully solid (caseCode == 0xFF) or
+                    // fully empty (caseCode == 0x00) — the MC tables produce zero triangles for both,
+                    // so there's nothing to mesh.
+                    if (caseCode == 0x00 || caseCode == 0xFF) continue;
 
-                        var cacheValidator = (x != 0 ? 0x01 : 0)
-                                             | (z != 0 ? 0x02 : 0)
-                                             | (y != 0 ? 0x04 : 0);
+                    var cacheValidator = (x != 0 ? 0x01 : 0)
+                                         | (z != 0 ? 0x02 : 0)
+                                         | (y != 0 ? 0x04 : 0);
 
-                        int cellClass = tables.RegularCellClass[caseCode];
-                        ref var edgeCodes = ref tables.RegularVertexData[caseCode];
-                        var cellVertCount = tables.VertexCount[cellClass];
+                    int cellClass = tables.RegularCellClass[caseCode];
+                    ref var edgeCodes = ref tables.RegularVertexData[caseCode];
+                    var cellVertCount = tables.VertexCount[cellClass];
 
-                        for (var i = 0; i < cellVertCount; ++i) {
-                            var edgeCode = edgeCodes[i];
-                            var cornerIdx0 = (ushort)((edgeCode >> 4) & 0x0F);
-                            var cornerIdx1 = (ushort)(edgeCode & 0x0F);
-                            var cacheIdx = (byte)((edgeCode >> 8) & 0x0F);
-                            var cacheDir = (byte)(edgeCode >> 12);
-                            var cachePosX = x - (cacheDir & 1);
-                            var cachePosZ = z - ((cacheDir >> 1) & 1);
+                    for (var i = 0; i < cellVertCount; ++i) {
+                        var edgeCode = edgeCodes[i];
+                        var cornerIdx0 = (ushort)((edgeCode >> 4) & 0x0F);
+                        var cornerIdx1 = (ushort)(edgeCode & 0x0F);
+                        var cacheIdx = (byte)((edgeCode >> 8) & 0x0F);
+                        var cacheDir = (byte)(edgeCode >> 12);
+                        var cachePosX = x - (cacheDir & 1);
+                        var cachePosZ = z - ((cacheDir >> 1) & 1);
 
-                            var selectedCacheDock = ((cacheDir >> 2) & 1) == 1 ? previousCache : currentCache;
-                            var isVertexCacheable = (cacheDir & cacheValidator) == cacheDir;
+                        var selectedCacheDock = ((cacheDir >> 2) & 1) == 1 ? previousCache : currentCache;
+                        var isVertexCacheable = (cacheDir & cacheValidator) == cacheDir;
 
-                            EdgeVertex edgeVertex;
+                        EdgeVertex edgeVertex;
 
-                            if (isVertexCacheable) {
-                                edgeVertex = selectedCacheDock[
-                                    cachePosX * cubesMarchedPerLeaf * 4 + cachePosZ * 4 + cacheIdx];
-                            }
-                            else {
-                                var vertLocalPos0 = cellPos + new int3(padding, padding, padding) +
-                                                    tables.RegularCornerOffset[cornerIdx0] * lodScale;
+                        if (isVertexCacheable) {
+                            edgeVertex = selectedCacheDock[
+                                cachePosX * cubesMarchedPerLeaf * 4 + cachePosZ * 4 + cacheIdx];
+                        }
+                        else {
+                            var vertLocalPos0 = cellPos + new int3(padding, padding, padding) +
+                                                tables.RegularCornerOffset[cornerIdx0] * lodScale;
 
-                                var vertLocalPos1 = cellPos + new int3(padding, padding, padding) +
-                                                    tables.RegularCornerOffset[cornerIdx1] * lodScale;
+                            var vertLocalPos1 = cellPos + new int3(padding, padding, padding) +
+                                                tables.RegularCornerOffset[cornerIdx1] * lodScale;
 
-                                var index0 = GfStaticHelper.Coord3DToIndex(vertLocalPos0.x, vertLocalPos0.y,
-                                    vertLocalPos0.z, chunkDataAreaSize, chunkDataWidthSize);
-                                var voxel0 = VoxelArray[index0];
+                            var index0 = GfStaticHelper.Coord3DToIndex(vertLocalPos0.x, vertLocalPos0.y,
+                                vertLocalPos0.z, chunkDataAreaSize, chunkDataWidthSize);
+                            var voxel0 = VoxelArray[index0];
 
-                                var index1 = GfStaticHelper.Coord3DToIndex(vertLocalPos1.x, vertLocalPos1.y,
-                                    vertLocalPos1.z, chunkDataAreaSize, chunkDataWidthSize);
-                                var voxel1 = VoxelArray[index1];
+                            var index1 = GfStaticHelper.Coord3DToIndex(vertLocalPos1.x, vertLocalPos1.y,
+                                vertLocalPos1.z, chunkDataAreaSize, chunkDataWidthSize);
+                            var voxel1 = VoxelArray[index1];
 
-                                var isVert0Full = voxel0.Density >= 0;
+                            var isVert0Full = voxel0.Density >= 0;
 
-                                // Capture the ORIGINAL cube corners (before bisection moves anything) and which
-                                // one is really full. The marching-cubes case table guarantees these two original
-                                // corners are complementary - exactly one is full - so this is a reliable material
-                                // source even when the bisection search below degenerates under non-monotonic
-                                // (dug/edited) density fields. Using the post-subdivision voxel0/voxel1 instead
-                                // can, in that degenerate case, resolve to two voxels that are BOTH on the empty
-                                // side - both carrying the null/sentinel material - which would then render.
-                                var originalFullVoxel = isVert0Full ? voxel0 : voxel1;
-                                var wasVoxel0Mature = voxel0.IsMature();
-                                var wasVoxel1Mature = voxel1.IsMature();
+                            // Capture the ORIGINAL cube corners (before bisection moves anything) and which
+                            // one is really full. The marching-cubes case table guarantees these two original
+                            // corners are complementary - exactly one is full - so this is a reliable material
+                            // source even when the bisection search below degenerates under non-monotonic
+                            // (dug/edited) density fields. Using the post-subdivision voxel0/voxel1 instead
+                            // can, in that degenerate case, resolve to two voxels that are BOTH on the empty
+                            // side - both carrying the null/sentinel material - which would then render.
+                            var originalFullVoxel = isVert0Full ? voxel0 : voxel1;
+                            var wasVoxel0Mature = voxel0.IsMature();
+                            var wasVoxel1Mature = voxel1.IsMature();
 
-                                // Maturity of the ORIGINAL empty corner (the complement of originalFullVoxel,
-                                // above) - used below to decide whether the full voxel's raw material index
-                                // needs demodulating.
-                                var wasEmptyVoxelMature = isVert0Full ? wasVoxel1Mature : wasVoxel0Mature;
+                            // Maturity of the ORIGINAL empty corner (the complement of originalFullVoxel,
+                            // above) - used below to decide whether the full voxel's raw material index
+                            // needs demodulating.
+                            var wasEmptyVoxelMature = isVert0Full ? wasVoxel1Mature : wasVoxel0Mature;
 
-                                // Shared with the other three march jobs.
-                                GfMarchHelper.SubdivideToSurfaceCrossing(
-                                    VoxelArray, chunkDataAreaSize, chunkDataWidthSize, Lod, isVert0Full,
-                                    ref vertLocalPos0, ref vertLocalPos1);
+                            // Shared with the other three march jobs.
+                            GfMarchHelper.SubdivideToSurfaceCrossing(
+                                VoxelArray, chunkDataAreaSize, chunkDataWidthSize, Lod, isVert0Full,
+                                ref vertLocalPos0, ref vertLocalPos1);
 
-                                index0 = GfStaticHelper.Coord3DToIndex(vertLocalPos0.x, vertLocalPos0.y,
-                                    vertLocalPos0.z, chunkDataAreaSize, chunkDataWidthSize);
-                                voxel0 = VoxelArray[index0];
+                            index0 = GfStaticHelper.Coord3DToIndex(vertLocalPos0.x, vertLocalPos0.y,
+                                vertLocalPos0.z, chunkDataAreaSize, chunkDataWidthSize);
+                            voxel0 = VoxelArray[index0];
 
-                                index1 = GfStaticHelper.Coord3DToIndex(vertLocalPos1.x, vertLocalPos1.y,
-                                    vertLocalPos1.z, chunkDataAreaSize, chunkDataWidthSize);
-                                voxel1 = VoxelArray[index1];
+                            index1 = GfStaticHelper.Coord3DToIndex(vertLocalPos1.x, vertLocalPos1.y,
+                                vertLocalPos1.z, chunkDataAreaSize, chunkDataWidthSize);
+                            voxel1 = VoxelArray[index1];
 
-                                var t = (float)-voxel0.Density / (voxel1.Density - voxel0.Density);
-                                t = math.clamp(t, 0, 1);
+                            var t = (float)-voxel0.Density / (voxel1.Density - voxel0.Density);
+                            t = math.clamp(t, 0, 1);
 
-                                var vertex = math.lerp(vertLocalPos0, vertLocalPos1, t);
-                                var centeredVertex = (vertex + offsetBurst) * resolution;
+                            var vertex = math.lerp(vertLocalPos0, vertLocalPos1, t);
+                            var centeredVertex = (vertex + offsetBurst) * resolution;
 
-                                // Smooth, density-gradient-based normal - identical technique to
-                                // MarchingCubeJob's smooth vertices, NOT a flat face normal. Computed
-                                // once here per edge, cached, and reused by every triangle/cache-hit
-                                // that references this same edge.
-                                var sample = GfMarchHelper.SampleNeighborGradient(
-                                    VoxelArray, vertLocalPos0, vertLocalPos1, chunkDataAreaSize, chunkDataWidthSize);
+                            // Smooth, density-gradient-based normal - identical technique to
+                            // MarchingCubeJob's smooth vertices, NOT a flat face normal. Computed
+                            // once here per edge, cached, and reused by every triangle/cache-hit
+                            // that references this same edge.
+                            var sample = GfMarchHelper.SampleNeighborGradient(
+                                VoxelArray, vertLocalPos0, vertLocalPos1, chunkDataAreaSize, chunkDataWidthSize);
 
-                                var normal = math.lerp(sample.Normal0, sample.Normal1, t);
-                                normal = math.normalize(normal);
+                            var normal = math.lerp(sample.Normal0, sample.Normal1, t);
+                            normal = math.normalize(normal);
 
-                                // Final material is mature IFF both the full voxel and the empty voxel it's
-                                // interpolated against were mature. Rather than adding MatureBitValue onto
-                                // originalFullVoxel's raw index (the old approach - which could overflow past
-                                // 255 if the full voxel's raw index already carried the mature bit AND the
-                                // combined result was also meant to be mature), this conditionally strips the
-                                // bit instead:
-                                //  - empty voxel mature -> keep the full voxel's raw index as-is. If the full
-                                //    voxel is also mature, its raw value already has the bit set (correctly
-                                //    mature); if the full voxel is immature, its raw value is already < 128
-                                //    (correctly immature) - either way, no bit needs adding.
-                                //  - empty voxel immature -> demodulate (GetPlainMatIndex()) to force the
-                                //    result immature, regardless of the full voxel's own maturity.
-                                var packedRawMaterial = wasEmptyVoxelMature
-                                        ? originalFullVoxel.MaterialIndex
-                                        : originalFullVoxel.GetPlainMatIndex();
+                            // Final material is mature IFF both the full voxel and the empty voxel it's
+                            // interpolated against were mature. Rather than adding MatureBitValue onto
+                            // originalFullVoxel's raw index (the old approach - which could overflow past
+                            // 255 if the full voxel's raw index already carried the mature bit AND the
+                            // combined result was also meant to be mature), this conditionally strips the
+                            // bit instead:
+                            //  - empty voxel mature -> keep the full voxel's raw index as-is. If the full
+                            //    voxel is also mature, its raw value already has the bit set (correctly
+                            //    mature); if the full voxel is immature, its raw value is already < 128
+                            //    (correctly immature) - either way, no bit needs adding.
+                            //  - empty voxel immature -> demodulate (GetPlainMatIndex()) to force the
+                            //    result immature, regardless of the full voxel's own maturity.
+                            var packedRawMaterial = wasEmptyVoxelMature
+                                ? originalFullVoxel.MaterialIndex
+                                : originalFullVoxel.GetPlainMatIndex();
 
-                                edgeVertex = new EdgeVertex {
-                                    Position = centeredVertex,
-                                    Normal = normal,
-                                    RawMaterial = packedRawMaterial,
-                                    Density = originalFullVoxel.Density
-                                };
+                            edgeVertex = new EdgeVertex {
+                                Position = centeredVertex,
+                                Normal = normal,
+                                RawMaterial = packedRawMaterial,
+                                Density = originalFullVoxel.Density
+                            };
 
-                                if (cornerIdx1 == 7) {
-                                    currentCache[x * cubesMarchedPerLeaf * 4 + z * 4 + cacheIdx] = edgeVertex;
-                                }
-                            }
-
-                            vertexIndices[i] = edgeVertex;
+                            if (cornerIdx1 == 7)
+                                currentCache[x * cubesMarchedPerLeaf * 4 + z * 4 + cacheIdx] = edgeVertex;
                         }
 
-                        var indexCount = tables.TriangleCount[cellClass];
-                        ref var cellIndices = ref tables.Indices[cellClass];
+                        vertexIndices[i] = edgeVertex;
+                    }
 
-                        for (var i = 0; i < indexCount; i += 3) {
-                            var vA = vertexIndices[cellIndices[i + 0]];
-                            var vB = vertexIndices[cellIndices[i + 1]];
-                            var vC = vertexIndices[cellIndices[i + 2]];
+                    var indexCount = tables.TriangleCount[cellClass];
+                    ref var cellIndices = ref tables.Indices[cellClass];
 
-                            if (GfMarchHelper.IsDegenerateTriangle(vA.Position, vB.Position, vC.Position)) continue;
+                    for (var i = 0; i < indexCount; i += 3) {
+                        var vA = vertexIndices[cellIndices[i + 0]];
+                        var vB = vertexIndices[cellIndices[i + 1]];
+                        var vC = vertexIndices[cellIndices[i + 2]];
 
-                            boundsMin = math.min(boundsMin, math.min(vA.Position, math.min(vB.Position, vC.Position)));
-                            boundsMax = math.max(boundsMax, math.max(vA.Position, math.max(vB.Position, vC.Position)));
-                            
+                        if (GfMarchHelper.IsDegenerateTriangle(vA.Position, vB.Position, vC.Position)) continue;
 
-                            var iaIndex = Vertices.Length;
-                            
-                            Vertices.Add(new MeshingVertexData(
-                                vA.Position, vA.Normal,
-                                new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 255),
-                                new Color32((byte)(vA.Density + 1), (byte)(vB.Density +1), (byte)(vC.Density + 1), 0)));
+                        boundsMin = math.min(boundsMin, math.min(vA.Position, math.min(vB.Position, vC.Position)));
+                        boundsMax = math.max(boundsMax, math.max(vA.Position, math.max(vB.Position, vC.Position)));
 
-                            var ibIndex = Vertices.Length;
-                            Vertices.Add(new MeshingVertexData(
-                                vB.Position, vB.Normal,
-                                new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 0),
-                                new Color32((byte)(vA.Density + 1), (byte)(vB.Density +1), (byte)(vC.Density + 1), 255)));
 
-                            var icIndex = Vertices.Length;
-                            Vertices.Add(new MeshingVertexData(
-                                vC.Position, vC.Normal,
-                                new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 0),
-                                new Color32((byte)(vA.Density + 1), (byte)(vB.Density +1), (byte)(vC.Density + 1), 0)));
+                        var iaIndex = Vertices.Length;
 
-                            Triangles.Add(icIndex);
-                            Triangles.Add(ibIndex);
-                            Triangles.Add(iaIndex);
-                        }
+                        Vertices.Add(new MeshingVertexData(
+                            vA.Position, vA.Normal,
+                            new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 255),
+                            new Color32((byte)(vA.Density + 1), (byte)(vB.Density + 1), (byte)(vC.Density + 1), 0)));
+
+                        var ibIndex = Vertices.Length;
+                        Vertices.Add(new MeshingVertexData(
+                            vB.Position, vB.Normal,
+                            new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 0),
+                            new Color32((byte)(vA.Density + 1), (byte)(vB.Density + 1), (byte)(vC.Density + 1), 255)));
+
+                        var icIndex = Vertices.Length;
+                        Vertices.Add(new MeshingVertexData(
+                            vC.Position, vC.Normal,
+                            new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 0),
+                            new Color32((byte)(vA.Density + 1), (byte)(vB.Density + 1), (byte)(vC.Density + 1), 0)));
+
+                        Triangles.Add(icIndex);
+                        Triangles.Add(ibIndex);
+                        Triangles.Add(iaIndex);
                     }
                 }
 
@@ -274,8 +274,8 @@ namespace Spellbound.GeoForge {
             }
 
             ComputedBounds.Value = Vertices.Length > 0
-                    ? new Bounds((Vector3)((boundsMin + boundsMax) * 0.5f), (Vector3)(boundsMax - boundsMin))
-                    : new Bounds();
+                ? new Bounds((boundsMin + boundsMax) * 0.5f, boundsMax - boundsMin)
+                : new Bounds();
         }
     }
 }

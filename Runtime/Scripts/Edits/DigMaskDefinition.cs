@@ -6,10 +6,10 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Authoring asset for a tool's dig permission mask. Defines a default policy (diggable or
-    /// impervious) applied to every material, plus a list of exceptions that flip specific
-    /// materials against that default. Call GetMask() to get the resolved uint4 for use in a
-    /// VoxelEditOperation - the mask is built lazily once and cached until the asset is edited.
+    ///     Authoring asset for a tool's dig permission mask. Defines a default policy (diggable or
+    ///     impervious) applied to every material, plus a list of exceptions that flip specific
+    ///     materials against that default. Call GetMask() to get the resolved uint4 for use in a
+    ///     VoxelEditOperation - the mask is built lazily once and cached until the asset is edited.
     /// </summary>
     [CreateAssetMenu(menuName = "Spellbound/GeoForge/Dig Mask", fileName = "DigMaskDefinition")]
     public class DigMaskDefinition : ScriptableObject {
@@ -23,11 +23,19 @@ namespace Spellbound.GeoForge {
         [Tooltip("Materials that deviate from the default policy above. If the default is " +
                  "DiggableByDefault, these are treated as impervious; if the default is " +
                  "ImperviousByDefault, these are treated as diggable.")]
-        [SerializeField] private List<byte> exceptions = new();
+        [SerializeField]
+        private List<byte> exceptions = new();
+
+        private uint4 _cachedMask;
 
         private bool _isBuilt;
-        private uint4 _cachedMask;
-        
+
+#if UNITY_EDITOR
+        private void OnValidate() {
+            _isBuilt = false;
+        }
+#endif
+
         public uint4 GetMask() {
             if (!_isBuilt)
                 Build();
@@ -37,8 +45,8 @@ namespace Spellbound.GeoForge {
 
         private void Build() {
             _cachedMask = defaultPolicy == DefaultPolicy.DiggableByDefault
-                    ? new uint4(uint.MaxValue)
-                    : uint4.zero;
+                ? new uint4(uint.MaxValue)
+                : uint4.zero;
 
             foreach (var materialIndex in exceptions) {
                 var bit = 1u << (materialIndex % 32);
@@ -72,11 +80,5 @@ namespace Spellbound.GeoForge {
 
             _isBuilt = true;
         }
-
-#if UNITY_EDITOR
-        private void OnValidate() {
-            _isBuilt = false;
-        }
-#endif
     }
 }

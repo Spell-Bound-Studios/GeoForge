@@ -6,7 +6,7 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Simple implementation of IGeoEditStore for samples and small projects.
+    ///     Simple implementation of IGeoEditStore for samples and small projects.
     /// </summary>
     public class GeoEditStore : IGeoEditStore {
         private readonly GeoForgeChunkData _chunkData;
@@ -29,9 +29,7 @@ namespace Spellbound.GeoForge {
         }
 
         public void Write(List<(int, VoxelData)> changes) {
-            foreach (var (idx, voxelData) in changes) {
-                _chunkData.WriteEdit(idx, voxelData);
-            }
+            foreach (var (idx, voxelData) in changes) _chunkData.WriteEdit(idx, voxelData);
 
             NotifyGeoEditsChanged(changes);
         }
@@ -52,9 +50,7 @@ namespace Spellbound.GeoForge {
                 // ALL density changes outright — additions as well as subtractions. Additions onto
                 // empty/Null voxels are never gated (wasFull is false there), and additions onto an
                 // already-full, ALLOWED voxel still proceed normally below.
-                if (wasFull && !operation.IsAllowed(existingMatIndex)) {
-                    continue;
-                }
+                if (wasFull && !operation.IsAllowed(existingMatIndex)) continue;
 
                 var density = (sbyte)Mathf.Clamp(
                     voxelData.Density + voxelDelta.DensityDelta,
@@ -91,8 +87,8 @@ namespace Spellbound.GeoForge {
                 }
 
                 var resolved = isMature
-                        ? VoxelData.CreateMature(density, matIndex)
-                        : VoxelData.CreateImmature(density, matIndex);
+                    ? VoxelData.CreateMature(density, matIndex)
+                    : VoxelData.CreateImmature(density, matIndex);
 
                 // If density didn't actually change (e.g. clamp saturated at the same extreme
                 // despite a nonzero delta), and maturity/material also didn't change, resolved
@@ -112,7 +108,9 @@ namespace Spellbound.GeoForge {
                 yield return (idx, voxelData);
         }
 
-        public void Clear() => _chunkData.ClearEdits();
+        public void Clear() {
+            _chunkData.ClearEdits();
+        }
 
         #region Notify Helpers
 

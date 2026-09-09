@@ -4,10 +4,10 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// A raw (world/volume-space) density change, before it's been mapped to a chunk-local index.
-    /// Material is NOT stored here — it lives once on the parent RawVoxelEditOperation, matching
-    /// VoxelEditOperation's convention that a whole terraform action shares one candidate material.
-    /// TODO maybe can remove when edits happen all in one step.
+    ///     A raw (world/volume-space) density change, before it's been mapped to a chunk-local index.
+    ///     Material is NOT stored here — it lives once on the parent RawVoxelEditOperation, matching
+    ///     VoxelEditOperation's convention that a whole terraform action shares one candidate material.
+    ///     TODO maybe can remove when edits happen all in one step.
     /// </summary>
     public readonly struct RawVoxelEdit {
         public Vector3Int VoxelSpacePosition { get; }

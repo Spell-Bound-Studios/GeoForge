@@ -6,9 +6,9 @@ using Spellbound.Core.Packing;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Pairs one chunk's coordinate with its edits for save/load purposes. Packs the (index,
-    /// VoxelData) pairs directly - not via GeoForgeChunkData, which stays purely a live in-memory
-    /// store's internal representation and never needs to be constructed just to serialize.
+    ///     Pairs one chunk's coordinate with its edits for save/load purposes. Packs the (index,
+    ///     VoxelData) pairs directly - not via GeoForgeChunkData, which stays purely a live in-memory
+    ///     store's internal representation and never needs to be constructed just to serialize.
     /// </summary>
     internal struct ChunkSaveEntry : IPacker {
         public int X;

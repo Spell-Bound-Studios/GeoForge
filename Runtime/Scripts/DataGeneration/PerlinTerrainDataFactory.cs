@@ -6,39 +6,39 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Crude data generation for a Perlin Noise terrain.
-    /// This is managed C# on the main thread which means it's very slow.
+    ///     Crude data generation for a Perlin Noise terrain.
+    ///     This is managed C# on the main thread which means it's very slow.
     /// </summary>
     [CreateAssetMenu(menuName = "Spellbound/GeoForge/DataFactory/PerlinTerrain")]
     public class PerlinTerrainDataFactory : DataFactory {
-        [Header("Data Factory Settings"), Tooltip("Offset of Terrain from Volume Origin"), SerializeField]
+        [Header("Data Factory Settings")] [Tooltip("Offset of Terrain from Volume Origin")] [SerializeField]
         private Vector3 offset = Vector3.zero;
 
-        [Tooltip("Not recommended to change from default value of 32"), SerializeField]
+        [Tooltip("Not recommended to change from default value of 32")] [SerializeField]
         private float sdfGradientSteepness = 32f;
 
         [Tooltip("Material for the shape to be generated as. " +
-                 "Refer to MarchingCubeManager for what index corresponds to what material"),
-         SerializeField]
-        private byte materialIndex = 0;
-        
-        [Tooltip("Whether the terrain is mature or not, rendering alternate textures on it's upwards-facing surfaces"),
-         SerializeField]
+                 "Refer to MarchingCubeManager for what index corresponds to what material")]
+        [SerializeField]
+        private byte materialIndex;
+
+        [Tooltip("Whether the terrain is mature or not, rendering alternate textures on it's upwards-facing surfaces")]
+        [SerializeField]
         private bool isMature = true;
 
-        [Header("Perlin Noise Settings"), Tooltip("Amplitude of Noise"), SerializeField]
+        [Header("Perlin Noise Settings")] [Tooltip("Amplitude of Noise")] [SerializeField]
         private float amplitude = 10;
 
-        [Tooltip("Scale of Noise. One Over Wavelength"), SerializeField]
+        [Tooltip("Scale of Noise. One Over Wavelength")] [SerializeField]
         private float baseNoiseScale = 0.05f;
 
-        [Tooltip("Number of layers of noise"), SerializeField]
+        [Tooltip("Number of layers of noise")] [SerializeField]
         private int octaves = 2;
 
-        [Tooltip("How noise scale changes with each octave"), SerializeField]
+        [Tooltip("How noise scale changes with each octave")] [SerializeField]
         private float lacunarity = 2;
 
-        [Tooltip("How amplitude changes with each octave"), SerializeField]
+        [Tooltip("How amplitude changes with each octave")] [SerializeField]
         private float persistence = 0.5f;
 
         public override void FillDataArray(
@@ -53,8 +53,8 @@ namespace Spellbound.GeoForge {
                 var signedDistance = PerlinTerrainSDF(voxelPos, offset);
                 var densityByte = SignedDistanceToDensity(signedDistance, sdfGradientSteepness);
                 data[i] = isMature
-                        ? VoxelData.CreateMature(densityByte, materialIndex)
-                        : VoxelData.CreateImmature(densityByte, materialIndex);
+                    ? VoxelData.CreateMature(densityByte, materialIndex)
+                    : VoxelData.CreateImmature(densityByte, materialIndex);
             }
         }
 

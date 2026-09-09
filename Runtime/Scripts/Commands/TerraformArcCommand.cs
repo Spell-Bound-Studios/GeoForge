@@ -10,13 +10,13 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Per-voxel core of TerraformArcCommand: for every voxel in a cube bounding the arc's
-    /// disc+thickness slab, replicates TerraformCommands.TerraformArc's exact per-voxel math
-    /// (thin-axis/in-plane decomposition, half-disc cutoff, two independent smooth falloffs) and
-    /// scatters a VoxelDensityDelta for each non-zero result. Direction/ThinAxis/etc are computed
-    /// once on the main thread by TerraformArcCommand (managed Vector3 math, including the
-    /// degenerate-direction fallback) and passed in as plain float3 fields - none of that setup
-    /// needs to run per-voxel. See TerraformArcCommand for the pre-validation this depends on.
+    ///     Per-voxel core of TerraformArcCommand: for every voxel in a cube bounding the arc's
+    ///     disc+thickness slab, replicates TerraformCommands.TerraformArc's exact per-voxel math
+    ///     (thin-axis/in-plane decomposition, half-disc cutoff, two independent smooth falloffs) and
+    ///     scatters a VoxelDensityDelta for each non-zero result. Direction/ThinAxis/etc are computed
+    ///     once on the main thread by TerraformArcCommand (managed Vector3 math, including the
+    ///     degenerate-direction fallback) and passed in as plain float3 fields - none of that setup
+    ///     needs to run per-voxel. See TerraformArcCommand for the pre-validation this depends on.
     /// </summary>
     [BurstCompile]
     internal struct TerraformArcJob : IJobParallelFor {
@@ -80,10 +80,10 @@ namespace Spellbound.GeoForge {
     }
 
     /// <summary>
-    /// Standalone, job-based terraform command: the half-disc "arc" shape from
-    /// TerraformCommands.TerraformArc, reimplemented as a fused shape-generation-plus-chunk-fanout
-    /// job. Internal - reached only through GeoForgeCommands. No delta parameter, same reasoning
-    /// as the original: an arc either commits or it's not the right brush to call.
+    ///     Standalone, job-based terraform command: the half-disc "arc" shape from
+    ///     TerraformCommands.TerraformArc, reimplemented as a fused shape-generation-plus-chunk-fanout
+    ///     job. Internal - reached only through GeoForgeCommands. No delta parameter, same reasoning
+    ///     as the original: an arc either commits or it's not the right brush to call.
     /// </summary>
     internal static class TerraformArcCommand {
         internal static bool Execute(
@@ -146,9 +146,8 @@ namespace Spellbound.GeoForge {
 
             if (!TerraformCommandUtility.TryValidateChunkRange(
                     geoVolume, gfManager, minVoxel, maxVoxel, nameof(TerraformArcCommand), worldPosition,
-                    out _, out _)) {
+                    out _, out _))
                 return false;
-            }
 
             var side = radiusInt * 2 + 1;
             var voxelCount = side * side * side;

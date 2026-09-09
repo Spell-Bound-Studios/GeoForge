@@ -8,20 +8,22 @@ using UnityEngine.InputSystem;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Very basic controller for demonstrating some package functionality without downloading any samples. 
-    /// Not recommended as a real controller.
+    ///     Very basic controller for demonstrating some package functionality without downloading any samples.
+    ///     Not recommended as a real controller.
     /// </summary>
     public class BasicWasdController : MonoBehaviour {
         // Movement fields
         [SerializeField] private float moveSpeed = 5f;
         [SerializeField] private float lookSpeed = 2f;
-        private float _pitch;
 
         // Marching Cubes fields
         [SerializeField] private List<byte> conditionalDigList = new() { 0, 1, 2 };
         [SerializeField] private byte addableMaterial = 2;
+        private float _pitch;
 
-        private void Start() => Cursor.lockState = CursorLockMode.Locked;
+        private void Start() {
+            Cursor.lockState = CursorLockMode.Locked;
+        }
 
         private void Update() {
             HandleMovement();
@@ -29,7 +31,7 @@ namespace Spellbound.GeoForge {
         }
 
         /// <summary>
-        /// Reads inputs for Terraforming. Uses legacy input system if the regular input system is not installed.
+        ///     Reads inputs for Terraforming. Uses legacy input system if the regular input system is not installed.
         /// </summary>
         private void HandleTerraforming() {
 #if ENABLE_INPUT_SYSTEM
@@ -50,7 +52,7 @@ namespace Spellbound.GeoForge {
         }
 
         /// <summary>
-        /// Reads inputs for Movement. Uses legacy input system if the regular input system is not installed.
+        ///     Reads inputs for Movement. Uses legacy input system if the regular input system is not installed.
         /// </summary>
         private void HandleMovement() {
 #if ENABLE_INPUT_SYSTEM
@@ -93,7 +95,7 @@ namespace Spellbound.GeoForge {
         }
 
         /// <summary>
-        /// Raycasts and Terraforms Remove at the hit location.
+        ///     Raycasts and Terraforms Remove at the hit location.
         /// </summary>
         private void RaycastTerraformRemove() {
             if (Physics.Raycast(
@@ -107,16 +109,16 @@ namespace Spellbound.GeoForge {
                 if (iVolume != null) {
                     var success = GeoForgeCommands.RemoveSphere(
                         iVolume,
-                        hit.point,   // worldPosition - sphere centers here
-                        radius: 2.5f, // world units, same convention as GeoForgeStatic.RemoveSphere's radius
-                        delta: 255     // magnitude to subtract - RemoveSphere negates this internally
+                        hit.point, // worldPosition - sphere centers here
+                        2.5f, // world units, same convention as GeoForgeStatic.RemoveSphere's radius
+                        255 // magnitude to subtract - RemoveSphere negates this internally
                     );
                 }
             }
         }
 
         /// <summary>
-        /// Raycasts and Terraforms Add at the hit location.
+        ///     Raycasts and Terraforms Add at the hit location.
         /// </summary>
         private void RaycastTerraformAdd() {
             /*if (Physics.Raycast(

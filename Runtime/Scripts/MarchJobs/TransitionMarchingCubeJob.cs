@@ -9,17 +9,17 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Job to March the Cubes (generate vertices and triangles from voxels) for the transition
-    /// regions of a leaf of terrain, for the FlatShaded/Barycentric material scheme. Every
-    /// triangle gets exclusive vertices and a face normal, and material is the "full" voxel on
-    /// each vertex's edge (no blending) - same scheme as FlatBaryMarchJob, packed the same way.
+    ///     Job to March the Cubes (generate vertices and triangles from voxels) for the transition
+    ///     regions of a leaf of terrain, for the FlatShaded/Barycentric material scheme. Every
+    ///     triangle gets exclusive vertices and a face normal, and material is the "full" voxel on
+    ///     each vertex's edge (no blending) - same scheme as FlatBaryMarchJob, packed the same way.
     /// </summary>
     [BurstCompile]
     internal struct TransitionMarchingCubeJob : IJob {
         [ReadOnly] public BlobAssetReference<McTablesBlobAsset> TablesBlob;
         [ReadOnly] public BlobAssetReference<VolumeConfigBlobAsset> ConfigBlob;
 
-        [NativeDisableParallelForRestriction, ReadOnly]
+        [NativeDisableParallelForRestriction] [ReadOnly]
         public NativeArray<VoxelData> VoxelArray;
 
         public NativeList<MeshingVertexData> TransitionMeshingVertexData;
@@ -30,11 +30,11 @@ namespace Spellbound.GeoForge {
         public int3 Start;
 
         /// <summary>
-        /// Lightweight per-edge-vertex data cached across cube marches. Unlike FlatBaryMarchJob's
-        /// cache, this one needs an explicit IsValid flag: the transition algorithm's cacheValidator
-        /// bitmask isn't always sufficient by itself to guarantee a cache slot was actually
-        /// populated (matching the original TransitionMarchingCubeJob's "vertexIndex == -1" check).
-        /// default(EdgeVertex) has IsValid == false for free.
+        ///     Lightweight per-edge-vertex data cached across cube marches. Unlike FlatBaryMarchJob's
+        ///     cache, this one needs an explicit IsValid flag: the transition algorithm's cacheValidator
+        ///     bitmask isn't always sufficient by itself to guarantee a cache slot was actually
+        ///     populated (matching the original TransitionMarchingCubeJob's "vertexIndex == -1" check).
+        ///     default(EdgeVertex) has IsValid == false for free.
         /// </summary>
         private struct EdgeVertex {
             public float3 Position;
@@ -43,7 +43,10 @@ namespace Spellbound.GeoForge {
             // when mature, giving the full 0-255 range the shader expects. Must stay byte, not sbyte -
             // a mature high-index material (e.g. 127 + 128 = 255) doesn't fit in sbyte's -128..127 range.
             public byte RawMaterial;
-            public sbyte Density; // density of the original full corner (always >= 0, it's a full voxel) - confidence weight
+
+            public sbyte
+                Density; // density of the original full corner (always >= 0, it's a full voxel) - confidence weight
+
             public bool IsValid;
         }
 
@@ -75,10 +78,10 @@ namespace Spellbound.GeoForge {
             var lodScale = 1 << Lod;
 
             var transitionCurrentCache =
-                    new NativeArray<EdgeVertex>(config.CubesMarchedPerOctreeLeaf * 10, Allocator.Temp);
+                new NativeArray<EdgeVertex>(config.CubesMarchedPerOctreeLeaf * 10, Allocator.Temp);
 
             var transitionPreviousCache =
-                    new NativeArray<EdgeVertex>(config.CubesMarchedPerOctreeLeaf * 10, Allocator.Temp);
+                new NativeArray<EdgeVertex>(config.CubesMarchedPerOctreeLeaf * 10, Allocator.Temp);
             var transitionVertexIndices = new NativeArray<EdgeVertex>(36, Allocator.Temp);
             var transitionCellValues = new NativeArray<VoxelData>(13, Allocator.Temp);
 
@@ -88,10 +91,11 @@ namespace Spellbound.GeoForge {
                         var offset = tables.TransitionCornerOffset[i];
 
                         var voxelPosition = Start + new int3(padding, padding, padding) +
-                                GfMarchHelper.FaceToLocalSpace(direction,
-                                    config.CubesMarchedPerOctreeLeaf * 2, x * 2 + offset.x, y * 2 + offset.y,
-                                    0) *
-                                (lodScale >> 1);
+                                            GfMarchHelper.FaceToLocalSpace(direction,
+                                                config.CubesMarchedPerOctreeLeaf * 2, x * 2 + offset.x,
+                                                y * 2 + offset.y,
+                                                0) *
+                                            (lodScale >> 1);
 
                         transitionCellValues[i] = VoxelArray[GfStaticHelper.Coord3DToIndex(
                             voxelPosition.x, voxelPosition.y, voxelPosition.z, config.ChunkDataAreaSize,
@@ -147,24 +151,26 @@ namespace Spellbound.GeoForge {
                         var selectedCacheDock = (cacheDir & 2) > 0 ? transitionPreviousCache : transitionCurrentCache;
 
                         var edgeVertex = isVertexCacheable
-                                ? selectedCacheDock[cacheIdx * config.CubesMarchedPerOctreeLeaf + cachePosX]
-                                : default;
+                            ? selectedCacheDock[cacheIdx * config.CubesMarchedPerOctreeLeaf + cachePosX]
+                            : default;
 
                         if (!isVertexCacheable || !edgeVertex.IsValid) {
                             var cornerOffset0 = tables.TransitionCornerOffset[cornerIdx0];
                             var cornerOffset1 = tables.TransitionCornerOffset[cornerIdx1];
 
                             var corner0Copy = Start + new int3(padding, padding, padding) +
-                                    GfMarchHelper.FaceToLocalSpace(
-                                direction,
-                                config.CubesMarchedPerOctreeLeaf * 2,
-                                x * 2 + cornerOffset0.x, y * 2 + cornerOffset0.y, 0) * (lodScale >> 1);
+                                              GfMarchHelper.FaceToLocalSpace(
+                                                  direction,
+                                                  config.CubesMarchedPerOctreeLeaf * 2,
+                                                  x * 2 + cornerOffset0.x, y * 2 + cornerOffset0.y,
+                                                  0) * (lodScale >> 1);
 
                             var corner1Copy = Start + new int3(padding, padding, padding) +
-                                    GfMarchHelper.FaceToLocalSpace(
-                                direction,
-                                config.CubesMarchedPerOctreeLeaf * 2,
-                                x * 2 + cornerOffset1.x, y * 2 + cornerOffset1.y, 0) * (lodScale >> 1);
+                                              GfMarchHelper.FaceToLocalSpace(
+                                                  direction,
+                                                  config.CubesMarchedPerOctreeLeaf * 2,
+                                                  x * 2 + cornerOffset1.x, y * 2 + cornerOffset1.y,
+                                                  0) * (lodScale >> 1);
 
                             var bIsLowResFace = cacheIdx > 6;
                             var subEdges = bIsLowResFace ? Lod : Lod - 1;
@@ -217,7 +223,7 @@ namespace Spellbound.GeoForge {
                             var materialIndexOnly = originalFullVoxel.MaterialIndex;
                             var combinedIsMature = wasVoxel0Mature && wasVoxel1Mature;
                             var packedRawMaterial =
-                                    (byte)(materialIndexOnly + (combinedIsMature ? VoxelData.MatureBitValue : 0));
+                                (byte)(materialIndexOnly + (combinedIsMature ? VoxelData.MatureBitValue : 0));
 
                             edgeVertex = new EdgeVertex {
                                 Position = centeredVertex,
@@ -227,22 +233,19 @@ namespace Spellbound.GeoForge {
                             };
 
                             if (bIsLowResFace) {
-                                if (cacheDir == 8) {
+                                if (cacheDir == 8)
                                     transitionCurrentCache[cacheIdx * config.CubesMarchedPerOctreeLeaf + x] =
-                                            edgeVertex;
-                                }
-                                else if (isVertexCacheable) {
+                                        edgeVertex;
+                                else if (isVertexCacheable)
                                     selectedCacheDock[cacheIdx * config.CubesMarchedPerOctreeLeaf + cachePosX] =
-                                            edgeVertex;
-                                }
+                                        edgeVertex;
                             }
 
                             if (cacheDir == 8)
                                 transitionCurrentCache[cacheIdx * config.CubesMarchedPerOctreeLeaf + x] = edgeVertex;
-                            else if (isVertexCacheable && cacheDir != 4) {
+                            else if (isVertexCacheable && cacheDir != 4)
                                 selectedCacheDock[cacheIdx * config.CubesMarchedPerOctreeLeaf + cachePosX] =
-                                        edgeVertex;
-                            }
+                                    edgeVertex;
                         }
 
                         transitionVertexIndices[i] = edgeVertex;
@@ -266,26 +269,26 @@ namespace Spellbound.GeoForge {
                         // both branches is the general "cross(P1-P0, P2-P0)" for whichever 3
                         // positions (P0,P1,P2) actually get pushed, in that order.
                         var normal = bFlipWinding
-                                ? math.normalize(math.cross(vB.Position - vC.Position, vA.Position - vC.Position))
-                                : math.normalize(math.cross(vB.Position - vA.Position, vC.Position - vA.Position));
+                            ? math.normalize(math.cross(vB.Position - vC.Position, vA.Position - vC.Position))
+                            : math.normalize(math.cross(vB.Position - vA.Position, vC.Position - vA.Position));
 
                         var newIa = TransitionMeshingVertexData.Length;
                         TransitionMeshingVertexData.Add(new MeshingVertexData(
                             vA.Position, normal,
                             new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 255),
-                            new Color32((byte)(vA.Density + 1), (byte)(vB.Density +1), (byte)(vC.Density + 1), 0)));
+                            new Color32((byte)(vA.Density + 1), (byte)(vB.Density + 1), (byte)(vC.Density + 1), 0)));
 
                         var newIb = TransitionMeshingVertexData.Length;
                         TransitionMeshingVertexData.Add(new MeshingVertexData(
                             vB.Position, normal,
                             new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 0),
-                            new Color32((byte)(vA.Density + 1), (byte)(vB.Density +1), (byte)(vC.Density + 1), 255)));
+                            new Color32((byte)(vA.Density + 1), (byte)(vB.Density + 1), (byte)(vC.Density + 1), 255)));
 
                         var newIc = TransitionMeshingVertexData.Length;
                         TransitionMeshingVertexData.Add(new MeshingVertexData(
                             vC.Position, normal,
                             new Color32(vA.RawMaterial, vB.RawMaterial, vC.RawMaterial, 0),
-                            new Color32((byte)(vA.Density + 1), (byte)(vB.Density +1), (byte)(vC.Density + 1), 0)));
+                            new Color32((byte)(vA.Density + 1), (byte)(vB.Density + 1), (byte)(vC.Density + 1), 0)));
 
                         if (bFlipWinding) {
                             TransitionTriangles.Add(newIc);

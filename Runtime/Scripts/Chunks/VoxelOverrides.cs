@@ -7,25 +7,25 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Runtime store of Voxel Overrides. Voxels will not be edited if they're included in these dictionaries.
-    /// This is where Boundary Overrides ends up.
-    /// Note that they're stored as faces where possible; a Volume with a Boundary override on each face will only
-    /// have 2 entries in each of the _xOverrides, _yOverrides, and _zOverrides dictionary, and none in _pointOverrides.
+    ///     Runtime store of Voxel Overrides. Voxels will not be edited if they're included in these dictionaries.
+    ///     This is where Boundary Overrides ends up.
+    ///     Note that they're stored as faces where possible; a Volume with a Boundary override on each face will only
+    ///     have 2 entries in each of the _xOverrides, _yOverrides, and _zOverrides dictionary, and none in _pointOverrides.
     /// </summary>
     public class VoxelOverrides {
+        private Dictionary<Vector3Int, VoxelData> _pointOverrides;
         private Dictionary<int, VoxelData> _xOverrides;
         private Dictionary<int, VoxelData> _yOverrides;
         private Dictionary<int, VoxelData> _zOverrides;
-        private Dictionary<Vector3Int, VoxelData> _pointOverrides;
-        private bool _hasOverrides;
-        public bool HasAnyOverrides => _hasOverrides;
 
         public VoxelOverrides() {
-            _hasOverrides = false;
+            HasAnyOverrides = false;
         }
 
+        public bool HasAnyOverrides { get; private set; }
+
         internal void AddPlaneOverride(Axis axis, int sliceIndex, VoxelData voxelData) {
-            _hasOverrides = true;
+            HasAnyOverrides = true;
 
             switch (axis) {
                 case Axis.X:
@@ -47,13 +47,13 @@ namespace Spellbound.GeoForge {
         }
 
         public void AddPointOverride(Vector3Int position, VoxelData voxelData) {
-            _hasOverrides = true;
+            HasAnyOverrides = true;
             _pointOverrides ??= new Dictionary<Vector3Int, VoxelData>();
             _pointOverrides[position] = voxelData;
         }
 
         public bool HasOverride(Vector3Int position) {
-            if (!_hasOverrides) return false;
+            if (!HasAnyOverrides) return false;
 
             return (_yOverrides?.ContainsKey(position.y) ?? false) ||
                    (_xOverrides?.ContainsKey(position.x) ?? false) ||
@@ -62,7 +62,7 @@ namespace Spellbound.GeoForge {
         }
 
         public bool TryGetOverride(Vector3Int position, out VoxelData overrideVoxel) {
-            if (!_hasOverrides) {
+            if (!HasAnyOverrides) {
                 overrideVoxel = default;
 
                 return false;
@@ -90,7 +90,7 @@ namespace Spellbound.GeoForge {
             _yOverrides?.Clear();
             _zOverrides?.Clear();
             _pointOverrides?.Clear();
-            _hasOverrides = false;
+            HasAnyOverrides = false;
         }
 
         internal void CopyToNativeHashMaps(
@@ -113,27 +113,23 @@ namespace Spellbound.GeoForge {
                 _pointOverrides?.Count ?? 0, allocator);
 
             // Copy data if dictionaries exist
-            if (_xOverrides != null) {
+            if (_xOverrides != null)
                 foreach (var kvp in _xOverrides)
                     xOverrides.Add(kvp.Key, kvp.Value);
-            }
 
-            if (_yOverrides != null) {
+            if (_yOverrides != null)
                 foreach (var kvp in _yOverrides)
                     yOverrides.Add(kvp.Key, kvp.Value);
-            }
 
-            if (_zOverrides != null) {
+            if (_zOverrides != null)
                 foreach (var kvp in _zOverrides)
                     zOverrides.Add(kvp.Key, kvp.Value);
-            }
 
-            if (_pointOverrides != null) {
+            if (_pointOverrides != null)
                 foreach (var kvp in _pointOverrides) {
                     var position = new int3(kvp.Key.x, kvp.Key.y, kvp.Key.z);
                     pointOverrides.Add(position, kvp.Value);
                 }
-            }
         }
     }
 }

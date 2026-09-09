@@ -10,10 +10,10 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Per-voxel core of TerraformCubeCommand: for every voxel in a uniform cube centered on
-    /// VoxelCenter, scatters a VoxelDensityDelta via TerraformJobUtility.ScatterVoxelDelta -
-    /// every voxel shares the same Delta, no falloff. See TerraformCubeCommand for the
-    /// pre-validation this depends on.
+    ///     Per-voxel core of TerraformCubeCommand: for every voxel in a uniform cube centered on
+    ///     VoxelCenter, scatters a VoxelDensityDelta via TerraformJobUtility.ScatterVoxelDelta -
+    ///     every voxel shares the same Delta, no falloff. See TerraformCubeCommand for the
+    ///     pre-validation this depends on.
     /// </summary>
     [BurstCompile]
     internal struct TerraformCubeJob : IJobParallelFor {
@@ -42,9 +42,9 @@ namespace Spellbound.GeoForge {
     }
 
     /// <summary>
-    /// Standalone, job-based terraform command: carves a uniform cube (no falloff, hard edges)
-    /// centered on the nearest voxel to worldPosition. Internal - reached only through
-    /// GeoForgeCommands, the public entry point for this whole job-based command family.
+    ///     Standalone, job-based terraform command: carves a uniform cube (no falloff, hard edges)
+    ///     centered on the nearest voxel to worldPosition. Internal - reached only through
+    ///     GeoForgeCommands, the public entry point for this whole job-based command family.
     /// </summary>
     internal static class TerraformCubeCommand {
         internal static bool Execute(
@@ -72,13 +72,12 @@ namespace Spellbound.GeoForge {
 
             if (!TerraformCommandUtility.TryValidateChunkRange(
                     geoVolume, gfManager, minVoxel, maxVoxel, nameof(TerraformCubeCommand), worldPosition,
-                    out _, out _)) {
+                    out _, out _))
                 return false;
-            }
 
             var side = halfExtent * 2 + 1;
             var voxelCount = side * side * side;
-            
+
             geoVolume.OnTerraform(worldPosition, voxelCount);
 
             var resultMap = new NativeParallelMultiHashMap<ChunkCoordKey, VoxelDensityDelta>(

@@ -4,10 +4,6 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     public class LeafBehaviour : MonoBehaviour {
-        public virtual void OnMeshUpdated(int lod) {
-            
-        }
-    
+        public virtual void OnMeshUpdated(int lod) { }
     }
 }
-

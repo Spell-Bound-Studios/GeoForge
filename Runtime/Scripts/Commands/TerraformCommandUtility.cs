@@ -8,11 +8,11 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Shared plumbing for every job-based terraform command (TerraformCubeCommand,
-    /// TerraformSphereCommand, TerraformArcCommand). Split into two regions by where the code
-    /// runs: JobHelpers are Burst-safe, called from inside each command's Execute job; the rest
-    /// runs on the main thread, either side of the job (pre-validation before scheduling, dispatch
-    /// after completion).
+    ///     Shared plumbing for every job-based terraform command (TerraformCubeCommand,
+    ///     TerraformSphereCommand, TerraformArcCommand). Split into two regions by where the code
+    ///     runs: JobHelpers are Burst-safe, called from inside each command's Execute job; the rest
+    ///     runs on the main thread, either side of the job (pre-validation before scheduling, dispatch
+    ///     after completion).
     /// </summary>
     internal static class TerraformCommandUtility {
         // Apron margin matching the established ChunkDataWidthSize = ChunkSize + 3 convention - a
@@ -32,12 +32,13 @@ namespace Spellbound.GeoForge {
         // restriction to hit.
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static int3 GetChunkCoord(int3 voxelPos, int chunkSize) =>
-                new(
-                    (int)math.floor((voxelPos.x - 1f) / chunkSize),
-                    (int)math.floor((voxelPos.y - 1f) / chunkSize),
-                    (int)math.floor((voxelPos.z - 1f) / chunkSize)
-                );
+        internal static int3 GetChunkCoord(int3 voxelPos, int chunkSize) {
+            return new int3(
+                (int)math.floor((voxelPos.x - 1f) / chunkSize),
+                (int)math.floor((voxelPos.y - 1f) / chunkSize),
+                (int)math.floor((voxelPos.z - 1f) / chunkSize)
+            );
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static bool IsAxisDeltaValid(int value, int chunkSize, int delta) {
@@ -48,11 +49,11 @@ namespace Spellbound.GeoForge {
         }
 
         /// <summary>
-        /// Writes one voxel's delta into its owning chunk, plus up to 7 shared-boundary neighbor
-        /// chunks (mirrors GfStaticHelper.GetSharedNeighborDirections/DistributeVoxelEdits's
-        /// existing fan-out exactly - same nested axis-validity checks, same enumeration order).
-        /// Called once per voxel from each job's Execute - this is the entire "does this voxel
-        /// belong to more than one chunk's apron" concern, isolated in one place.
+        ///     Writes one voxel's delta into its owning chunk, plus up to 7 shared-boundary neighbor
+        ///     chunks (mirrors GfStaticHelper.GetSharedNeighborDirections/DistributeVoxelEdits's
+        ///     existing fan-out exactly - same nested axis-validity checks, same enumeration order).
+        ///     Called once per voxel from each job's Execute - this is the entire "does this voxel
+        ///     belong to more than one chunk's apron" concern, isolated in one place.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static void ScatterVoxelDelta(
@@ -98,14 +99,14 @@ namespace Spellbound.GeoForge {
         #region Main-Thread Helpers (managed types, run either side of the job)
 
         /// <summary>
-        /// Computes the chunk-coordinate range covering [minVoxel, maxVoxel] (which should already
-        /// include the apron padding), then validates it: rejects if the range would touch more
-        /// chunks than the Edit pool has capacity for, and - only for non-finite (streaming)
-        /// volumes - rejects if any candidate chunk in range doesn't exist. A finite volume is
-        /// fully loaded across its whole fixed extent, so a missing candidate there just means the
-        /// action is digging near the edge of the map, which is expected and shouldn't reject
-        /// anything - see DispatchEdits for how that's handled at dispatch time instead. Logs a
-        /// warning and returns false on rejection.
+        ///     Computes the chunk-coordinate range covering [minVoxel, maxVoxel] (which should already
+        ///     include the apron padding), then validates it: rejects if the range would touch more
+        ///     chunks than the Edit pool has capacity for, and - only for non-finite (streaming)
+        ///     volumes - rejects if any candidate chunk in range doesn't exist. A finite volume is
+        ///     fully loaded across its whole fixed extent, so a missing candidate there just means the
+        ///     action is digging near the edge of the map, which is expected and shouldn't reject
+        ///     anything - see DispatchEdits for how that's handled at dispatch time instead. Logs a
+        ///     warning and returns false on rejection.
         /// </summary>
         internal static bool TryValidateChunkRange(
             IGeoVolume geoVolume,
@@ -139,33 +140,30 @@ namespace Spellbound.GeoForge {
                 return false;
             }*/
 
-            if (!isFiniteVolume) {
-                for (var cz = minChunkCoord.z; cz <= maxChunkCoord.z; cz++) {
-                    for (var cy = minChunkCoord.y; cy <= maxChunkCoord.y; cy++) {
-                        for (var cx = minChunkCoord.x; cx <= maxChunkCoord.x; cx++) {
-                            var candidateCoord = new Vector3Int(cx, cy, cz);
+            if (!isFiniteVolume)
+                for (var cz = minChunkCoord.z; cz <= maxChunkCoord.z; cz++)
+                for (var cy = minChunkCoord.y; cy <= maxChunkCoord.y; cy++)
+                for (var cx = minChunkCoord.x; cx <= maxChunkCoord.x; cx++) {
+                    var candidateCoord = new Vector3Int(cx, cy, cz);
 
-                            if (geoVolume.GetChunkByCoord(candidateCoord) != null)
-                                continue;
+                    if (geoVolume.GetChunkByCoord(candidateCoord) != null)
+                        continue;
 
-                            Debug.LogWarning(
-                                $"{commandName}: rejected - action at {worldPosition} would touch " +
-                                $"chunk {candidateCoord}, which does not exist.");
+                    Debug.LogWarning(
+                        $"{commandName}: rejected - action at {worldPosition} would touch " +
+                        $"chunk {candidateCoord}, which does not exist.");
 
-                            return false;
-                        }
-                    }
+                    return false;
                 }
-            }
 
             return true;
         }
 
         /// <summary>
-        /// Drains a filled multi-hashmap into one PassVoxelEditOperation call per unique chunk,
-        /// wrapped in GeoForgeManager.BeginEditBatch/EndEditBatch so every affected chunk's march
-        /// jobs get scheduled before any of them complete/release. Disposes resultMap and its
-        /// unique-key array itself - callers must not touch resultMap again after calling this.
+        ///     Drains a filled multi-hashmap into one PassVoxelEditOperation call per unique chunk,
+        ///     wrapped in GeoForgeManager.BeginEditBatch/EndEditBatch so every affected chunk's march
+        ///     jobs get scheduled before any of them complete/release. Disposes resultMap and its
+        ///     unique-key array itself - callers must not touch resultMap again after calling this.
         /// </summary>
         internal static void DispatchEdits(
             GeoForgeManager gfManager,
@@ -193,7 +191,7 @@ namespace Spellbound.GeoForge {
                         var chunk = geoVolume.GetChunkByCoord(chunkCoord);
 
                         if (chunk == null) {
-                            if (!isFiniteVolume) {
+                            if (!isFiniteVolume)
                                 // Should be unreachable for a non-finite volume - existence was
                                 // already confirmed for every candidate coordinate during
                                 // validation, and nothing between then and here can remove a
@@ -201,7 +199,6 @@ namespace Spellbound.GeoForge {
                                 Debug.LogError(
                                     $"{commandName}: chunk {chunkCoord} passed validation but is " +
                                     "missing at dispatch time - skipping this chunk's edits.");
-                            }
 
                             // For a finite volume, this is the expected/normal case whenever the
                             // action's apron-expanded range spills past the volume's boundary -
@@ -213,11 +210,10 @@ namespace Spellbound.GeoForge {
                         // reallocate-and-copy as entries are appended.
                         var deltas = new List<VoxelDensityDelta>(resultMap.CountValuesForKey(key));
 
-                        if (resultMap.TryGetFirstValue(key, out var delta, out var iterator)) {
+                        if (resultMap.TryGetFirstValue(key, out var delta, out var iterator))
                             do {
                                 deltas.Add(delta);
                             } while (resultMap.TryGetNextValue(out delta, ref iterator));
-                        }
 
                         chunk.PassVoxelEditOperation(
                             new VoxelEditOperation(materialIndex, deltas, allowedMaterialsMask, worldPosition));

@@ -9,28 +9,26 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     public partial class GeoForgeManager : MonoBehaviour {
-        private Dictionary<int, DenseVoxelDataPool> _denseVoxelDataDict = new();
+        private readonly Dictionary<int, DenseVoxelDataPool> _denseVoxelDataDict = new();
 
         internal NativeArray<VoxelData> GetOrUnpackVoxelArray(
             int dataSizeKey,
             GeoChunkEngine chunkEngine,
             NativeList<SparseVoxelData> sparseData,
             bool isEdit) {
-            if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var pool)) {
+            if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var pool))
                 throw new InvalidOperationException(
                     $"GetOrUnpackVoxelArray: no denseVoxelData registered for chunk size {dataSizeKey}. " +
                     "Was RegisterVoxelVolume called for this volume's chunk size?");
-            }
 
             return pool.GetOrUnpack(dataSizeKey, chunkEngine, sparseData, isEdit);
         }
 
         internal void PackVoxelArray(int dataSizeKey, GeoChunkEngine chunkEngine, bool isEdit, BoundsInt editBounds) {
-            if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var pool)) {
+            if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var pool))
                 throw new InvalidOperationException(
                     $"PackVoxelArray: no denseVoxelData registered for chunk size {dataSizeKey}. " +
                     "Was RegisterVoxelVolume called for this volume's chunk size?");
-            }
 
             pool.Pack(chunkEngine, isEdit, editBounds);
         }
@@ -38,7 +36,7 @@ namespace Spellbound.GeoForge {
         internal void ReleaseVoxelArray(int dataSizeKey, GeoChunkEngine chunkEngine, bool isEdit) {
             if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var pool)) {
                 ConsoleLogger.PrintError(
-                    $"MarchingCubes Manager does not have a denseVoxelData Array of this size");
+                    "MarchingCubes Manager does not have a denseVoxelData Array of this size");
 
                 return;
             }
@@ -46,7 +44,8 @@ namespace Spellbound.GeoForge {
             pool.Release(chunkEngine, isEdit);
         }
 
-        internal bool TryGetResidentVoxelArray(int dataSizeKey, GeoChunkEngine chunkEngine, out NativeArray<VoxelData> voxels) {
+        internal bool TryGetResidentVoxelArray(int dataSizeKey, GeoChunkEngine chunkEngine,
+            out NativeArray<VoxelData> voxels) {
             if (!_denseVoxelDataDict.TryGetValue(dataSizeKey, out var pool)) {
                 voxels = default;
 
@@ -80,18 +79,15 @@ namespace Spellbound.GeoForge {
         // GeoVolume.TryLoadFromByteArray's batching) can size itself correctly ahead of time.
         // Returns 0 if this chunk size was never registered - callers must treat that as
         // "reject/nothing to do," not "unlimited."
-        internal int GetEditPoolCapacity(int chunkSize) =>
-                _denseVoxelDataDict.TryGetValue(chunkSize, out var pool) ? pool.EditSlotCount : 0;
+        internal int GetEditPoolCapacity(int chunkSize) {
+            return _denseVoxelDataDict.TryGetValue(chunkSize, out var pool) ? pool.EditSlotCount : 0;
+        }
 
         internal class DenseVoxelDataPool : IDisposable {
             private readonly int _chunkSize;
             private readonly List<DenseVoxelData> _editSlots;
             private readonly List<DenseVoxelData> _validationSlots;
             private long _accessCounter;
-
-            // Number of Edit slots this pool currently has - see GeoForgeManager.GetEditPoolCapacity
-            // for why this needs to be externally visible.
-            internal int EditSlotCount => _editSlots.Count;
 
             internal DenseVoxelDataPool(int chunkSize, int initialEditPoolSize, int initialValidationPoolSize) {
                 _chunkSize = chunkSize;
@@ -101,6 +97,15 @@ namespace Spellbound.GeoForge {
 
                 _validationSlots = new List<DenseVoxelData>();
                 EnsureValidationCapacity(initialValidationPoolSize);
+            }
+
+            // Number of Edit slots this pool currently has - see GeoForgeManager.GetEditPoolCapacity
+            // for why this needs to be externally visible.
+            internal int EditSlotCount => _editSlots.Count;
+
+            public void Dispose() {
+                foreach (var slot in _editSlots) slot.Dispose();
+                foreach (var slot in _validationSlots) slot.Dispose();
             }
 
             internal void EnsureEditCapacity(int minSize) {
@@ -113,7 +118,9 @@ namespace Spellbound.GeoForge {
                     _validationSlots.Add(new DenseVoxelData(_chunkSize));
             }
 
-            private List<DenseVoxelData> SlotsFor(bool isEdit) => isEdit ? _editSlots : _validationSlots;
+            private List<DenseVoxelData> SlotsFor(bool isEdit) {
+                return isEdit ? _editSlots : _validationSlots;
+            }
 
             internal NativeArray<VoxelData> GetOrUnpack(
                 int dataSizeKey, GeoChunkEngine chunkEngine, NativeList<SparseVoxelData> sparseData, bool isEdit) {
@@ -125,7 +132,7 @@ namespace Spellbound.GeoForge {
 
                     if (slot.IsArrayInUse) {
                         Debug.LogError(
-                            $"GetOrUnpackVoxelArray - Trying to unpack voxel array but array is in use for the same geoChunk. This is unexpected and bad.");
+                            "GetOrUnpackVoxelArray - Trying to unpack voxel array but array is in use for the same geoChunk. This is unexpected and bad.");
 
                         return slot.DenseVoxelArray;
                     }
@@ -138,13 +145,12 @@ namespace Spellbound.GeoForge {
 
                 var claimIndex = -1;
 
-                for (var i = 0; i < slots.Count; i++) {
+                for (var i = 0; i < slots.Count; i++)
                     if (!slots[i].IsArrayInUse && slots[i].CurrentChunkEngine == null) {
                         claimIndex = i;
 
                         break;
                     }
-                }
 
                 if (claimIndex == -1) {
                     var oldestTick = long.MaxValue;
@@ -200,7 +206,7 @@ namespace Spellbound.GeoForge {
 
                 if (!slot.IsArrayInUse) {
                     Debug.LogError(
-                        $"PackVoxelArray - Trying to pack but _isArrayInUse is false which is unexpected and bad");
+                        "PackVoxelArray - Trying to pack but _isArrayInUse is false which is unexpected and bad");
 
                     return;
                 }
@@ -221,7 +227,8 @@ namespace Spellbound.GeoForge {
                 SyncOtherPoolResidency(chunkEngine, isEdit, slot.DenseVoxelArray);
             }
 
-            private void SyncOtherPoolResidency(GeoChunkEngine chunkEngine, bool packedIsEdit, NativeArray<VoxelData> freshVoxels) {
+            private void SyncOtherPoolResidency(GeoChunkEngine chunkEngine, bool packedIsEdit,
+                NativeArray<VoxelData> freshVoxels) {
                 foreach (var slot in SlotsFor(!packedIsEdit)) {
                     if (slot.CurrentChunkEngine != chunkEngine)
                         continue;
@@ -316,25 +323,19 @@ namespace Spellbound.GeoForge {
             }
 
             private DenseVoxelData FindSlot(GeoChunkEngine chunkEngine, bool isEdit) {
-                foreach (var slot in SlotsFor(isEdit)) {
+                foreach (var slot in SlotsFor(isEdit))
                     if (slot.CurrentChunkEngine == chunkEngine)
                         return slot;
-                }
 
                 return null;
-            }
-
-            public void Dispose() {
-                foreach (var slot in _editSlots) slot.Dispose();
-                foreach (var slot in _validationSlots) slot.Dispose();
             }
         }
 
         internal class DenseVoxelData : IDisposable {
+            internal GeoChunkEngine CurrentChunkEngine;
             internal NativeArray<VoxelData> DenseVoxelArray;
             internal NativeArray<DensityRange> DensityRange;
             internal bool IsArrayInUse;
-            internal GeoChunkEngine CurrentChunkEngine;
             internal long LastAccessTick;
 
             internal DenseVoxelData(int chunkSize, Allocator allocator = Allocator.Persistent) {

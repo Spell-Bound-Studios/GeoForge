@@ -17,10 +17,10 @@ namespace Spellbound.GeoForge {
         private Dictionary<Type, MaterialSideTableBase> _sideTablesByType;
 
         /// <summary>
-        /// Resolves the MaterialSideTable registered for TData and returns this material's data
-        /// from it. Returns default(TData) and logs a warning if no table for TData is registered
-        /// on this manager - a distinct problem from MaterialSideTable's own warning, which fires
-        /// when a table exists but this specific material has no row in it (see MaterialSideTable.cs).
+        ///     Resolves the MaterialSideTable registered for TData and returns this material's data
+        ///     from it. Returns default(TData) and logs a warning if no table for TData is registered
+        ///     on this manager - a distinct problem from MaterialSideTable's own warning, which fires
+        ///     when a table exists but this specific material has no row in it (see MaterialSideTable.cs).
         /// </summary>
         public TData GetMaterialData<TData>(byte materialIndex) where TData : new() {
             _sideTablesByType ??= BuildSideTableCache();
@@ -37,7 +37,7 @@ namespace Spellbound.GeoForge {
             // generic - see MaterialSideTable.cs.
             return ((MaterialSideTable<TData>)table).GetData(materialIndex);
         }
-        
+
         public TData GetMaterialDataAtPosition<TData>(Vector3 position) where TData : new() {
             if (!TryQuerySurfaceMaterial(position, out var material, out _))
                 return GetMaterialData<TData>(VoxelData.NullSentinelValue);

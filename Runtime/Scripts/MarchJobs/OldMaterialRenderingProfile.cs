@@ -8,11 +8,12 @@ using UnityEngine;
 
 namespace Spellbound.GeoForge {
     /// <summary>
-    /// Default MaterialRenderingProfile - schedules the existing blended matA/matB
-    /// MarchingCubeJob and TransitionMarchingCubeJob, unchanged. Use this unless a material set
-    /// specifically needs a different meshing strategy.
+    ///     Default MaterialRenderingProfile - schedules the existing blended matA/matB
+    ///     MarchingCubeJob and TransitionMarchingCubeJob, unchanged. Use this unless a material set
+    ///     specifically needs a different meshing strategy.
     /// </summary>
-    [CreateAssetMenu(menuName = "Spellbound/GeoForge/Material Rendering Profile (Default)", fileName = "DefaultMaterialRenderingProfile")]
+    [CreateAssetMenu(menuName = "Spellbound/GeoForge/Material Rendering Profile (Default)",
+        fileName = "DefaultMaterialRenderingProfile")]
     public class OldMaterialRenderingProfile : MaterialRenderingProfile {
         public override JobHandle ScheduleMarchingCubes(
             BlobAssetReference<McTablesBlobAsset> tablesBlob,
