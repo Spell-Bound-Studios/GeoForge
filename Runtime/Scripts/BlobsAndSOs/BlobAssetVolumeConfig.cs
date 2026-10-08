@@ -28,8 +28,8 @@ namespace Spellbound.GeoForge {
         public int TotalChunks;
     }
 
-    internal static class VolumeConfigBlobCreator {
-        internal static BlobAssetReference<VolumeConfigBlobAsset>
+    public static class VolumeConfigBlobCreator {
+        public static BlobAssetReference<VolumeConfigBlobAsset>
             CreateVolumeConfigBlobAsset(VoxelVolumeConfig voxelVolumeConfig) {
             var builder = new BlobBuilder(Allocator.Temp);
             ref var config = ref builder.ConstructRoot<VolumeConfigBlobAsset>();
