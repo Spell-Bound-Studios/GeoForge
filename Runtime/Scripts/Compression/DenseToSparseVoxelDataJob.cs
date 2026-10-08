@@ -13,7 +13,7 @@ namespace Spellbound.GeoForge {
     ///     Voxels before this job runs.
     /// </summary>
     [BurstCompile]
-    internal struct DenseToSparseVoxelDataJob : IJob {
+    public struct DenseToSparseVoxelDataJob : IJob {
         [ReadOnly] public NativeArray<VoxelData> Voxels;
         public NativeList<SparseVoxelData> SparseVoxels;
         public NativeArray<DensityRange> DensityRange; // single-element output slot
